@@ -8,13 +8,56 @@
           <div class="card-body">
             <h2>Sign Up</h2>
             <hr />
+
             <form method="POST">
               {% csrf_token %}
-              {{ template_data.form.as_p }}
+
+              {{ template_data.form.non_field_errors }}
+
+              <h5 class="mt-3">Account</h5>
+              {{ template_data.form.username.errors }}
+              <p>{{ template_data.form.username.label_tag }} {{ template_data.form.username }}</p>
+
+              {{ template_data.form.password1.errors }}
+              <p>{{ template_data.form.password1.label_tag }} {{ template_data.form.password1 }}</p>
+
+              {{ template_data.form.password2.errors }}
+              <p>{{ template_data.form.password2.label_tag }} {{ template_data.form.password2 }}</p>
+
+              <hr />
+              <h5>Profile</h5>
+
+              <p>{{ template_data.form.headline.label_tag }} {{ template_data.form.headline }}</p>
+              <p>{{ template_data.form.skills.label_tag }} {{ template_data.form.skills }}</p>
+              <p>{{ template_data.form.education.label_tag }} {{ template_data.form.education }}</p>
+              <p>{{ template_data.form.work_experience.label_tag }} {{ template_data.form.work_experience }}</p>
+
+              <hr />
+              <h5>Links</h5>
+
+              <div class="row g-2 mb-2">
+                <div class="col-md-4">
+                  <input class="form-control" type="text" name="link_label_0" placeholder="Label (e.g., GitHub)">
+                </div>
+                <div class="col-md-8">
+                  <input class="form-control" type="url" name="link_url_0" placeholder="https://...">
+                </div>
+              </div>
+
+              <div class="row g-2 mb-3">
+                <div class="col-md-4">
+                  <input class="form-control" type="text" name="link_label_1" placeholder="Label (e.g., Portfolio)">
+                </div>
+                <div class="col-md-8">
+                  <input class="form-control" type="url" name="link_url_1" placeholder="https://...">
+                </div>
+              </div>
+
               <button type="submit" class="btn bg-dark text-white">
                 Sign Up
               </button>
             </form>
+
           </div>
         </div>
       </div>
