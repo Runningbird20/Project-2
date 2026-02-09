@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-3 mt-4">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-10 col-lg-8">
+        <div class="card shadow p-3 mb-4 rounded">
+          <div class="card-body">
+            <h2>Edit Profile</h2>
+            <hr />
+
+            <form method="POST">
+              {% csrf_token %}
+              {{ template_data.form.as_p }}
+
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn bg-dark text-white">Save</button>
+                <a class="btn btn-outline-secondary" href="{% url 'accounts.profile' %}">Cancel</a>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
