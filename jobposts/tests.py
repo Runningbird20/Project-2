@@ -14,6 +14,7 @@ class JobPostViewTests(TestCase):
             'title': 'Backend Engineer',
             'company': 'Acme Inc',
             'location': 'Remote',
+            'pay_range': '$70k-$90k',
             'description': 'Build APIs and services.',
         }
 
