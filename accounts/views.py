@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect
 from django.db import transaction
 from django.contrib.auth import login as auth_login, authenticate, logout as auth_logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
+from django.conf import settings
 
 from .forms import SignupWithProfileForm, CustomErrorList, ProfileEditForm
 from .models import Profile
@@ -84,3 +86,22 @@ def edit_profile(request):
 
     form.save()
     return redirect("accounts.profile")
+
+
+
+@staff_member_required
+def manage_accounts(request):
+    template_data = {}
+    template_data["title"] = "Manage Accounts"
+    template_data["users"] = Profile.objects.all()
+    return render(request, 'accounts/manage_accounts.html',
+        {'template_data': template_data})
+
+def remove_user(request, user_id):
+    if request.method == "POST":
+        user = Profile.objects.get(id=user_id)
+        user.user.delete()
+        return redirect('accounts.manage_accounts')
+    else:
+        return redirect('accounts.manage_accounts')
+    

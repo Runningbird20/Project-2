@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="p-3">
+    <div class="container">
+        <div class="row mt-3">
+            <div class="col mx-auto mb-3">
+                <h2>Users</h2>
+                <hr />
+                <div class="card mb-4">
+
+                    <div class="card-body">
+
+                        <table class="table table-bordred table-striped text-center mt-3">
+                            <thead>
+                                <tr>
+                                    <th scope="col">User ID</th>
+                                    <th scope="col">Username</th>
+                                    <th scope="col">Type</th>
+                                </tr>
+                            </thead>
+
+                            {% for user in template_data.users %}
+                            <tbody>
+                                <tr>
+                                    <td>{{ user.id }}</td>
+                                    <td>{{ user.user }}</td>
+                                    <td>
+                                        {% if user.user.is_staff %}
+                                            STAFF
+                                        {% else %}
+                                        <form action="{% url 'accounts.remove_user' user.id %}" method="POST">
+                                            {% csrf_token %}
+                                            <button class="btn btn-danger mb-2">
+                                                Delete User
+                                            </button> 
+                                        </form>
+                                        {% endif %}
+                                    </td>
+                                     
+                                </tr>
+                            </tbody>
+                            {% endfor %}
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
