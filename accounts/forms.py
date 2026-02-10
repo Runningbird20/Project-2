@@ -52,11 +52,36 @@ class SignupWithProfileForm(CustomUserCreationForm):
 class ProfileEditForm(forms.ModelForm):
     class Meta:
         model = Profile
-        fields = ["headline", "skills", "education", "work_experience"]
+        fields = [
+            "headline",
+            "skills",
+            "education",
+            "work_experience",
+            "visible_to_recruiters",
+            "show_headline",
+            "show_skills",
+            "show_education",
+            "show_work_experience",
+            "show_links",
+        ]
         widgets = {
             "headline": forms.TextInput(attrs={"class": "form-control"}),
             "skills": forms.TextInput(attrs={"class": "form-control"}),
             "education": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "work_experience": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+            "visible_to_recruiters": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_headline": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_skills": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_education": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_work_experience": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_links": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+        labels = {
+            "visible_to_recruiters": "Visible to recruiters",
+            "show_headline": "Show headline",
+            "show_skills": "Show skills",
+            "show_education": "Show education",
+            "show_work_experience": "Show work experience",
+            "show_links": "Show links",
         }
 

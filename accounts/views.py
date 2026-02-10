@@ -1,7 +1,9 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction
 from django.contrib.auth import login as auth_login, authenticate, logout as auth_logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
+from django.http import Http404
 
 from .forms import SignupWithProfileForm, CustomErrorList, ProfileEditForm
 from .models import Profile
@@ -84,3 +86,17 @@ def edit_profile(request):
 
     form.save()
     return redirect("accounts.profile")
+
+def public_profile(request, username):
+    User = get_user_model()
+    user = get_object_or_404(User, username=username)
+    profile, _ = Profile.objects.get_or_create(user=user)
+    if not profile.visible_to_recruiters:
+        raise Http404("Profile not available.")
+
+    template_data = {
+        "title": f"{user.username} Profile",
+        "profile": profile,
+        "public_view": True,
+    }
+    return render(request, "accounts/public_profile.html", {"template_data": template_data})

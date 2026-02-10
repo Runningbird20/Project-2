@@ -13,6 +13,16 @@ class Profile(models.Model):
     education = models.TextField(blank=True, help_text="Write your education background")
     work_experience = models.TextField(blank=True, help_text="Write your work experience")
 
+    visible_to_recruiters = models.BooleanField(
+        default=True,
+        help_text="Allow recruiters to view your profile."
+    )
+    show_headline = models.BooleanField(default=True)
+    show_skills = models.BooleanField(default=True)
+    show_education = models.BooleanField(default=True)
+    show_work_experience = models.BooleanField(default=True)
+    show_links = models.BooleanField(default=True)
+
     def __str__(self):
         return f"{self.user.username} Profile"
 
