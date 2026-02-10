@@ -43,11 +43,51 @@
               {% endif %}
             </div>
             <div class="col-md-6">
+              <label class="form-label" for="{{ template_data.form.work_setting.id_for_label }}">Work Setting</label>
+              {{ template_data.form.work_setting }}
+              {% if template_data.form.work_setting.errors %}
+                <div class="text-danger small mt-1">{{ template_data.form.work_setting.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
               <label class="form-label" for="{{ template_data.form.pay_range.id_for_label }}">Pay Range</label>
               {{ template_data.form.pay_range }}
               <div class="form-text">Share a range to set expectations.</div>
               {% if template_data.form.pay_range.errors %}
                 <div class="text-danger small mt-1">{{ template_data.form.pay_range.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="{{ template_data.form.salary_min.id_for_label }}">Salary Min</label>
+              {{ template_data.form.salary_min }}
+              {% if template_data.form.salary_min.errors %}
+                <div class="text-danger small mt-1">{{ template_data.form.salary_min.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-3">
+              <label class="form-label" for="{{ template_data.form.salary_max.id_for_label }}">Salary Max</label>
+              {{ template_data.form.salary_max }}
+              {% if template_data.form.salary_max.errors %}
+                <div class="text-danger small mt-1">{{ template_data.form.salary_max.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="{{ template_data.form.skills.id_for_label }}">Skills</label>
+              {{ template_data.form.skills }}
+              <div class="form-text">Comma-separated skills for better search matching.</div>
+              {% if template_data.form.skills.errors %}
+                <div class="text-danger small mt-1">{{ template_data.form.skills.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6 d-flex align-items-end">
+              <div class="form-check">
+                {{ template_data.form.visa_sponsorship }}
+                <label class="form-check-label" for="{{ template_data.form.visa_sponsorship.id_for_label }}">
+                  Visa sponsorship available
+                </label>
+              </div>
+              {% if template_data.form.visa_sponsorship.errors %}
+                <div class="text-danger small mt-1">{{ template_data.form.visa_sponsorship.errors }}</div>
               {% endif %}
             </div>
             <div class="col-12">
