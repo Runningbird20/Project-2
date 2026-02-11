@@ -1,17 +1,30 @@
-# accounts/models.py
 from django.conf import settings
 from django.db import models
 
 class Profile(models.Model):
+
+    class AccountType(models.TextChoices):
+        APPLICANT = "APPLICANT", "Job Applicant"
+        EMPLOYER = "EMPLOYER", "Employer"
+
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
 
-    headline = models.CharField(max_length=120, blank=True)
-    # quick MVP: comma-separated skills
-    skills = models.CharField(max_length=300, blank=True, help_text="Comma-separated, e.g. Python, Django, SQL")
+    account_type = models.CharField(
+        max_length=20,
+        choices=AccountType.choices,
+        default=AccountType.APPLICANT
+    )
 
-    # MVP as freeform text; can later normalize into separate Education/Experience models
-    education = models.TextField(blank=True, help_text="Write your education background")
-    work_experience = models.TextField(blank=True, help_text="Write your work experience")
+    # Applicant-ish fields (keep your existing ones)
+    headline = models.CharField(max_length=120, blank=True)
+    skills = models.CharField(max_length=300, blank=True)
+    education = models.TextField(blank=True)
+    work_experience = models.TextField(blank=True)
+
+    # Employer-only fields
+    company_name = models.CharField(max_length=120, blank=True)
+    company_website = models.URLField(blank=True)
+    company_description = models.TextField(blank=True)
 
     def __str__(self):
         return f"{self.user.username} Profile"
