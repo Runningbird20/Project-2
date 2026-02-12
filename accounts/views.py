@@ -3,7 +3,7 @@ from django.db import transaction
 from django.contrib.auth import login as auth_login, authenticate, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
-from django.http import Http404
+from django.http import Http404, HttpResponseForbidden
 
 from .forms import SignupWithProfileForm, CustomErrorList, ProfileEditForm
 from .models import Profile
@@ -69,7 +69,10 @@ def profile(request):
     return render(request, "accounts/profile.html", {"template_data": template_data})
 
 @login_required
-def edit_profile(request):
+def edit_profile(request, username=None):
+    if username is not None and username != request.user.get_username():
+        return HttpResponseForbidden("You can only edit your own profile.")
+
     profile, _ = Profile.objects.get_or_create(user=request.user)
 
     template_data = {"title": "Edit Profile"}
