@@ -11,6 +11,15 @@ class Apply(models.Model):
         return f"{self.title} @ {self.company}"
     
 class Application(models.Model):
+
+    STATUS_CHOICES = [
+        ("applied", "Applied"),
+        ("review", "Under Review"),
+        ("interview", "Interview"),
+        ("offer", "Offer"),
+        ("closed", "Closed"),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     job = models.ForeignKey(Apply, on_delete=models.CASCADE)
     note = models.TextField(blank=True)
@@ -20,5 +29,11 @@ class Application(models.Model):
     )
     applied_at = models.DateTimeField(auto_now_add=True)
 
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="applied"
+    )
+    
     class Meta:
         unique_together = ("user", "job")

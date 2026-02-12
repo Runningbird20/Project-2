@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>My Application Status</h2>
+{% csrf_token %}
+<div class="status-container">
+  {% for application in applications %}
+    <div class="status-card" data-app-id="{{ application.id }}">
+        <h3>{{ application.job.title }}</h3>
+        <p>{{ application.job.company }}</p>
+
+        <div class="progress-container">
+        {% for key,label in application.STATUS_CHOICES %}
+        <div class="progress-step 
+           {% if key == application.status %} active
+           {% elif key in application.status|slice:":application.STATUS_CHOICES|length" %}{% endif %}"
+           data-status="{{ key }}">
+        {{ label }}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+  {% empty %}
+    <p>You have not applied to any jobs yet.</p>
+  {% endfor %}
+</div>
+{% endblock %}
+
+<script>
+function getCSRFToken() {
+  return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+const STATUS_ORDER = [
+  "applied",
+  "review",
+  "interview",
+  "offer",
+  "closed"
+];
+
+document.querySelectorAll(".status-card").forEach(card => {
+  const appId = card.dataset.appId;
+  const steps = card.querySelectorAll(".progress-step");
+
+  steps.forEach(step => {
+    step.addEventListener("click", () => {
+      const newStatus = step.dataset.status;
+
+      fetch(`/apply/update-status/${appId}/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCSRFToken()
+        },
+        body: JSON.stringify({ status: newStatus })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          updateUI(card, newStatus);
+        }
+      });
+    });
+  });
+});
+
+function updateUI(card, currentStatus) {
+  const steps = card.querySelectorAll(".progress-step");
+  const currentIndex = STATUS_ORDER.indexOf(currentStatus);
+
+  steps.forEach(step => {
+    const stepIndex = STATUS_ORDER.indexOf(step.dataset.status);
+
+    step.classList.remove("active", "completed");
+
+    if (stepIndex < currentIndex) {
+      step.classList.add("completed");
+    } else if (stepIndex === currentIndex) {
+      step.classList.add("active");
+    }
+  });
+}
+</script>
+
