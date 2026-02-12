@@ -17,24 +17,50 @@
                                     <th scope="col">User ID</th>
                                     <th scope="col">Username</th>
                                     <th scope="col">Type</th>
+                                    <th scope="col">Delete</th>
                                 </tr>
                             </thead>
 
-                            {% for user in template_data.users %}
+                            {% for u in template_data.users %}
                             <tbody>
                                 <tr>
-                                    <td>{{ user.id }}</td>
-                                    <td>{{ user.user }}</td>
-                                    <td>
-                                        {% if user.user.is_staff %}
-                                            STAFF
+                                    <td>{{ u.id }}</td>
+                                    <td>{{ u.user }}</td>
+                                    
+                                   <td>
+                                        {% if u.user.is_superuser %}
+                                                Superuser
                                         {% else %}
-                                        <form action="{% url 'accounts.remove_user' user.id %}" method="POST">
+                                            {% if u.user.is_staff %}
+                                                Staff
+                                            {% else %}
+                                                User
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        
+                                        {% if user.is_superuser %}
+                                            <form action="{% url 'accounts.remove_user' user.id %}" method="POST">
                                             {% csrf_token %}
                                             <button class="btn btn-danger mb-2">
-                                                Delete User
+                                                Delete Account
                                             </button> 
                                         </form>
+                                        {% else %}
+                                            {% if u.user.is_staff %}
+                                                <button class="btn btn-outline-dark mb-2">
+                                                    Cannot Delete Users
+                                                </button> 
+                                            {% else %}
+                                            <form action="{% url 'accounts.remove_user' user.id %}" method="POST">
+                                                {% csrf_token %}
+                                                <button class="btn btn-danger mb-2">
+                                                    Delete User
+                                                </button> 
+                                            </form>
+                                            {% endif %}
                                         {% endif %}
                                     </td>
                                      
