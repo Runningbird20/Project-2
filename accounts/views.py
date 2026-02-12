@@ -92,6 +92,7 @@ def profile(request):
 def edit_profile(request):
     profile, _ = Profile.objects.get_or_create(user=request.user)
     template_data = {"title": "Edit Profile"}
+    template_data["highlight_account_type"] = request.GET.get("highlight") == "account_type"
 
     if request.method == "GET":
         template_data["form"] = ProfileEditForm(instance=profile)

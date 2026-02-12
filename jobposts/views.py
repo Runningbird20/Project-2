@@ -28,7 +28,7 @@ def create(request):
             post = form.save(commit=False)
             post.owner = request.user
             post.save()
-            return redirect('jobposts.create')
+            return redirect('jobposts.search')
     else:
         form = JobPostForm()
 

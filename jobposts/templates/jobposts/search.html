@@ -61,6 +61,8 @@
           </div>
           {% if template_data.can_post_job %}
             <a class="btn btn-outline-dark" href="{% url 'jobposts.create' %}">Post a job</a>
+          {% elif request.user.is_authenticated %}
+            <a class="btn btn-outline-warning" href="{% url 'accounts.profile_edit' %}?highlight=account_type">Become an Employer</a>
           {% endif %}
         </div>
 
@@ -71,7 +73,7 @@
                 <div class="d-flex justify-content-between flex-wrap gap-2">
                   <div>
                     <h4 class="mb-1">{{ post.title }}</h4>
-                    <div class="text-muted">{{ post.company }} · {{ post.location }}</div>
+                    <div class="text-muted">{{ post.company }} Â· {{ post.location }}</div>
                   </div>
                   <div class="text-end">
                     <span class="badge bg-dark-subtle text-dark text-uppercase">{{ post.get_work_setting_display }}</span>
@@ -90,13 +92,13 @@
                     </div>
                   {% endif %}
                   {% if post.pay_range %}
-                    <div class="small text-muted">Pay range: {{ post.pay_range }}</div>
+                    <div class="small text-muted">Pay Range {{ post.pay_range }}</div>
                   {% endif %}
                   {% if post.skills %}
                     <div class="small text-muted">Skills: {{ post.skills }}</div>
                   {% endif %}
                   <p class="mt-3 mb-0">{{ post.description|truncatewords:40 }}</p>
-                  {% if request.user.is_authenticated and post.owner_id == request.user.id %}
+                  {% if template_data.can_post_job and post.owner_id == request.user.id %}
                     <div class="mt-3">
                       <a class="btn btn-sm btn-outline-dark" href="{% url 'jobposts.edit' post.id %}">Edit post</a>
                     </div>
@@ -111,6 +113,8 @@
             <p class="text-muted mb-4">Try widening your filters or post a new role to get the search started.</p>
             {% if template_data.can_post_job %}
               <a class="btn btn-dark" href="{% url 'jobposts.create' %}">Create a job post</a>
+            {% elif request.user.is_authenticated %}
+              <a class="btn btn-outline-warning" href="{% url 'accounts.profile_edit' %}?highlight=account_type">Become an Employer</a>
             {% endif %}
           </div>
         {% endif %}
