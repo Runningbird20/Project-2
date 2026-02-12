@@ -42,9 +42,7 @@ def edit(request, post_id):
     if not _is_employer(request.user):
         return HttpResponseForbidden('Only employer accounts can edit job posts.')
 
-    post = get_object_or_404(JobPost, pk=post_id)
-    if post.owner != request.user:
-        return HttpResponseForbidden('You can only edit job posts you created.')
+    post = get_object_or_404(JobPost, pk=post_id, owner=request.user)
 
     template_data = {'title': 'Edit Job Post'}
 
