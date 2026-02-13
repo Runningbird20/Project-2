@@ -136,7 +136,6 @@ class ProfileEditForm(forms.ModelForm):
             "company_name": forms.TextInput(attrs={"class": "form-control"}),
             "company_website": forms.URLInput(attrs={"class": "form-control"}),
             "company_description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
->>>>>>> 31b252403f190b143c177b5dd876e878a5d5a1b4
         }
 
     def clean(self):
