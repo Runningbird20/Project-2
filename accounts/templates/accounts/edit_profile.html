@@ -15,7 +15,12 @@
               {{ template_data.form.non_field_errors }}
 
               {{ template_data.form.account_type.errors }}
-              <p>{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</p>
+              <div id="account_type_section" class="p-2 rounded {% if template_data.highlight_account_type %}border border-warning bg-warning-subtle{% endif %}">
+                <p class="mb-1">{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</p>
+                {% if template_data.highlight_account_type %}
+                  <p class="small mb-0 text-warning-emphasis">Change this to Employer to unlock job posting.</p>
+                {% endif %}
+              </div>
 
               <div id="applicant_fields">
                 {{ template_data.form.headline.errors }}
@@ -47,6 +52,7 @@
                   const select = document.getElementById("id_account_type");
                   const applicant = document.getElementById("applicant_fields");
                   const employer = document.getElementById("employer_fields");
+                  const accountTypeSection = document.getElementById("account_type_section");
 
                   function refresh() {
                     const isEmployer = select && select.value === "EMPLOYER";
@@ -58,6 +64,15 @@
                     select.addEventListener("change", refresh);
                     refresh();
                   }
+
+                  {% if template_data.highlight_account_type %}
+                    if (select) {
+                      select.focus();
+                    }
+                    if (accountTypeSection) {
+                      accountTypeSection.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }
+                  {% endif %}
                 })();
               </script>
 
