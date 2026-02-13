@@ -77,8 +77,13 @@
               <div class="surface-card py-4">
                 <div class="d-flex justify-content-between flex-wrap gap-2">
                   <div>
+<<<<<<< Updated upstream
                     <h4 class="surface-title mb-1">{{ post.title }}</h4>
                     <div class="text-muted">{{ post.company }}  -  {{ post.location }}</div>
+=======
+                    <h4 class="mb-1">{{ post.title }}</h4>
+                    <div class="text-muted">{{ post.company }} &middot; {{ post.location }}</div>
+>>>>>>> Stashed changes
                   </div>
                   <div class="text-end">
                     <span class="badge bg-dark-subtle text-dark text-uppercase">{{ post.get_work_setting_display }}</span>
@@ -87,6 +92,7 @@
                     {% endif %}
                   </div>
                 </div>
+<<<<<<< Updated upstream
                 <div class="mt-3">
                   {% if post.salary_min or post.salary_max %}
                     <div class="small text-muted">
@@ -106,6 +112,48 @@
                   {% if template_data.can_post_job and post.owner_id == request.user.id %}
                     <div class="mt-3">
                       <a class="secondary-btn" href="{% url 'jobposts.edit' post.id %}">Edit post</a>
+=======
+                <div class="row g-3 mt-3">
+                  <div class="{% if post.office_location %}col-md-8{% else %}col-12{% endif %}">
+                    {% if post.salary_min or post.salary_max %}
+                      <div class="small text-muted">
+                        Salary:
+                        {% if post.salary_min %}${{ post.salary_min }}{% endif %}
+                        {% if post.salary_min and post.salary_max %} - {% endif %}
+                        {% if post.salary_max %}${{ post.salary_max }}{% endif %}
+                      </div>
+                    {% endif %}
+                    {% if post.pay_range %}
+                      <div class="small text-muted">Pay Range {{ post.pay_range }}</div>
+                    {% endif %}
+                    {% if post.skills %}
+                      <div class="small text-muted">Skills: {{ post.skills }}</div>
+                    {% endif %}
+                    <p class="mt-3 mb-0">{{ post.description|truncatewords:40 }}</p>
+                    {% if template_data.can_post_job and post.owner_id == request.user.id %}
+                      <div class="mt-3">
+                        <a class="btn btn-sm btn-outline-dark" href="{% url 'jobposts.edit' post.id %}">Edit post</a>
+                      </div>
+                    {% endif %}
+                  </div>
+                  {% if post.office_location %}
+                    <div class="col-md-4">
+                      <div class="ratio ratio-4x3">
+                        <iframe
+                          title="Office location map"
+                          src="{{ post.office_location.osm_embed_url }}"
+                          style="border: 1px solid #e5e7eb;"
+                          loading="lazy"
+                          referrerpolicy="no-referrer-when-downgrade">
+                        </iframe>
+                      </div>
+                      <div class="small text-muted mt-2">
+                        {% if post.office_location.full_address %}
+                          {{ post.office_location.full_address }} &middot;
+                        {% endif %}
+                        <a href="{% url 'map.job_location' post.id %}" class="link-secondary">Full map</a>
+                      </div>
+>>>>>>> Stashed changes
                     </div>
                   {% endif %}
                 </div>

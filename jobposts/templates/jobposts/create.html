@@ -17,6 +17,11 @@
               {{ template_data.form.non_field_errors }}
             </div>
           {% endif %}
+          {% if template_data.map_form.non_field_errors %}
+            <div class="alert alert-danger mb-3">
+              {{ template_data.map_form.non_field_errors }}
+            </div>
+          {% endif %}
 
           <div class="row g-3">
             <div class="col-md-6">
@@ -36,6 +41,7 @@
             <div class="col-md-6">
               <label class="form-label" for="{{ template_data.form.location.id_for_label }}">Location</label>
               {{ template_data.form.location }}
+              <div class="form-text">City/state for search, plus full office address below to pin exact location.</div>
               {% if template_data.form.location.errors %}
                 <div class="text-danger small mt-1">{{ template_data.form.location.errors }}</div>
               {% endif %}
@@ -94,6 +100,61 @@
               {% if template_data.form.description.errors %}
                 <div class="text-danger small mt-1">{{ template_data.form.description.errors }}</div>
               {% endif %}
+            </div>
+            <div class="col-12 mt-2">
+              <div class="border rounded-4 p-3 bg-light-subtle">
+                <div class="text-uppercase text-muted small mb-2">Map Pin (Optional)</div>
+                <div class="row g-3">
+                  <div class="col-12">
+                    <label class="form-label" for="{{ template_data.map_form.address_line_1.id_for_label }}">Address Line 1</label>
+                    {{ template_data.map_form.address_line_1 }}
+                    {% if template_data.map_form.address_line_1.errors %}
+                      <div class="text-danger small mt-1">{{ template_data.map_form.address_line_1.errors }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label" for="{{ template_data.map_form.address_line_2.id_for_label }}">Address Line 2</label>
+                    {{ template_data.map_form.address_line_2 }}
+                    {% if template_data.map_form.address_line_2.errors %}
+                      <div class="text-danger small mt-1">{{ template_data.map_form.address_line_2.errors }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="col-md-5">
+                    <label class="form-label" for="{{ template_data.map_form.city.id_for_label }}">City</label>
+                    {{ template_data.map_form.city }}
+                    {% if template_data.map_form.city.errors %}
+                      <div class="text-danger small mt-1">{{ template_data.map_form.city.errors }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label" for="{{ template_data.map_form.state.id_for_label }}">State</label>
+                    {{ template_data.map_form.state }}
+                    {% if template_data.map_form.state.errors %}
+                      <div class="text-danger small mt-1">{{ template_data.map_form.state.errors }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label" for="{{ template_data.map_form.postal_code.id_for_label }}">ZIP</label>
+                    {{ template_data.map_form.postal_code }}
+                    {% if template_data.map_form.postal_code.errors %}
+                      <div class="text-danger small mt-1">{{ template_data.map_form.postal_code.errors }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label" for="{{ template_data.map_form.country.id_for_label }}">Country</label>
+                    {{ template_data.map_form.country }}
+                    <div class="form-text">When filled, this address is geocoded and pinned automatically.</div>
+                    {% if template_data.map_form.country.errors %}
+                      <div class="text-danger small mt-1">{{ template_data.map_form.country.errors }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="col-md-6 d-flex align-items-end">
+                    <div class="small text-muted">
+                      Leave all address fields blank to remove the office pin from this post.
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="form-actions mt-4">

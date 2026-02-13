@@ -89,6 +89,11 @@ class SignupWithProfileForm(CustomUserCreationForm):
         return cleaned
 
 class ProfileEditForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Backward-compatible: allow posts that omit account_type and keep current value.
+        self.fields["account_type"].required = False
+
     class Meta:
         model = Profile
         fields = [
@@ -123,7 +128,7 @@ class ProfileEditForm(forms.ModelForm):
             "show_education": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "show_work_experience": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "show_links": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-        }
+        }        
         labels = {
             "visible_to_recruiters": "Visible to recruiters",
             "show_headline": "Show headline",
@@ -136,6 +141,9 @@ class ProfileEditForm(forms.ModelForm):
     def clean(self):
         cleaned = super().clean()
         acct = cleaned.get("account_type")
+        if not acct and self.instance and self.instance.pk:
+            acct = self.instance.account_type
+            cleaned["account_type"] = acct
 
         if acct == Profile.AccountType.EMPLOYER:
             if not cleaned.get("company_name"):
