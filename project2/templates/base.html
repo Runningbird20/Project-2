@@ -16,7 +16,7 @@
     <nav class="p-3 navbar navbar-dark bg-dark navbar-expand-lg">
       <div class="container">
         <a class="navbar-brand" href="{% url 'home.index' %}">
-          <img src="{% static 'img/logo.png' %}" alt="logo" height="40" />
+          <img src="{% static 'img/logo.png' %}" alt="logo" class="logo" />
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup"
           aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
@@ -25,7 +25,7 @@
         <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
           <div class="navbar-nav ms-auto navbar-ml">
             <a class="nav-link" href="{% url 'home.about' %}">About</a>
-            <a class="nav-link" href="{% url 'apply.job_board' %}">Apply</a>
+            <a class="nav-link" href="{% url 'jobposts.search' %}">Apply</a>
             <div class="vr bg-white mx-2 d-none d-lg-block"></div>
               
             {% if user.is_authenticated %}

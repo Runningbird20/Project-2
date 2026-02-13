@@ -100,3 +100,10 @@
   background: #28a745;
 }
 
+.logo {
+    max-width: 150px;    /* maximum width */
+    max-height: 40px;    /* maximum height */
+    width: 100%;         /* allow it to shrink proportionally */
+    height: auto;        /* maintain aspect ratio */
+    display: block;      /* remove inline spacing issues */
+}
