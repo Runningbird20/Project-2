@@ -92,6 +92,18 @@
               <p class="text-muted">No links added yet.</p>
             {% endif %}
 
+            <hr />
+
+            <h5>Recruiter Privacy</h5>
+            {% if template_data.profile.visible_to_recruiters %}
+              <p class="mb-2">Recruiters can view your profile.</p>
+              <a class="btn btn-sm btn-outline-dark" href="{% url 'accounts.public_profile' request.user.get_username %}">
+                View recruiter profile
+              </a>
+            {% else %}
+              <p class="text-muted mb-0">Your profile is hidden from recruiters.</p>
+            {% endif %}
+
           </div>
         </div>
       </div>

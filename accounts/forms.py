@@ -92,9 +92,22 @@ class ProfileEditForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = [
+<<<<<<< HEAD
+            "headline",
+            "skills",
+            "education",
+            "work_experience",
+            "visible_to_recruiters",
+            "show_headline",
+            "show_skills",
+            "show_education",
+            "show_work_experience",
+            "show_links",
+=======
             "account_type",
             "headline", "skills", "education", "work_experience",
             "company_name", "company_website", "company_description",
+>>>>>>> 31b252403f190b143c177b5dd876e878a5d5a1b4
         ]
         widgets = {
             "account_type": forms.Select(attrs={"class": "form-control"}),
@@ -103,10 +116,27 @@ class ProfileEditForm(forms.ModelForm):
             "skills": forms.TextInput(attrs={"class": "form-control"}),
             "education": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "work_experience": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+<<<<<<< HEAD
+            "visible_to_recruiters": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_headline": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_skills": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_education": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_work_experience": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_links": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+        labels = {
+            "visible_to_recruiters": "Visible to recruiters",
+            "show_headline": "Show headline",
+            "show_skills": "Show skills",
+            "show_education": "Show education",
+            "show_work_experience": "Show work experience",
+            "show_links": "Show links",
+=======
 
             "company_name": forms.TextInput(attrs={"class": "form-control"}),
             "company_website": forms.URLInput(attrs={"class": "form-control"}),
             "company_description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+>>>>>>> 31b252403f190b143c177b5dd876e878a5d5a1b4
         }
 
     def clean(self):
