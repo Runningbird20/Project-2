@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Python
 __pycache__/
 *.pyc
@@ -12,3 +13,11 @@ db.sqlite3
 venv/
 env/
 
+=======
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+db.sqlite3
+>>>>>>> origin/main

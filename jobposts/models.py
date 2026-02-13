@@ -1,7 +1,15 @@
 from django.db import models
+from django.conf import settings
 
 
 class JobPost(models.Model):
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='job_posts',
+        null=True,
+        blank=True,
+    )
     title = models.CharField(max_length=200)
     company = models.CharField(max_length=150)
     location = models.CharField(max_length=150)

@@ -59,7 +59,11 @@
             <div class="text-uppercase text-muted small">Results</div>
             <h3 class="mb-0">{{ template_data.posts|length }} openings</h3>
           </div>
-          <a class="btn btn-outline-dark" href="{% url 'jobposts.create' %}">Post a job</a>
+          {% if template_data.can_post_job %}
+            <a class="btn btn-outline-dark" href="{% url 'jobposts.create' %}">Post a job</a>
+          {% elif request.user.is_authenticated %}
+            <a class="btn btn-outline-warning" href="{% url 'accounts.profile_edit' %}?highlight=account_type">Become an Employer</a>
+          {% endif %}
         </div>
 
         {% if template_data.posts %}
@@ -88,12 +92,17 @@
                     </div>
                   {% endif %}
                   {% if post.pay_range %}
-                    <div class="small text-muted">Pay range: {{ post.pay_range }}</div>
+                    <div class="small text-muted">Pay Range {{ post.pay_range }}</div>
                   {% endif %}
                   {% if post.skills %}
                     <div class="small text-muted">Skills: {{ post.skills }}</div>
                   {% endif %}
                   <p class="mt-3 mb-0">{{ post.description|truncatewords:40 }}</p>
+                  {% if template_data.can_post_job and post.owner_id == request.user.id %}
+                    <div class="mt-3">
+                      <a class="btn btn-sm btn-outline-dark" href="{% url 'jobposts.edit' post.id %}">Edit post</a>
+                    </div>
+                  {% endif %}
                 </div>
               </div>
             {% endfor %}
@@ -102,7 +111,11 @@
           <div class="bg-white shadow-sm rounded-4 p-5 text-center border">
             <h4 class="mb-2">No matching jobs yet</h4>
             <p class="text-muted mb-4">Try widening your filters or post a new role to get the search started.</p>
-            <a class="btn btn-dark" href="{% url 'jobposts.create' %}">Create a job post</a>
+            {% if template_data.can_post_job %}
+              <a class="btn btn-dark" href="{% url 'jobposts.create' %}">Create a job post</a>
+            {% elif request.user.is_authenticated %}
+              <a class="btn btn-outline-warning" href="{% url 'accounts.profile_edit' %}?highlight=account_type">Become an Employer</a>
+            {% endif %}
           </div>
         {% endif %}
       </div>
