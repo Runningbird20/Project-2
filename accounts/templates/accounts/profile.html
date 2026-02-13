@@ -1,23 +1,23 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="p-3 mt-4">
+<section class="page-shell">
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-md-10 col-lg-8">
-        <div class="card shadow p-3 mb-4 rounded">
-          <div class="card-body">
+        <div class="surface-card">
 
             <div class="d-flex justify-content-between align-items-start">
               <div>
-                <h2 class="mb-1">{{ request.user.get_username }}</h2>
-                <p class="text-muted mb-1">{{ template_data.profile.get_account_type_display }}</p>
+                <p class="page-kicker mb-2">My profile</p>
+                <h1 class="page-title page-title-sm mb-1">{{ request.user.get_username }}</h1>
+                <p class="surface-copy mb-1">{{ template_data.profile.get_account_type_display }}</p>
 
                 {% if template_data.profile.account_type == "APPLICANT" and template_data.profile.headline %}
-                  <p class="text-muted mb-0">{{ template_data.profile.headline }}</p>
+                  <p class="surface-copy mb-0">{{ template_data.profile.headline }}</p>
                 {% endif %}
               </div>
 
-              <a class="btn btn-outline-dark" href="{% url 'accounts.profile_edit' %}">
+              <a class="secondary-btn" href="{% url 'accounts.profile_edit' %}">
                 Edit Profile
               </a>
             </div>
@@ -25,7 +25,7 @@
             <hr />
 
             {% if template_data.profile.account_type == "EMPLOYER" %}
-              <h5>Company</h5>
+              <h5 class="surface-title">Company</h5>
 
               {% if template_data.profile.company_name %}
                 <p class="mb-1"><b>{{ template_data.profile.company_name }}</b></p>
@@ -50,7 +50,7 @@
               <hr />
 
             {% else %}
-              <h5>Skills</h5>
+              <h5 class="surface-title">Skills</h5>
               {% if template_data.profile.skills %}
                 <p>{{ template_data.profile.skills }}</p>
               {% else %}
@@ -59,7 +59,7 @@
 
               <hr />
 
-              <h5>Education</h5>
+              <h5 class="surface-title">Education</h5>
               {% if template_data.profile.education %}
                 <p style="white-space: pre-wrap;">{{ template_data.profile.education }}</p>
               {% else %}
@@ -68,7 +68,7 @@
 
               <hr />
 
-              <h5>Work Experience</h5>
+              <h5 class="surface-title">Work Experience</h5>
               {% if template_data.profile.work_experience %}
                 <p style="white-space: pre-wrap;">{{ template_data.profile.work_experience }}</p>
               {% else %}
@@ -78,7 +78,7 @@
               <hr />
             {% endif %}
 
-            <h5>Links</h5>
+            <h5 class="surface-title">Links</h5>
             {% if template_data.profile.links.exists %}
               <ul class="mb-0">
                 {% for link in template_data.profile.links.all %}
@@ -94,20 +94,19 @@
 
             <hr />
 
-            <h5>Recruiter Privacy</h5>
+            <h5 class="surface-title">Recruiter Privacy</h5>
             {% if template_data.profile.visible_to_recruiters %}
               <p class="mb-2">Recruiters can view your profile.</p>
-              <a class="btn btn-sm btn-outline-dark" href="{% url 'accounts.public_profile' request.user.get_username %}">
+              <a class="secondary-btn" href="{% url 'accounts.public_profile' request.user.get_username %}">
                 View recruiter profile
               </a>
             {% else %}
               <p class="text-muted mb-0">Your profile is hidden from recruiters.</p>
             {% endif %}
 
-          </div>
         </div>
       </div>
     </div>
   </div>
-</div>
+</section>
 {% endblock content %}

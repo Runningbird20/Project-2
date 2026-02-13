@@ -1,18 +1,45 @@
 {% extends 'base.html' %}
 {% block content %}
-<header class="masthead bg-index text-white text-center py-4">
-  <div class="container d-flex align-items-center flex-column pt-2">
-    <h2>Project 2</h2>
-    <p>This is a placeholder</p>
-  </div>
-</header>
-<div class="p-3">
-  <div class="container">
-    <div class="row mt-3">
-      <div class="col mx-auto text-center mb-3">
-        <h4>This is a placeholder</h4>
+<section class="hero-shell">
+  <div class="container hero-content text-center">
+    <p class="hero-kicker">Smarter hiring platform</p>
+    <h1 class="hero-title">Connected. Focused. Career-ready.</h1>
+    <p class="hero-subtitle">
+      JobBoard helps candidates discover meaningful roles and gives employers a faster way to source, screen,
+      and hire top talent in one workflow.
+    </p>
+    <div class="hero-actions">
+      <a class="primary-btn" href="{% url 'jobposts.search' %}">Browse jobs</a>
+      {% if can_post_job %}
+      <a class="secondary-btn" href="{% url 'jobposts.create' %}">Post a role</a>
+      {% elif user.is_authenticated %}
+      <a class="secondary-btn" href="{% url 'accounts.profile_edit' %}?highlight=account_type">Hire talent</a>
+      {% else %}
+      <a class="secondary-btn" href="{% url 'accounts.signup' %}">Create account</a>
+      {% endif %}
+    </div>
+    <div class="hero-stats">
+      <div>
+        <span class="stat-value">8k+</span>
+        <span class="stat-label">active candidates</span>
+      </div>
+      <div>
+        <span class="stat-value">1.5k</span>
+        <span class="stat-label">open roles</span>
+      </div>
+      <div>
+        <span class="stat-value">620</span>
+        <span class="stat-label">partner companies</span>
       </div>
     </div>
   </div>
-</div>
+  <div class="hero-panels" aria-hidden="true">
+    <div class="panel"></div>
+    <div class="panel"></div>
+    <div class="panel"></div>
+    <div class="panel"></div>
+    <div class="panel"></div>
+    <div class="panel"></div>
+  </div>
+</section>
 {% endblock content %}

@@ -1,20 +1,16 @@
 {% extends 'base.html' %}
 {% block content %}
-<section class="py-5" style="background: linear-gradient(180deg, rgba(0,0,0,0.04), rgba(0,0,0,0));">
+<section class="page-shell">
   <div class="container">
     <div class="row justify-content-center">
-      <div class="col-md-9 col-lg-7">
-        <div class="mb-4">
-          <div class="text-uppercase text-muted small mb-2">
-            {% if template_data.submit_label == 'Save Changes' %}Edit posting{% else %}New posting{% endif %}
-          </div>
-          <h2 class="mb-2">{{ template_data.title }}</h2>
-          <p class="text-muted mb-0">
-            Add the role details below to publish your opening.
-          </p>
+      <div class="col-md-10 col-lg-8">
+        <div class="page-intro text-start">
+          <p class="page-kicker">Employer tools</p>
+          <h1 class="page-title page-title-sm">{{ template_data.title }}</h1>
+          <p class="page-copy mb-0">Add clear role requirements and candidate expectations to improve matching.</p>
         </div>
 
-        <form method="post" class="p-4 p-md-5 bg-white shadow-sm rounded-4 border-0">
+        <form method="post" class="surface-card mt-3">
           {% csrf_token %}
           {% if template_data.form.non_field_errors %}
             <div class="alert alert-danger mb-3">
@@ -100,9 +96,9 @@
               {% endif %}
             </div>
           </div>
-          <div class="d-flex align-items-center justify-content-between mt-4">
-            <span class="text-muted small">Fields marked required must be filled.</span>
-            <button type="submit" class="btn btn-dark px-4">{{ template_data.submit_label }}</button>
+          <div class="form-actions mt-4">
+            <button type="submit" class="primary-btn border-0">{{ template_data.submit_label }}</button>
+            <a class="secondary-btn" href="{% url 'jobposts.search' %}">Back to search</a>
           </div>
         </form>
       </div>

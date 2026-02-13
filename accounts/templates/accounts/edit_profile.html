@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="p-3 mt-4">
+<section class="page-shell">
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-md-10 col-lg-8">
-        <div class="card shadow p-3 mb-4 rounded">
-          <div class="card-body">
-            <h2>Edit Profile</h2>
-            <p class="text-muted mb-0">Privacy options control what recruiters see on your public profile.</p>
+        <div class="surface-card">
+            <p class="page-kicker mb-2">Account settings</p>
+            <h1 class="page-title page-title-sm">Edit Profile</h1>
+            <p class="surface-copy mb-0">Privacy options control what recruiters see on your public profile.</p>
             <hr />
 
             <form method="POST">
@@ -16,7 +16,7 @@
 
               {{ template_data.form.account_type.errors }}
               <div id="account_type_section" class="p-2 rounded {% if template_data.highlight_account_type %}border border-warning bg-warning-subtle{% endif %}">
-                <p class="mb-1">{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</p>
+                <div class="field-block mb-0">{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</div>
                 {% if template_data.highlight_account_type %}
                   <p class="small mb-0 text-warning-emphasis">Change this to Employer to unlock job posting.</p>
                 {% endif %}
@@ -24,27 +24,80 @@
 
               <div id="applicant_fields">
                 {{ template_data.form.headline.errors }}
-                <p>{{ template_data.form.headline.label_tag }} {{ template_data.form.headline }}</p>
+                <div class="field-block">{{ template_data.form.headline.label_tag }} {{ template_data.form.headline }}</div>
 
                 {{ template_data.form.skills.errors }}
-                <p>{{ template_data.form.skills.label_tag }} {{ template_data.form.skills }}</p>
+                <div class="field-block">{{ template_data.form.skills.label_tag }} {{ template_data.form.skills }}</div>
 
                 {{ template_data.form.education.errors }}
-                <p>{{ template_data.form.education.label_tag }} {{ template_data.form.education }}</p>
+                <div class="field-block">{{ template_data.form.education.label_tag }} {{ template_data.form.education }}</div>
 
                 {{ template_data.form.work_experience.errors }}
-                <p>{{ template_data.form.work_experience.label_tag }} {{ template_data.form.work_experience }}</p>
+                <div class="field-block">{{ template_data.form.work_experience.label_tag }} {{ template_data.form.work_experience }}</div>
               </div>
 
               <div id="employer_fields">
                 {{ template_data.form.company_name.errors }}
-                <p>{{ template_data.form.company_name.label_tag }} {{ template_data.form.company_name }}</p>
+                <div class="field-block">{{ template_data.form.company_name.label_tag }} {{ template_data.form.company_name }}</div>
 
                 {{ template_data.form.company_website.errors }}
-                <p>{{ template_data.form.company_website.label_tag }} {{ template_data.form.company_website }}</p>
+                <div class="field-block">{{ template_data.form.company_website.label_tag }} {{ template_data.form.company_website }}</div>
 
                 {{ template_data.form.company_description.errors }}
-                <p>{{ template_data.form.company_description.label_tag }} {{ template_data.form.company_description }}</p>
+                <div class="field-block">{{ template_data.form.company_description.label_tag }} {{ template_data.form.company_description }}</div>
+              </div>
+
+              <hr />
+              <h5 class="surface-title">Recruiter visibility</h5>
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <div class="form-check">
+                    {{ template_data.form.visible_to_recruiters }}
+                    <label class="form-check-label" for="{{ template_data.form.visible_to_recruiters.id_for_label }}">
+                      {{ template_data.form.visible_to_recruiters.label }}
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-check">
+                    {{ template_data.form.show_headline }}
+                    <label class="form-check-label" for="{{ template_data.form.show_headline.id_for_label }}">
+                      {{ template_data.form.show_headline.label }}
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-check">
+                    {{ template_data.form.show_skills }}
+                    <label class="form-check-label" for="{{ template_data.form.show_skills.id_for_label }}">
+                      {{ template_data.form.show_skills.label }}
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-check">
+                    {{ template_data.form.show_education }}
+                    <label class="form-check-label" for="{{ template_data.form.show_education.id_for_label }}">
+                      {{ template_data.form.show_education.label }}
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-check">
+                    {{ template_data.form.show_work_experience }}
+                    <label class="form-check-label" for="{{ template_data.form.show_work_experience.id_for_label }}">
+                      {{ template_data.form.show_work_experience.label }}
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-check">
+                    {{ template_data.form.show_links }}
+                    <label class="form-check-label" for="{{ template_data.form.show_links.id_for_label }}">
+                      {{ template_data.form.show_links.label }}
+                    </label>
+                  </div>
+                </div>
               </div>
 
               <script>
@@ -76,16 +129,14 @@
                 })();
               </script>
 
-              <div class="d-flex gap-2 mt-3">
-                <button type="submit" class="btn bg-dark text-white">Save</button>
-                <a class="btn btn-outline-secondary" href="{% url 'accounts.profile' %}">Cancel</a>
+              <div class="form-actions mt-3">
+                <button type="submit" class="primary-btn border-0">Save</button>
+                <a class="secondary-btn" href="{% url 'accounts.profile' %}">Cancel</a>
               </div>
             </form>
-
-          </div>
         </div>
       </div>
     </div>
   </div>
-</div>
+</section>
 {% endblock content %}
