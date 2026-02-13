@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .pipeline-col {
+        min-width: 320px;
+        max-width: 320px;
+        height: 80vh;
+        display: flex;
+        flex-direction: column;
+    }
+    .kanban-scroll {
+        overflow-y: auto;
+        flex-grow: 1;
+        padding-right: 5px;
+    }
+    /* Red styling for the rejected column */
+    .status-rejected {
+        background-color: #fff5f5 !important;
+        border-color: #feb2b2 !important;
+    }
+    .status-rejected h6 { color: #c53030 !important; }
+    
+    /* Custom scrollbar for better look */
+    .kanban-scroll::-webkit-scrollbar { width: 5px; }
+    .kanban-scroll::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 10px; }
+</style>
+
+<div class="container-fluid py-5 px-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{% url 'jobposts.search' %}" class="text-decoration-none">Jobs</a></li>
+                    <li class="breadcrumb-item active">Pipeline</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold mb-0">Pipeline: {{ job.title }}</h2>
+            <p class="text-muted mb-0"><i class="bi bi-building me-1"></i> {{ job.company }}</p>
+        </div>
+
+        <div class="text-end d-flex align-items-center">
+            <a href="{% url 'apply:export_applicants_csv' job.id %}" class="btn btn-outline-success btn-sm me-3">
+                <i class="bi bi-download me-1"></i> Export to CSV
+            </a>
+            
+            <div class="d-flex gap-2">
+                <span class="badge bg-primary rounded-pill px-3 py-2">
+                    {{ pipeline.applied|length|add:pipeline.review|length|add:pipeline.interview|length|add:pipeline.offer|length }} Active
+                </span>
+                <span class="badge bg-danger rounded-pill px-3 py-2">
+                    {{ pipeline.rejected|length }} Rejected
+                </span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="d-flex gap-3 overflow-auto pb-4">
+        {% for status_key, apps in pipeline.items %}
+        <div class="pipeline-col bg-light rounded-4 p-3 border {% if status_key == 'rejected' %}status-rejected{% endif %}">
+            <h6 class="text-uppercase fw-bold text-muted mb-3 d-flex justify-content-between align-items-center">
+                <span>
+                    {% if status_key == 'applied' %}<i class="bi bi-inbox me-2"></i>{% endif %}
+                    {% if status_key == 'review' %}<i class="bi bi-search me-2"></i>{% endif %}
+                    {% if status_key == 'interview' %}<i class="bi bi-chat-dots me-2"></i>{% endif %}
+                    {% if status_key == 'offer' %}<i class="bi bi-gift me-2"></i>{% endif %}
+                    {% if status_key == 'rejected' %}<i class="bi bi-x-circle me-2"></i>{% endif %}
+                    {{ status_key }}
+                </span>
+                <span class="badge bg-white text-dark border">{{ apps|length }}</span>
+            </h6>
+
+            <div class="kanban-scroll vstack gap-3">
+                {% for app in apps %}
+                <div class="card shadow-sm border-0 rounded-3">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="fw-bold mb-0">{{ app.user.get_full_name|default:app.user.username }}</h6>
+                            <a href="mailto:{{ app.user.email }}" class="text-muted" title="Email Applicant">
+                                <i class="bi bi-envelope"></i>
+                            </a>
+                        </div>
+                        
+                        {% if app.note %}
+                        <p class="small text-muted mb-2 text-truncate" style="max-width: 250px;" title="{{ app.note }}">
+                            <i class="bi bi-sticky me-1"></i> {{ app.note }}
+                        </p>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted mb-1">Move To:</label>
+                            <select class="form-select form-select-sm border-0 bg-light" onchange="updateStatus(this, '{{ app.id }}')">
+                                {% for key, label in app.STATUS_CHOICES %}
+                                <option value="{{ key }}" {% if key == app.status %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            {% if app.resume_file %}
+                                <a href="{{ app.resume_file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-file-earmark-pdf me-1"></i> View Resume
+                                </a>
+                            {% else %}
+                                <a href="{% url 'accounts.profile' %}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-person-circle me-1"></i> View Profile
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-5 text-muted opacity-50">
+                    <i class="bi bi-slash-circle mb-2 d-block fs-4"></i>
+                    <small>No applicants</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+function updateStatus(select, appId) {
+    const newStatus = select.value;
+    
+    fetch(`/apply/update-status/${appId}/`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify({ status: newStatus })
+    }).then(res => {
+        if(res.ok) {
+            window.location.reload();
+        } else {
+            alert("Error updating status. Please try again.");
+        }
+    });
+}
+</script>
+{% endblock %}

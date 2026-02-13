@@ -1,68 +1,186 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>My Application Status</h2>
-{% csrf_token %}
-<div class="status-container">
-  {% for application in applications %}
-    <div class="status-card" data-app-id="{{ application.id }}">
-        <h3>{{ application.job.title }}</h3>
-        <p>{{ application.job.company }}</p>
+<style>
+  /* Custom Stepper CSS */
+  .stepper-wrapper {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    position: relative;
+  }
+  .stepper-wrapper::before {
+    content: "";
+    position: absolute;
+    top: 15px;
+    left: 5%;
+    right: 5%;
+    height: 2px;
+    background: #e0e0e0;
+    z-index: 1;
+  }
+  .stepper-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    z-index: 2;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+  .step-counter {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #e0e0e0;
+    margin-bottom: 6px;
+    font-weight: bold;
+    font-size: 14px;
+    transition: all 0.3s ease;
+  }
+  .stepper-item.completed .step-counter {
+    background-color: #198754; 
+    border-color: #198754;
+    color: white;
+  }
+  .stepper-item.active .step-counter {
+    background-color: #0d6efd; 
+    border-color: #0d6efd;
+    color: white;
+  }
+  .step-name { font-size: 12px; color: #6c757d; font-weight: 500; text-transform: uppercase; }
+  .stepper-item.active .step-name { color: #0d6efd; font-weight: bold; }
+  .stepper-item.completed .step-name { color: #198754; }
+  
+  .status-card { transition: transform 0.2s; }
+  .status-card:hover { transform: translateY(-3px); }
 
-        <div class="progress-container">
-        {% for key,label in application.STATUS_CHOICES %}
-        <div class="progress-step 
-           {% if key == application.status %} active
-           {% elif key in application.status|slice:":application.STATUS_CHOICES|length" %}{% endif %}"
-           data-status="{{ key }}">
-        {{ label }}
-        </div>
-        {% endfor %}
+  /* Rejection Alert Styling */
+  .rejection-text {
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+</style>
+
+<div class="container py-5">
+  <div class="d-flex align-items-center mb-4">
+    <div class="bg-primary p-2 rounded-3 me-3">
+        <i class="bi bi-briefcase-fill text-white fs-4"></i>
     </div>
+    <h2 class="fw-bold mb-0">My Application Tracker</h2>
+  </div>
+
+  {% csrf_token %}
+  <div class="row g-4">
+    {% for application in applications %}
+      <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-4 status-card" data-app-id="{{ application.id }}">
+          <div class="card-body p-4">
+            <div class="row align-items-center">
+              <div class="col-lg-3 border-end">
+                <h5 class="fw-bold mb-1">{{ application.job.title }}</h5>
+                <p class="text-muted mb-0 small"><i class="bi bi-building me-1"></i>{{ application.job.company }}</p>
+                <div class="mt-2">
+                    <span class="badge bg-light text-dark border">ID: #{{ application.id }}</span>
+                </div>
+              </div>
+
+              <div class="col-lg-9">
+                {% if application.status == 'rejected' %}
+                  <div class="alert alert-danger border-0 rounded-4 d-flex align-items-start mb-0 p-4 shadow-sm">
+                    <i class="bi bi-x-circle-fill me-3 fs-3"></i>
+                    <div>
+                      <h6 class="fw-bold mb-1">Update on your application</h6>
+                      <p class="mb-0 rejection-text">We had many strong applicants, and have decided to go in a different direction. Thank you for your interest in {{ application.job.company }} and for your time during this process.</p>
+                    </div>
+                  </div>
+                {% else %}
+                  <div class="stepper-wrapper">
+                    {% for key, label in application.STATUS_CHOICES %}
+                      {% if key != 'rejected' %}
+                        <div class="stepper-item progress-step 
+                           {% if key == application.status %}active
+                           {% elif application.status == 'closed' %}completed
+                           {% endif %}" 
+                           data-status="{{ key }}">
+                          <div class="step-counter">
+                            {% if key == application.status %}
+                              <i class="bi bi-play-fill"></i>
+                            {% else %}
+                              {{ forloop.counter }}
+                            {% endif %}
+                          </div>
+                          <div class="step-name">{{ label }}</div>
+                        </div>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="col-12 text-center py-5">
+        <div class="bg-light rounded-4 p-5">
+            <i class="bi bi-send-dash fs-1 text-muted"></i>
+            <h4 class="mt-3">No applications found</h4>
+            <p class="text-muted">Explore open roles and start applying!</p>
+            <a href="{% url 'jobposts.search' %}" class="btn btn-primary rounded-pill px-4">Browse Jobs</a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
 </div>
-  {% empty %}
-    <p>You have not applied to any jobs yet.</p>
-  {% endfor %}
-</div>
-{% endblock %}
 
 <script>
 function getCSRFToken() {
   return document.querySelector('[name=csrfmiddlewaretoken]').value;
 }
 
-const STATUS_ORDER = [
-  "applied",
-  "review",
-  "interview",
-  "offer",
-  "closed"
-];
+const STATUS_ORDER = ["applied", "review", "interview", "offer", "closed"];
 
 document.querySelectorAll(".status-card").forEach(card => {
   const appId = card.dataset.appId;
-  const steps = card.querySelectorAll(".progress-step");
+  const activeStep = card.querySelector('.progress-step.active');
+  
+  // Only run JS logic if the stepper exists (not rejected)
+  if (activeStep) {
+    const steps = card.querySelectorAll(".progress-step");
+    const currentStatus = activeStep.dataset.status;
+    updateUI(card, currentStatus);
 
-  steps.forEach(step => {
-    step.addEventListener("click", () => {
-      const newStatus = step.dataset.status;
-
-      fetch(`/apply/update-status/${appId}/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRFToken": getCSRFToken()
-        },
-        body: JSON.stringify({ status: newStatus })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          updateUI(card, newStatus);
-        }
+    steps.forEach(step => {
+      step.addEventListener("click", () => {
+        const newStatus = step.dataset.status;
+        fetch(`/apply/update-status/${appId}/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCSRFToken()
+          },
+          body: JSON.stringify({ status: newStatus })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            // If we manually move it to a status that hides the stepper (like rejected if clicked), reload
+            if (newStatus === 'rejected') {
+              window.location.reload();
+            } else {
+              updateUI(card, newStatus);
+            }
+          }
+        });
       });
     });
-  });
+  }
 });
 
 function updateUI(card, currentStatus) {
@@ -71,15 +189,20 @@ function updateUI(card, currentStatus) {
 
   steps.forEach(step => {
     const stepIndex = STATUS_ORDER.indexOf(step.dataset.status);
-
     step.classList.remove("active", "completed");
+    
+    const counter = step.querySelector('.step-counter');
 
     if (stepIndex < currentIndex) {
       step.classList.add("completed");
+      counter.innerHTML = '<i class="bi bi-check-lg"></i>';
     } else if (stepIndex === currentIndex) {
       step.classList.add("active");
+      counter.innerHTML = '<i class="bi bi-play-fill"></i>';
+    } else {
+      counter.innerHTML = stepIndex + 1;
     }
   });
 }
 </script>
-
+{% endblock %}

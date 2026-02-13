@@ -17,6 +17,7 @@ class Application(models.Model):
         ("review", "Under Review"),
         ("interview", "Interview"),
         ("offer", "Offer"),
+        ("rejected", "Rejected"),
         ("closed", "Closed"),
     ]
 
