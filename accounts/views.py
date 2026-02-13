@@ -4,6 +4,7 @@ from django.contrib.auth import login as auth_login, authenticate, logout as aut
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.conf import settings
+from django.shortcuts import get_object_or_404
 
 from .forms import SignupWithProfileForm, CustomErrorList, ProfileEditForm
 from .models import Profile
@@ -127,18 +128,62 @@ def edit_profile(request):
 
 
 @staff_member_required
-def manage_accounts(request):
+def manage_users(request):
     template_data = {}
-    template_data["title"] = "Manage Accounts"
+    template_data["title"] = "Manage Users"
     template_data["users"] = Profile.objects.all()
-    return render(request, 'accounts/manage_accounts.html',
+    return render(request, 'accounts/manage_users.html',
         {'template_data': template_data})
 
+def edit_user(request, user_id):
+
+    template_data = {}
+    template_data["title"] = "Edit User"
+    profile = get_object_or_404(Profile, id=user_id)
+    template_data["user"] = profile
+
+    if (profile.user.is_superuser and not request.user.is_superuser):
+        return redirect("accounts.manage_users")
+
+    if request.method == "GET":
+        template_data["form"] = ProfileEditForm(instance=profile)
+        return render(request, "accounts/edit_user.html", {"template_data": template_data})
+    
+    form = ProfileEditForm(request.POST, instance=profile)
+    template_data["form"] = form
+
+    if not form.is_valid():
+        return render(request, "accounts/edit_user.html", {"template_data": template_data})
+
+    with transaction.atomic():
+        prof = form.save(commit=False)
+
+        if prof.account_type == Profile.AccountType.EMPLOYER:
+            prof.headline = ""
+            prof.skills = ""
+            prof.education = ""
+            prof.work_experience = ""
+        else:
+            prof.company_name = ""
+            prof.company_website = ""
+            prof.company_description = ""
+
+        prof.save()
+
+    return redirect("accounts.manage_users")
+
+
+
+
+
+@staff_member_required
 def remove_user(request, user_id):
     if request.method == "POST":
         user = Profile.objects.get(id=user_id)
         user.user.delete()
-        return redirect('accounts.manage_accounts')
+        return redirect('accounts.manage_users')
     else:
-        return redirect('accounts.manage_accounts')
+        return redirect('accounts.manage_users')
     
+
+

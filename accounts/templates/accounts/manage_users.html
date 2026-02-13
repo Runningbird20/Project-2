@@ -34,32 +34,27 @@
                                             {% if u.user.is_staff %}
                                                 Staff
                                             {% else %}
-                                                User
+                                                {{ u.account_type }}
                                             {% endif %}
                                         {% endif %}
+
                                     </td>
 
                                     <td>
                                         
                                         {% if user.is_superuser %}
-                                            <form action="{% url 'accounts.remove_user' user.id %}" method="POST">
-                                            {% csrf_token %}
-                                            <button class="btn btn-danger mb-2">
-                                                Delete Account
-                                            </button> 
-                                        </form>
+                                            <a href="{% url 'accounts.edit_user' u.id %}" class="btn btn-danger mb-2">
+                                                Edit User
+                                            </a>
                                         {% else %}
                                             {% if u.user.is_staff %}
                                                 <button class="btn btn-outline-dark mb-2">
-                                                    Cannot Delete Users
+                                                    Cannot Edit Superuser
                                                 </button> 
                                             {% else %}
-                                            <form action="{% url 'accounts.remove_user' user.id %}" method="POST">
-                                                {% csrf_token %}
-                                                <button class="btn btn-danger mb-2">
-                                                    Delete User
-                                                </button> 
-                                            </form>
+                                            <a href="{% url 'accounts.edit_user' u.id %}" class="btn btn-danger mb-2">
+                                                Edit User
+                                            </a>
                                             {% endif %}
                                         {% endif %}
                                     </td>
