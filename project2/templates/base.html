@@ -24,10 +24,9 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
           <div class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
-            <a class="nav-link site-link" href="{% url 'jobposts.search' %}">Find Jobs</a>
-            <a class="nav-link site-link" href="{% url 'home.about' %}">For Employers</a>
+            <a class="nav-link site-link" href="{% url 'jobposts.search' %}">Open Positions</a>
             {% if can_post_job %}
-              <a class="nav-link site-link" href="{% url 'jobposts.create' %}">Dashboard</a>
+              <a class="nav-link site-link" href="{% url 'jobposts.create' %}">Post a job</a>
             {% elif user.is_authenticated %}
               <a class="nav-link site-link" href="{% url 'accounts.profile_edit' %}?highlight=account_type">Become an Employer</a>
             {% endif %}
