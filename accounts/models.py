@@ -26,6 +26,16 @@ class Profile(models.Model):
     company_website = models.URLField(blank=True)
     company_description = models.TextField(blank=True)
 
+    visible_to_recruiters = models.BooleanField(
+        default=True,
+        help_text="Allow recruiters to view your profile."
+    )
+    show_headline = models.BooleanField(default=True)
+    show_skills = models.BooleanField(default=True)
+    show_education = models.BooleanField(default=True)
+    show_work_experience = models.BooleanField(default=True)
+    show_links = models.BooleanField(default=True)
+
     def __str__(self):
         return f"{self.user.username} Profile"
 
