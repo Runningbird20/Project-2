@@ -93,9 +93,24 @@ class ProfileEditForm(forms.ModelForm):
         model = Profile
         fields = [
             "account_type",
-            "headline", "skills", "education", "work_experience",
-            "company_name", "company_website", "company_description",
+
+            "headline",
+            "skills",
+            "education",
+            "work_experience",
+
+            "company_name",
+            "company_website",
+            "company_description",
+
+            "visible_to_recruiters",
+            "show_headline",
+            "show_skills",
+            "show_education",
+            "show_work_experience",
+            "show_links",
         ]
+
         widgets = {
             "account_type": forms.Select(attrs={"class": "form-control"}),
 
@@ -107,7 +122,35 @@ class ProfileEditForm(forms.ModelForm):
             "company_name": forms.TextInput(attrs={"class": "form-control"}),
             "company_website": forms.URLInput(attrs={"class": "form-control"}),
             "company_description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+
+            "visible_to_recruiters": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_headline": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_skills": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_education": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_work_experience": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "show_links": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
+
+        labels = {
+            "account_type": "Account type",
+
+            "visible_to_recruiters": "Visible to recruiters",
+            "show_headline": "Show headline",
+            "show_skills": "Show skills",
+            "show_education": "Show education",
+            "show_work_experience": "Show work experience",
+            "show_links": "Show links",
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        acct = cleaned.get("account_type")
+
+        if acct == Profile.AccountType.EMPLOYER:
+            if not cleaned.get("company_name"):
+                self.add_error("company_name", "Company name is required for employers.")
+
+        return cleaned
 
     def clean(self):
         cleaned = super().clean()

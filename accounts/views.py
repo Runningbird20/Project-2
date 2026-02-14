@@ -1,10 +1,15 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction
 from django.contrib.auth import login as auth_login, authenticate, logout as auth_logout
 from django.contrib.auth.decorators import login_required
+<<<<<<< HEAD
 from django.contrib.admin.views.decorators import staff_member_required
 from django.conf import settings
 from django.shortcuts import get_object_or_404
+=======
+from django.contrib.auth import get_user_model
+from django.http import Http404, HttpResponseForbidden
+>>>>>>> origin/main
 
 from .forms import SignupWithProfileForm, CustomErrorList, ProfileEditForm
 from .models import Profile
@@ -92,9 +97,13 @@ def profile(request):
     return render(request, "accounts/profile.html", {"template_data": template_data})
 
 @login_required
-def edit_profile(request):
+def edit_profile(request, username=None):
+    if username is not None and username != request.user.get_username():
+        return HttpResponseForbidden("You can only edit your own profile.")
+
     profile, _ = Profile.objects.get_or_create(user=request.user)
     template_data = {"title": "Edit Profile"}
+    template_data["highlight_account_type"] = request.GET.get("highlight") == "account_type"
 
     if request.method == "GET":
         template_data["form"] = ProfileEditForm(instance=profile)
@@ -125,6 +134,7 @@ def edit_profile(request):
 
     return redirect("accounts.profile")
 
+<<<<<<< HEAD
 
 
 @staff_member_required
@@ -187,3 +197,18 @@ def remove_user(request, user_id):
     
 
 
+=======
+def public_profile(request, username):
+    User = get_user_model()
+    user = get_object_or_404(User, username=username)
+    profile, _ = Profile.objects.get_or_create(user=user)
+    if not profile.visible_to_recruiters:
+        raise Http404("Profile not available.")
+
+    template_data = {
+        "title": f"{user.username} Profile",
+        "profile": profile,
+        "public_view": True,
+    }
+    return render(request, "accounts/public_profile.html", {"template_data": template_data})
+>>>>>>> origin/main

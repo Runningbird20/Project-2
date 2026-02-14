@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="py-5" style="background: linear-gradient(180deg, rgba(0,0,0,0.04), rgba(0,0,0,0));">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-4">
+        <div class="bg-white shadow-sm rounded-4 p-4">
+          <div class="text-uppercase text-muted small mb-2">Job search</div>
+          <h2 class="mb-3">Find the right role</h2>
+          <form method="get" class="vstack gap-3">
+            <div>
+              <label class="form-label">Title</label>
+              <input type="text" name="title" class="form-control" placeholder="e.g. Data Engineer" value="{{ template_data.filters.title }}">
+            </div>
+            <div>
+              <label class="form-label">Skills</label>
+              <input type="text" name="skills" class="form-control" placeholder="e.g. SQL, Python, React" value="{{ template_data.filters.skills }}">
+              <div class="form-text">Comma-separated skills.</div>
+            </div>
+            <div>
+              <label class="form-label">Location</label>
+              <input type="text" name="location" class="form-control" placeholder="e.g. Austin, TX" value="{{ template_data.filters.location }}">
+            </div>
+            <div class="row g-2">
+              <div class="col-6">
+                <label class="form-label">Min Salary</label>
+                <input type="number" name="salary_min" class="form-control" placeholder="60000" value="{{ template_data.filters.salary_min }}">
+              </div>
+              <div class="col-6">
+                <label class="form-label">Max Salary</label>
+                <input type="number" name="salary_max" class="form-control" placeholder="120000" value="{{ template_data.filters.salary_max }}">
+              </div>
+            </div>
+            <div>
+              <label class="form-label">Work Setting</label>
+              <select name="work_setting" class="form-select">
+                <option value="" {% if not template_data.filters.work_setting %}selected{% endif %}>Any</option>
+                <option value="remote" {% if template_data.filters.work_setting == 'remote' %}selected{% endif %}>Remote</option>
+                <option value="onsite" {% if template_data.filters.work_setting == 'onsite' %}selected{% endif %}>On-site</option>
+                <option value="hybrid" {% if template_data.filters.work_setting == 'hybrid' %}selected{% endif %}>Hybrid</option>
+              </select>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="visa_sponsorship" name="visa_sponsorship" value="true" {% if template_data.filters.visa_sponsorship %}checked{% endif %}>
+              <label class="form-check-label" for="visa_sponsorship">
+                Visa sponsorship available
+              </label>
+            </div>
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-dark flex-grow-1">Search</button>
+              <a href="{% url 'jobposts.search' %}" class="btn btn-outline-secondary">Reset</a>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="col-lg-8">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div>
+            <div class="text-uppercase text-muted small">Results</div>
+            <h3 class="mb-0">{{ template_data.posts|length }} openings</h3>
+          </div>
+          {% if template_data.can_post_job %}
+            <a class="btn btn-outline-dark" href="{% url 'jobposts.create' %}">Post a job</a>
+          {% elif request.user.is_authenticated %}
+            <a class="btn btn-outline-warning" href="{% url 'accounts.profile_edit' %}?highlight=account_type">Become an Employer</a>
+          {% endif %}
+        </div>
+
+        {% if template_data.posts %}
+          <div class="vstack gap-3">
+            {% for post in template_data.posts %}
+              <div class="bg-white shadow-sm rounded-4 p-4 border">
+                <div class="d-flex justify-content-between flex-wrap gap-2">
+                  <div>
+                    <h4 class="mb-1">{{ post.title }}</h4>
+                    <div class="text-muted">{{ post.company }} · {{ post.location }}</div>
+                  </div>
+                  <div class="text-end">
+                    <span class="badge bg-dark-subtle text-dark text-uppercase">{{ post.get_work_setting_display }}</span>
+                    {% if post.visa_sponsorship %}
+                      <span class="badge bg-success-subtle text-success text-uppercase">Visa</span>
+                    {% endif %}
+                  </div>
+                </div>
+                <div class="mt-3">
+                  {% if post.salary_min or post.salary_max %}
+                    <div class="small text-muted">
+                      Salary:
+                      {% if post.salary_min %}${{ post.salary_min }}{% endif %}
+                      {% if post.salary_min and post.salary_max %} - {% endif %}
+                      {% if post.salary_max %}${{ post.salary_max }}{% endif %}
+                    </div>
+                  {% endif %}
+                  {% if post.pay_range %}
+                    <div class="small text-muted">Pay Range {{ post.pay_range }}</div>
+                  {% endif %}
+                  {% if post.skills %}
+                    <div class="small text-muted">Skills: {{ post.skills }}</div>
+                  {% endif %}
+                  <p class="mt-3 mb-0">{{ post.description|truncatewords:40 }}</p>
+                  {% if template_data.can_post_job and post.owner_id == request.user.id %}
+                    <div class="mt-3">
+                      <a class="btn btn-sm btn-outline-dark" href="{% url 'jobposts.edit' post.id %}">Edit post</a>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="bg-white shadow-sm rounded-4 p-5 text-center border">
+            <h4 class="mb-2">No matching jobs yet</h4>
+            <p class="text-muted mb-4">Try widening your filters or post a new role to get the search started.</p>
+            {% if template_data.can_post_job %}
+              <a class="btn btn-dark" href="{% url 'jobposts.create' %}">Create a job post</a>
+            {% elif request.user.is_authenticated %}
+              <a class="btn btn-outline-warning" href="{% url 'accounts.profile_edit' %}?highlight=account_type">Become an Employer</a>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock content %}
