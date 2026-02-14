@@ -2,19 +2,12 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction
 from django.contrib.auth import login as auth_login, authenticate, logout as auth_logout
 from django.contrib.auth.decorators import login_required
-<<<<<<< HEAD
 from django.contrib.admin.views.decorators import staff_member_required
 from django.conf import settings
 from django.shortcuts import get_object_or_404
-=======
 from django.contrib.auth import get_user_model
 from django.http import Http404, HttpResponseForbidden
-<<<<<<< HEAD
 from django.contrib.auth.models import User
-=======
->>>>>>> origin/main
-
->>>>>>> e3e8a5718894168c257e8850a1fbde8d86cd64ed
 from .forms import SignupWithProfileForm, CustomErrorList, ProfileEditForm
 from .models import Profile
 
@@ -152,9 +145,6 @@ def edit_profile(request, username=None):
 
     return redirect("accounts.profile")
 
-<<<<<<< HEAD
-
-
 @staff_member_required
 def manage_users(request):
     template_data = {}
@@ -213,9 +203,6 @@ def remove_user(request, user_id):
     else:
         return redirect('accounts.manage_users')
     
-
-
-=======
 def public_profile(request, username):
     User = get_user_model()
     user = get_object_or_404(User, username=username)
@@ -229,4 +216,3 @@ def public_profile(request, username):
         "public_view": True,
     }
     return render(request, "accounts/public_profile.html", {"template_data": template_data})
->>>>>>> origin/main
