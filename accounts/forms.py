@@ -2,6 +2,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.forms.utils import ErrorList
 from django.utils.safestring import mark_safe
 from django import forms
+
 from .models import Profile
 
 
@@ -14,7 +15,7 @@ class CustomErrorList(ErrorList):
 
 class CustomUserCreationForm(UserCreationForm):
     def __init__(self, *args, **kwargs):
-        super(CustomUserCreationForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         for fieldname in ['username', 'password1', 'password2']:
             self.fields[fieldname].help_text = None
             self.fields[fieldname].widget.attrs.update({'class': 'form-control'})
@@ -28,7 +29,6 @@ class SignupWithProfileForm(CustomUserCreationForm):
         label="I am signing up as"
     )
 
-    # Applicant fields
     headline = forms.CharField(
         max_length=120,
         required=False,
@@ -52,7 +52,6 @@ class SignupWithProfileForm(CustomUserCreationForm):
         label="Work Experience"
     )
 
-    # Employer fields
     company_name = forms.CharField(
         max_length=120,
         required=False,
@@ -72,7 +71,6 @@ class SignupWithProfileForm(CustomUserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Optional: remove Django's default password help text if it appears
         if "password1" in self.fields:
             self.fields["password1"].help_text = None
         if "password2" in self.fields:
@@ -82,11 +80,11 @@ class SignupWithProfileForm(CustomUserCreationForm):
         cleaned = super().clean()
         acct = cleaned.get("account_type")
 
-        if acct == Profile.AccountType.EMPLOYER:
-            if not cleaned.get("company_name"):
-                self.add_error("company_name", "Company name is required for employers.")
+        if acct == Profile.AccountType.EMPLOYER and not cleaned.get("company_name"):
+            self.add_error("company_name", "Company name is required for employers.")
 
         return cleaned
+
 
 class ProfileEditForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
@@ -97,121 +95,56 @@ class ProfileEditForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = [
-<<<<<<< HEAD
             "account_type",
-=======
-<<<<<<< HEAD
-=======
-            "account_type",
-
->>>>>>> e3e8a5718894168c257e8850a1fbde8d86cd64ed
->>>>>>> e7dc03fe6bff4b71bede7a2df0e2984315fb23bb
             "headline",
             "skills",
             "education",
             "work_experience",
-<<<<<<< HEAD
             "company_name",
             "company_website",
             "company_description",
-=======
-
-            "company_name",
-            "company_website",
-            "company_description",
-
->>>>>>> e7dc03fe6bff4b71bede7a2df0e2984315fb23bb
             "visible_to_recruiters",
             "show_headline",
             "show_skills",
             "show_education",
             "show_work_experience",
             "show_links",
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-            "account_type",
-            "headline", "skills", "education", "work_experience",
-            "company_name", "company_website", "company_description",
-=======
->>>>>>> e3e8a5718894168c257e8850a1fbde8d86cd64ed
->>>>>>> e7dc03fe6bff4b71bede7a2df0e2984315fb23bb
         ]
-
         widgets = {
             "account_type": forms.Select(attrs={"class": "form-control"}),
-
             "headline": forms.TextInput(attrs={"class": "form-control"}),
             "skills": forms.TextInput(attrs={"class": "form-control"}),
             "education": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "work_experience": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
-<<<<<<< HEAD
             "company_name": forms.TextInput(attrs={"class": "form-control"}),
             "company_website": forms.URLInput(attrs={"class": "form-control"}),
             "company_description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
-=======
-<<<<<<< HEAD
-=======
-
-            "company_name": forms.TextInput(attrs={"class": "form-control"}),
-            "company_website": forms.URLInput(attrs={"class": "form-control"}),
-            "company_description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
-
->>>>>>> e3e8a5718894168c257e8850a1fbde8d86cd64ed
->>>>>>> e7dc03fe6bff4b71bede7a2df0e2984315fb23bb
             "visible_to_recruiters": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "show_headline": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "show_skills": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "show_education": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "show_work_experience": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "show_links": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-<<<<<<< HEAD
-        }        
-=======
         }
-
->>>>>>> e7dc03fe6bff4b71bede7a2df0e2984315fb23bb
         labels = {
             "account_type": "Account type",
-
             "visible_to_recruiters": "Visible to recruiters",
             "show_headline": "Show headline",
             "show_skills": "Show skills",
             "show_education": "Show education",
             "show_work_experience": "Show work experience",
             "show_links": "Show links",
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-            "company_name": "Company Name",
-            "company_website": "Company Website",
-            "company_description": "Company Description",
-=======
->>>>>>> e3e8a5718894168c257e8850a1fbde8d86cd64ed
->>>>>>> e7dc03fe6bff4b71bede7a2df0e2984315fb23bb
         }
 
     def clean(self):
         cleaned = super().clean()
         acct = cleaned.get("account_type")
+
         if not acct and self.instance and self.instance.pk:
             acct = self.instance.account_type
             cleaned["account_type"] = acct
 
-        if acct == Profile.AccountType.EMPLOYER:
-            if not cleaned.get("company_name"):
-                self.add_error("company_name", "Company name is required for employers.")
+        if acct == Profile.AccountType.EMPLOYER and not cleaned.get("company_name"):
+            self.add_error("company_name", "Company name is required for employers.")
 
         return cleaned
-
-    def clean(self):
-        cleaned = super().clean()
-        acct = cleaned.get("account_type")
-
-        if acct == Profile.AccountType.EMPLOYER:
-            if not cleaned.get("company_name"):
-                self.add_error("company_name", "Company name is required for employers.")
-
-        return cleaned
-
-

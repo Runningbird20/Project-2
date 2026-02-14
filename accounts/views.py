@@ -190,10 +190,6 @@ def edit_user(request, user_id):
 
     return redirect("accounts.manage_users")
 
-
-
-
-
 @staff_member_required
 def remove_user(request, user_id):
     if request.method == "POST":

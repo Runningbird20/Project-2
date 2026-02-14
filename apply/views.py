@@ -78,10 +78,14 @@ def employer_pipeline(request, job_id):
         'offer': applications.filter(status='offer'),
         'rejected': applications.filter(status='rejected'),
     }
+    active_count = applications.exclude(status='rejected').count()
+    rejected_count = applications.filter(status='rejected').count()
     
     return render(request, 'apply/employer_pipeline.html', {
         'job': job,
-        'pipeline': pipeline
+        'pipeline': pipeline,
+        'active_count': active_count,
+        'rejected_count': rejected_count,
     })
 
 @login_required

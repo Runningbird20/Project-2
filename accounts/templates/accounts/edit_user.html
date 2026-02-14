@@ -1,83 +1,80 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="p-3 mt-4">
+<section class="page-shell">
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-md-10 col-lg-8">
-        <div class="card shadow p-3 mb-4 rounded">
-          <div class="card-body">
-            <h2>Edit User {{ template_data.user.user }}</h2>
-            <hr />
+        <div class="surface-card">
+          <p class="page-kicker mb-2">Admin</p>
+          <h1 class="page-title page-title-sm">Edit User {{ template_data.user.user }}</h1>
+          <hr />
 
-            <form method="POST">
-              {% csrf_token %}
-              {{ template_data.form.non_field_errors }}
+          <form method="POST">
+            {% csrf_token %}
+            {{ template_data.form.non_field_errors }}
 
-              {{ template_data.form.account_type.errors }}
-              <p>{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</p>
+            {{ template_data.form.account_type.errors }}
+            <div class="field-block">{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</div>
 
-              <div id="applicant_fields">
-                {{ template_data.form.headline.errors }}
-                <p>{{ template_data.form.headline.label_tag }} {{ template_data.form.headline }}</p>
+            <div id="applicant_fields">
+              {{ template_data.form.headline.errors }}
+              <div class="field-block">{{ template_data.form.headline.label_tag }} {{ template_data.form.headline }}</div>
 
-                {{ template_data.form.skills.errors }}
-                <p>{{ template_data.form.skills.label_tag }} {{ template_data.form.skills }}</p>
+              {{ template_data.form.skills.errors }}
+              <div class="field-block">{{ template_data.form.skills.label_tag }} {{ template_data.form.skills }}</div>
 
-                {{ template_data.form.education.errors }}
-                <p>{{ template_data.form.education.label_tag }} {{ template_data.form.education }}</p>
+              {{ template_data.form.education.errors }}
+              <div class="field-block">{{ template_data.form.education.label_tag }} {{ template_data.form.education }}</div>
 
-                {{ template_data.form.work_experience.errors }}
-                <p>{{ template_data.form.work_experience.label_tag }} {{ template_data.form.work_experience }}</p>
-              </div>
-
-              <div id="employer_fields">
-                {{ template_data.form.company_name.errors }}
-                <p>{{ template_data.form.company_name.label_tag }} {{ template_data.form.company_name }}</p>
-
-                {{ template_data.form.company_website.errors }}
-                <p>{{ template_data.form.company_website.label_tag }} {{ template_data.form.company_website }}</p>
-
-                {{ template_data.form.company_description.errors }}
-                <p>{{ template_data.form.company_description.label_tag }} {{ template_data.form.company_description }}</p>
-              </div>
-
-              <script>
-                (function () {
-                  const select = document.getElementById("id_account_type");
-                  const applicant = document.getElementById("applicant_fields");
-                  const employer = document.getElementById("employer_fields");
-
-                  function refresh() {
-                    const isEmployer = select && select.value === "EMPLOYER";
-                    employer.style.display = isEmployer ? "block" : "none";
-                    applicant.style.display = isEmployer ? "none" : "block";
-                  }
-
-                  if (select) {
-                    select.addEventListener("change", refresh);
-                    refresh();
-                  }
-                })();
-              </script>
-
-              <div class="d-flex gap-2 mt-3">
-                <button type="submit" class="btn bg-dark text-white">Save</button>
-                <a class="btn btn-outline-secondary" href="{% url 'accounts.profile' %}">Cancel</a>
-              </div>
-            </form>
-            <div class="d-flex gap-2 mt-3">
-                <form action="{% url 'accounts.remove_user' template_data.user.id %}" method="POST">
-                        {% csrf_token %}
-                        <button class="btn btn-danger">
-                            Remove User
-                        </button> 
-                </form>
+              {{ template_data.form.work_experience.errors }}
+              <div class="field-block">{{ template_data.form.work_experience.label_tag }} {{ template_data.form.work_experience }}</div>
             </div>
 
+            <div id="employer_fields">
+              {{ template_data.form.company_name.errors }}
+              <div class="field-block">{{ template_data.form.company_name.label_tag }} {{ template_data.form.company_name }}</div>
+
+              {{ template_data.form.company_website.errors }}
+              <div class="field-block">{{ template_data.form.company_website.label_tag }} {{ template_data.form.company_website }}</div>
+
+              {{ template_data.form.company_description.errors }}
+              <div class="field-block">{{ template_data.form.company_description.label_tag }} {{ template_data.form.company_description }}</div>
+            </div>
+
+            <script>
+              (function () {
+                const select = document.getElementById("id_account_type");
+                const applicant = document.getElementById("applicant_fields");
+                const employer = document.getElementById("employer_fields");
+
+                function refresh() {
+                  const isEmployer = select && select.value === "EMPLOYER";
+                  employer.style.display = isEmployer ? "block" : "none";
+                  applicant.style.display = isEmployer ? "none" : "block";
+                }
+
+                if (select) {
+                  select.addEventListener("change", refresh);
+                  refresh();
+                }
+              })();
+            </script>
+
+            <div class="form-actions mt-3">
+              <button type="submit" class="primary-btn border-0">Save</button>
+              <a class="secondary-btn" href="{% url 'accounts.manage_users' %}">Back</a>
+            </div>
+          </form>
+
+          <div class="form-actions mt-3">
+            <form action="{% url 'accounts.remove_user' template_data.user.id %}" method="POST">
+              {% csrf_token %}
+              <button class="btn btn-danger">Remove User</button>
+            </form>
           </div>
         </div>
       </div>
     </div>
   </div>
-</div>
+</section>
 {% endblock content %}

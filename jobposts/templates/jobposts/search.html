@@ -1,4 +1,4 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% block content %}
 <section class="page-shell">
   <div class="container">
@@ -78,7 +78,7 @@
                 <div class="d-flex justify-content-between flex-wrap gap-2">
                   <div>
                     <h4 class="surface-title mb-1">{{ post.title }}</h4>
-                    <div class="text-muted">{{ post.company }} &middot; {{ post.location }}</div>
+                    <div class="text-muted">{{ post.company }} - {{ post.location }}</div>
                   </div>
                   <div class="text-end">
                     <span class="badge bg-dark-subtle text-dark text-uppercase">{{ post.get_work_setting_display }}</span>
@@ -99,39 +99,38 @@
                   {% if post.pay_range %}
                     <div class="small text-muted">Pay Range {{ post.pay_range }}</div>
                   {% endif %}
-<<<<<<< HEAD
-                    {% if post.skills %}
-                      <div class="small text-muted">Skills: {{ post.skills }}</div>
-                    {% endif %}
-                    <p class="mt-3 mb-0">{{ post.description|truncatewords:40 }}</p>
-                    {% if template_data.can_post_job and post.owner_id == request.user.id %}
-                      <div class="mt-3">
-                        <a class="secondary-btn" href="{% url 'jobposts.edit' post.id %}">Edit post</a>
-                      </div>
-                    {% endif %}
-=======
                   {% if post.skills %}
                     <div class="small text-muted">Skills: {{ post.skills }}</div>
                   {% endif %}
                   <p class="mt-3 mb-0">{{ post.description|truncatewords:40 }}</p>
-                  
-                  <div class="mt-3 d-flex justify-content-between align-items-center">
+
+                  <div class="mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
                     {% if template_data.can_post_job and post.owner_id == request.user.id %}
-                      <div class="d-flex gap-2">
-                            <a class="btn btn-sm btn-outline-dark" href="{% url 'jobposts.edit' post.id %}">Edit post</a>
-                            <a href="{% url 'apply:employer_pipeline' post.id %}" class="btn btn-sm btn-dark">
-                              <i class="bi bi-people-fill me-1"></i> View Applicants
-                            </a>
-                      </div>                    
+                      <div class="d-flex gap-2 flex-wrap">
+                        <a class="secondary-btn" href="{% url 'jobposts.edit' post.id %}">Edit post</a>
+                        <a href="{% url 'apply:employer_pipeline' post.id %}" class="secondary-btn">View Applicants</a>
+                      </div>
                     {% endif %}
-                    
+
                     {% if request.user.is_authenticated and not template_data.can_post_job %}
-                      <button type="button" class="btn btn-primary ms-auto" data-bs-toggle="modal" data-bs-target="#applyModal{{ post.id }}">
-                        Apply Now
-                      </button>
+                      <button type="button" class="primary-btn border-0 ms-auto" data-bs-toggle="modal" data-bs-target="#applyModal{{ post.id }}">Apply Now</button>
                     {% endif %}
                   </div>
                 </div>
+
+                {% if post.office_location %}
+                  <div class="mt-3">
+                    <div class="ratio ratio-4x3">
+                      <iframe title="Office location map" src="{{ post.office_location.osm_embed_url }}" style="border: 1px solid #e5e7eb;" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    </div>
+                    <div class="small text-muted mt-2">
+                      {% if post.office_location.full_address %}
+                        {{ post.office_location.full_address }} -
+                      {% endif %}
+                      <a href="{% url 'map.job_location' post.id %}" class="link-secondary">Full map</a>
+                    </div>
+                  </div>
+                {% endif %}
               </div>
 
               <div class="modal fade" id="applyModal{{ post.id }}" tabindex="-1" aria-labelledby="applyModalLabel{{ post.id }}" aria-hidden="true">
@@ -148,7 +147,7 @@
                           <label class="form-label fw-semibold">Add a personalized note</label>
                           <textarea name="note" class="form-control" rows="3" placeholder="Tell the employer why you're a great fit..."></textarea>
                         </div>
-                        
+
                         <div class="mb-3">
                           <label class="form-label fw-semibold">Resume Source</label>
                           <select name="resume_type" class="form-select" onchange="toggleResumeUpload(this, '{{ post.id }}')">
@@ -168,27 +167,7 @@
                       </div>
                     </form>
                   </div>
->>>>>>> e7dc03fe6bff4b71bede7a2df0e2984315fb23bb
                 </div>
-                {% if post.office_location %}
-                  <div class="mt-3">
-                    <div class="ratio ratio-4x3">
-                      <iframe
-                        title="Office location map"
-                        src="{{ post.office_location.osm_embed_url }}"
-                        style="border: 1px solid #e5e7eb;"
-                        loading="lazy"
-                        referrerpolicy="no-referrer-when-downgrade">
-                      </iframe>
-                    </div>
-                    <div class="small text-muted mt-2">
-                      {% if post.office_location.full_address %}
-                        {{ post.office_location.full_address }} &middot;
-                      {% endif %}
-                      <a href="{% url 'map.job_location' post.id %}" class="link-secondary">Full map</a>
-                    </div>
-                  </div>
-                {% endif %}
               </div>
             {% endfor %}
           </div>
@@ -207,10 +186,6 @@
     </div>
   </div>
 </section>
-<<<<<<< HEAD
-{% endblock content %}
-
-=======
 
 <script>
   function toggleResumeUpload(selectElement, postId) {
@@ -223,4 +198,3 @@
   }
 </script>
 {% endblock content %}
->>>>>>> e7dc03fe6bff4b71bede7a2df0e2984315fb23bb
