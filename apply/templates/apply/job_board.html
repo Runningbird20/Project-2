@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="page-container">
+
+  <!-- LEFT: Resume Panel -->
+  <div class="resume-panel">
+    <h2>Your Resume</h2>
+
+    <label>
+      <input type="radio" name="resume_choice" value="profile" checked>
+      <strong>Profile Resume</strong>
+      <div class="resume-preview">
+        <p>{{ user.first_name }} {{ user.last_name }}</p>
+        <p>{{ user.email }}</p>
+      </div>
+    </label>
+
+    <label>
+      <input type="radio" name="resume_choice" value="uploaded">
+      <strong>Uploaded Resume</strong>
+      <button type="button" onclick="triggerFileUpload()">Upload</button>
+      <p id="fileName">No file selected</p>
+    </label>
+
+    <input type="file" id="resumeFile" hidden onchange="handleFile(this)">
+  </div>
+
+  <!-- RIGHT: Jobs Panel -->
+  <div class="jobs-panel">
+    {% for job in jobs %}
+      <div class="job-card">
+        {% if job.logo %}
+          <img src="{{ job.logo.url }}" class="company-logo">
+        {% endif %}
+
+        <div class="job-info">
+          <h3>{{ job.title }}</h3>
+          <p>{{ job.company }}</p>
+          <p>{{ job.salary_range }}</p>
+        </div>
+
+        <button onclick="openApplyModal('{{ job.id }}')">Apply</button>
+      </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+{% include "apply/apply_modal.html" %}
+{% endblock content %}
+
+<script>
+function triggerFileUpload() {
+  document.getElementById("resumeFile").click();
+}
+
+function handleFile(input) {
+  document.getElementById("fileName").innerText = input.files[0].name;
+  document.querySelector('input[value="uploaded"]').checked = true;
+}
+</script>
+

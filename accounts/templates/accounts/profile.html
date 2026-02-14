@@ -4,108 +4,130 @@
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-md-10 col-lg-8">
-        <div class="card shadow p-3 mb-4 rounded">
+        <div class="card shadow p-3 mb-4 rounded border-0">
           <div class="card-body">
 
             <div class="d-flex justify-content-between align-items-start">
               <div>
-                <h2 class="mb-1">{{ request.user.get_username }}</h2>
+                <h2 class="mb-1 fw-bold text-dark">{{ template_data.viewed_user.get_full_name|default:template_data.viewed_user.username }}</h2>
                 <p class="text-muted mb-1">{{ template_data.profile.get_account_type_display }}</p>
 
                 {% if template_data.profile.account_type == "APPLICANT" and template_data.profile.headline %}
-                  <p class="text-muted mb-0">{{ template_data.profile.headline }}</p>
+                  <p class="text-secondary mb-0">{{ template_data.profile.headline }}</p>
                 {% endif %}
               </div>
 
-              <a class="btn btn-outline-dark" href="{% url 'accounts.profile_edit' %}">
-                Edit Profile
+              {% if template_data.is_own_profile %}
+              <a class="btn btn-outline-dark rounded-pill px-4" href="{% url 'accounts.profile_edit' %}">
+                <i class="bi bi-pencil me-1"></i> Edit Profile
               </a>
+              {% endif %}
             </div>
 
-            <hr />
+            <hr class="my-4" />
 
             {% if template_data.profile.account_type == "EMPLOYER" %}
-              <h5>Company</h5>
+              <h5 class="fw-bold"><i class="bi bi-building me-2"></i>Company Details</h5>
+              <div class="ps-4 mt-3">
+                {% if template_data.profile.company_name %}
+                  <p class="mb-1 fs-5 text-dark"><b>{{ template_data.profile.company_name }}</b></p>
+                {% else %}
+                  <p class="text-muted fst-italic">No company name added yet.</p>
+                {% endif %}
 
-              {% if template_data.profile.company_name %}
-                <p class="mb-1"><b>{{ template_data.profile.company_name }}</b></p>
+                {% if template_data.profile.company_website %}
+                  <p class="mb-3">
+                    <a href="{{ template_data.profile.company_website }}" target="_blank" rel="noopener noreferrer" class="text-primary text-decoration-none">
+                      <i class="bi bi-link-45deg"></i> {{ template_data.profile.company_website }}
+                    </a>
+                  </p>
+                {% endif %}
+
+                {% if template_data.profile.company_description %}
+                  <p style="white-space: pre-wrap;" class="text-muted">{{ template_data.profile.company_description }}</p>
+                {% else %}
+                  <p class="text-muted fst-italic">No company description added yet.</p>
+                {% endif %}
+              </div>
+
+            {% else %}
+              <h5 class="fw-bold"><i class="bi bi-lightbulb me-2"></i>Skills</h5>
+              <div class="ps-4">
+                {% if template_data.profile.skills %}
+                  <p class="text-dark">{{ template_data.profile.skills }}</p>
+                {% else %}
+                  <p class="text-muted fst-italic">No skills added yet.</p>
+                {% endif %}
+              </div>
+
+              <hr class="my-4" />
+
+              <h5 class="fw-bold"><i class="bi bi-mortarboard me-2"></i>Education</h5>
+              <div class="ps-4">
+                {% if template_data.profile.education %}
+                  <p style="white-space: pre-wrap;" class="text-dark">{{ template_data.profile.education }}</p>
+                {% else %}
+                  <p class="text-muted fst-italic">No education added yet.</p>
+                {% endif %}
+              </div>
+
+              <hr class="my-4" />
+
+              <h5 class="fw-bold"><i class="bi bi-briefcase me-2"></i>Work Experience</h5>
+              <div class="ps-4">
+                {% if template_data.profile.work_experience %}
+                  <p style="white-space: pre-wrap;" class="text-dark">{{ template_data.profile.work_experience }}</p>
+                {% else %}
+                  <p class="text-muted fst-italic">No work experience added yet.</p>
+                {% endif %}
+              </div>
+            {% endif %}
+
+            <hr class="my-4" />
+
+            <h5 class="fw-bold"><i class="bi bi-share me-2"></i>Links</h5>
+            <div class="ps-4 mt-2">
+              {% if template_data.profile.links.exists %}
+                <ul class="list-unstyled">
+                  {% for link in template_data.profile.links.all %}
+                    <li class="mb-2">
+                      <i class="bi bi-arrow-right-short text-primary"></i>
+                      {% if link.label %}<b>{{ link.label }}:</b> {% endif %}
+                      <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" class="text-decoration-none">{{ link.url }}</a>
+                    </li>
+                  {% endfor %}
+                </ul>
               {% else %}
-                <p class="text-muted">No company name added yet.</p>
+                <p class="text-muted fst-italic">No links added yet.</p>
               {% endif %}
+            </div>
 
-              {% if template_data.profile.company_website %}
-                <p class="mb-1">
-                  <a href="{{ template_data.profile.company_website }}" target="_blank" rel="noopener noreferrer">
-                    {{ template_data.profile.company_website }}
+            {% if template_data.is_own_profile %}
+              <hr class="my-4" />
+              <h5 class="fw-bold text-primary"><i class="bi bi-shield-lock me-2"></i>Privacy Settings</h5>
+              <div class="ps-4 mt-2">
+                {% if template_data.profile.visible_to_recruiters %}
+                  <p class="mb-2 text-success"><i class="bi bi-check-circle-fill me-1"></i> Your profile is visible to recruiters.</p>
+                  <a class="btn btn-sm btn-outline-primary rounded-pill px-3" href="{% url 'accounts.public_profile' template_data.viewed_user.username %}">
+                    Preview Public Profile
                   </a>
-                </p>
-              {% endif %}
-
-              {% if template_data.profile.company_description %}
-                <p style="white-space: pre-wrap;">{{ template_data.profile.company_description }}</p>
-              {% else %}
-                <p class="text-muted">No company description added yet.</p>
-              {% endif %}
-
-              <hr />
-
-            {% else %}
-              <h5>Skills</h5>
-              {% if template_data.profile.skills %}
-                <p>{{ template_data.profile.skills }}</p>
-              {% else %}
-                <p class="text-muted">No skills added yet.</p>
-              {% endif %}
-
-              <hr />
-
-              <h5>Education</h5>
-              {% if template_data.profile.education %}
-                <p style="white-space: pre-wrap;">{{ template_data.profile.education }}</p>
-              {% else %}
-                <p class="text-muted">No education added yet.</p>
-              {% endif %}
-
-              <hr />
-
-              <h5>Work Experience</h5>
-              {% if template_data.profile.work_experience %}
-                <p style="white-space: pre-wrap;">{{ template_data.profile.work_experience }}</p>
-              {% else %}
-                <p class="text-muted">No work experience added yet.</p>
-              {% endif %}
-
-              <hr />
-            {% endif %}
-
-            <h5>Links</h5>
-            {% if template_data.profile.links.exists %}
-              <ul class="mb-0">
-                {% for link in template_data.profile.links.all %}
-                  <li>
-                    {% if link.label %}<b>{{ link.label }}:</b> {% endif %}
-                    <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.url }}</a>
-                  </li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p class="text-muted">No links added yet.</p>
-            {% endif %}
-
-            <hr />
-
-            <h5>Recruiter Privacy</h5>
-            {% if template_data.profile.visible_to_recruiters %}
-              <p class="mb-2">Recruiters can view your profile.</p>
-              <a class="btn btn-sm btn-outline-dark" href="{% url 'accounts.public_profile' request.user.get_username %}">
-                View recruiter profile
-              </a>
-            {% else %}
-              <p class="text-muted mb-0">Your profile is hidden from recruiters.</p>
+                {% else %}
+                  <p class="text-muted mb-0"><i class="bi bi-eye-slash-fill me-1"></i> Your profile is hidden from recruiters.</p>
+                {% endif %}
+              </div>
             {% endif %}
 
           </div>
         </div>
+        
+        {% if not template_data.is_own_profile %}
+          <div class="text-center">
+            <button onclick="history.back()" class="btn btn-link text-muted text-decoration-none">
+              <i class="bi bi-arrow-left me-1"></i> Return to Pipeline
+            </button>
+          </div>
+        {% endif %}
+
       </div>
     </div>
   </div>

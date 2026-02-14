@@ -6,8 +6,7 @@
       <div class="col-md-10 col-lg-8">
         <div class="card shadow p-3 mb-4 rounded">
           <div class="card-body">
-            <h2>Edit Profile</h2>
-            <p class="text-muted mb-0">Privacy options control what recruiters see on your public profile.</p>
+            <h2>Edit User {{ template_data.user.user }}</h2>
             <hr />
 
             <form method="POST">
@@ -15,12 +14,7 @@
               {{ template_data.form.non_field_errors }}
 
               {{ template_data.form.account_type.errors }}
-              <div id="account_type_section" class="p-2 rounded {% if template_data.highlight_account_type %}border border-warning bg-warning-subtle{% endif %}">
-                <p class="mb-1">{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</p>
-                {% if template_data.highlight_account_type %}
-                  <p class="small mb-0 text-warning-emphasis">Change this to Employer to unlock job posting.</p>
-                {% endif %}
-              </div>
+              <p>{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</p>
 
               <div id="applicant_fields">
                 {{ template_data.form.headline.errors }}
@@ -52,7 +46,6 @@
                   const select = document.getElementById("id_account_type");
                   const applicant = document.getElementById("applicant_fields");
                   const employer = document.getElementById("employer_fields");
-                  const accountTypeSection = document.getElementById("account_type_section");
 
                   function refresh() {
                     const isEmployer = select && select.value === "EMPLOYER";
@@ -64,15 +57,6 @@
                     select.addEventListener("change", refresh);
                     refresh();
                   }
-
-                  if (template_data.highlight_account_type) {
-                    if (select) {
-                      select.focus();
-                    }
-                    if (accountTypeSection) {
-                      accountTypeSection.scrollIntoView({ behavior: "smooth", block: "center" });
-                    }
-                  }
                 })();
               </script>
 
@@ -81,6 +65,14 @@
                 <a class="btn btn-outline-secondary" href="{% url 'accounts.profile' %}">Cancel</a>
               </div>
             </form>
+            <div class="d-flex gap-2 mt-3">
+                <form action="{% url 'accounts.remove_user' template_data.user.id %}" method="POST">
+                        {% csrf_token %}
+                        <button class="btn btn-danger">
+                            Remove User
+                        </button> 
+                </form>
+            </div>
 
           </div>
         </div>

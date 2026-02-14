@@ -2,7 +2,7 @@ from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
-
+from django.db import models
 from accounts.models import Profile
 from .forms import JobPostForm
 from .models import JobPost
@@ -113,3 +113,20 @@ def search(request):
         'visa_sponsorship': visa_sponsorship == 'true',
     }
     return render(request, 'jobposts/search.html', {'template_data': template_data})
+
+@login_required
+def employer_dashboard(request):
+    my_jobs = JobPost.objects.filter(owner=request.user).annotate(
+        total_apps=models.Count('applications'),
+        new_apps=models.Count(
+            'applications', 
+            filter=models.Q(applications__status='applied')
+        )
+    ).order_by('-created_at')
+
+    overall_total = sum(job.total_apps for job in my_jobs)
+
+    return render(request, 'jobposts/dashboard.html', {
+        'jobs': my_jobs,
+        'overall_total': overall_total
+    })

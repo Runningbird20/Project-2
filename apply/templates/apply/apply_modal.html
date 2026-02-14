@@ -1,0 +1,30 @@
+<div id="applyModal" style="display:none;">
+  <form method="POST" id="applyForm">
+    {% csrf_token %}
+
+    <textarea name="note"
+      placeholder="Add a tailored note..."
+      rows="4"></textarea>
+
+    <input type="hidden" name="resume_choice" id="resumeChoice">
+
+    <button type="submit">Submit</button>
+    <button type="button" onclick="closeModal()">Cancel</button>
+  </form>
+</div>
+
+<script>
+function openApplyModal(jobId) {
+  const resume = document.querySelector(
+    'input[name="resume_choice"]:checked'
+  ).value;
+
+  document.getElementById("resumeChoice").value = resume;
+  document.getElementById("applyForm").action = `/apply/apply/${jobId}/`;
+  document.getElementById("applyModal").style.display = "block";
+}
+
+function closeModal() {
+  document.getElementById("applyModal").style.display = "none";
+}
+</script>
