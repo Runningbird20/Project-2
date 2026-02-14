@@ -62,7 +62,16 @@ def edit(request, post_id):
 
 
 def search(request):
+    if request.user.is_authenticated:
+        prof = Profile.objects.filter(user=request.user).first()
+        if prof and prof.account_type == Profile.AccountType.EMPLOYER:
+            return redirect("accounts.candidate_search")
+
     template_data = {'title': 'Job Search'}
+    if request.user.is_authenticated:
+        prof = Profile.objects.filter(user=request.user).first()
+        if prof and prof.account_type == Profile.AccountType.EMPLOYER:
+            template_data["title"] = "Candidate Search"
     posts = JobPost.objects.all().order_by('-created_at')
     can_post_job = False
     if request.user.is_authenticated:

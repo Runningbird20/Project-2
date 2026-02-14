@@ -20,6 +20,8 @@ class Profile(models.Model):
     skills = models.CharField(max_length=300, blank=True)
     education = models.TextField(blank=True)
     work_experience = models.TextField(blank=True)
+    location = models.CharField(max_length=120, blank=True)
+    projects = models.TextField(blank=True)
 
     # Employer-only fields
     company_name = models.CharField(max_length=120, blank=True)

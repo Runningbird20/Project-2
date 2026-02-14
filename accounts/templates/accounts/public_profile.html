@@ -1,3 +1,4 @@
+{# accounts/templates/accounts/public_profile.html  (Option A: show fields if they exist) #}
 {% extends 'base.html' %}
 {% block content %}
 <div class="p-3 mt-4">
@@ -10,43 +11,49 @@
             <div class="d-flex justify-content-between align-items-start">
               <div>
                 <h2 class="mb-1">{{ template_data.profile.user.get_username }}</h2>
-                {% if template_data.profile.show_headline and template_data.profile.headline %}
+                {% if template_data.profile.headline %}
                   <p class="text-muted mb-0">{{ template_data.profile.headline }}</p>
                 {% endif %}
               </div>
             </div>
 
+            {% if template_data.is_owner and not template_data.profile.visible_to_recruiters %}
+              <div class="alert alert-warning mt-3 mb-0">
+                You are previewing your public profile while set to private. Employers cannot see this profile until you turn visibility on.
+              </div>
+            {% endif %}
+
             <hr />
 
             <h5>Skills</h5>
-            {% if template_data.profile.show_skills and template_data.profile.skills %}
+            {% if template_data.profile.skills %}
               <p>{{ template_data.profile.skills }}</p>
             {% else %}
-              <p class="text-muted">Hidden from recruiters.</p>
+              <p class="text-muted">No skills added yet.</p>
             {% endif %}
 
             <hr />
 
             <h5>Education</h5>
-            {% if template_data.profile.show_education and template_data.profile.education %}
+            {% if template_data.profile.education %}
               <p style="white-space: pre-wrap;">{{ template_data.profile.education }}</p>
             {% else %}
-              <p class="text-muted">Hidden from recruiters.</p>
+              <p class="text-muted">No education added yet.</p>
             {% endif %}
 
             <hr />
 
             <h5>Work Experience</h5>
-            {% if template_data.profile.show_work_experience and template_data.profile.work_experience %}
+            {% if template_data.profile.work_experience %}
               <p style="white-space: pre-wrap;">{{ template_data.profile.work_experience }}</p>
             {% else %}
-              <p class="text-muted">Hidden from recruiters.</p>
+              <p class="text-muted">No work experience added yet.</p>
             {% endif %}
 
             <hr />
 
             <h5>Links</h5>
-            {% if template_data.profile.show_links and template_data.profile.links.exists %}
+            {% if template_data.has_links %}
               <ul class="mb-0">
                 {% for link in template_data.profile.links.all %}
                   <li>
@@ -56,8 +63,9 @@
                 {% endfor %}
               </ul>
             {% else %}
-              <p class="text-muted">Hidden from recruiters.</p>
+              <p class="text-muted">No links added yet.</p>
             {% endif %}
+
           </div>
         </div>
       </div>

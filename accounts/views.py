@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from django.http import Http404, HttpResponseForbidden
 from django.contrib.auth.models import User
+from django.db.models import Q
 from .forms import SignupWithProfileForm, CustomErrorList, ProfileEditForm
 from .models import Profile
 
@@ -56,12 +57,16 @@ def signup(request):
             profile.company_name = form.cleaned_data.get("company_name", "")
             profile.company_website = form.cleaned_data.get("company_website", "")
             profile.company_description = form.cleaned_data.get("company_description", "")
-
+            profile.location = form.cleaned_data.get("location", "")
+            profile.projects = form.cleaned_data.get("projects", "")
+            
             # Clear applicant fields (recommended)
             profile.headline = ""
             profile.skills = ""
             profile.education = ""
             profile.work_experience = ""
+
+
         else:
             # Applicant fields
             profile.headline = form.cleaned_data.get("headline", "")
@@ -87,8 +92,10 @@ def signup(request):
 
 @login_required
 def profile(request, user_id=None):
+    User = get_user_model()
+
     if user_id:
-        # Viewing someone else (an applicant from the Kanban board)
+        # Viewing someone else
         user_to_view = get_object_or_404(User, id=user_id)
         title = f"{user_to_view.username}'s Profile"
     else:
@@ -97,14 +104,23 @@ def profile(request, user_id=None):
         title = "My Profile"
 
     prof, _ = Profile.objects.get_or_create(user=user_to_view)
+    is_own = (user_to_view == request.user)
+
+    # If viewing someone else, only allow viewing public APPLICANT profiles
+    if not is_own:
+        if prof.account_type != Profile.AccountType.APPLICANT:
+            raise Http404("Profile not available.")
+        if not prof.visible_to_recruiters:
+            raise Http404("Profile not available.")
 
     template_data = {
         "title": title,
         "profile": prof,
         "viewed_user": user_to_view,
-        "is_own_profile": (user_to_view == request.user)
+        "is_own_profile": is_own,
+        "has_links": prof.links.exists(),
     }
-    
+
     return render(request, "accounts/profile.html", {"template_data": template_data})
 
 @login_required
@@ -207,12 +223,57 @@ def public_profile(request, username):
     User = get_user_model()
     user = get_object_or_404(User, username=username)
     profile, _ = Profile.objects.get_or_create(user=user)
-    if not profile.visible_to_recruiters:
+
+    is_owner = request.user.is_authenticated and request.user == user
+
+    # Only applicants have public candidate profiles
+    if profile.account_type != Profile.AccountType.APPLICANT:
+        raise Http404("Profile not available.")
+
+    # If not the owner, enforce privacy
+    if not is_owner and not profile.visible_to_recruiters:
         raise Http404("Profile not available.")
 
     template_data = {
         "title": f"{user.username} Profile",
         "profile": profile,
         "public_view": True,
+        "is_owner": is_owner,
+        "has_links": profile.links.exists(),
     }
     return render(request, "accounts/public_profile.html", {"template_data": template_data})
+
+def _is_employer(user):
+    return Profile.objects.filter(user=user, account_type=Profile.AccountType.EMPLOYER).exists()
+
+@login_required
+def candidate_search(request):
+    if not _is_employer(request.user):
+        return HttpResponseForbidden("Only employers can access candidate search.")
+
+    template_data = {"title": "Candidate Search"}
+
+    qs = Profile.objects.filter(
+        account_type=Profile.AccountType.APPLICANT,
+        visible_to_recruiters=True,
+    ).select_related("user").order_by("user__username")
+
+    skills = request.GET.get("skills", "").strip()
+    location = request.GET.get("location", "").strip()
+    projects = request.GET.get("projects", "").strip()
+
+    if skills:
+        terms = [t.strip() for t in skills.split(",") if t.strip()]
+        for t in terms:
+            qs = qs.filter(skills__icontains=t)
+
+    if location:
+        qs = qs.filter(location__icontains=location)
+
+    if projects:
+        qs = qs.filter(Q(projects__icontains=projects) | Q(headline__icontains=projects))
+
+    template_data["candidates"] = qs
+    template_data["filters"] = {"skills": skills, "location": location, "projects": projects}
+
+    return render(request, "accounts/candidate_search.html", {"template_data": template_data})
