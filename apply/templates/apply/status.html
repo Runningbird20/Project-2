@@ -2,7 +2,6 @@
 
 {% block content %}
 <style>
-  /* Custom Stepper CSS */
   .stepper-wrapper {
     display: flex;
     justify-content: space-between;
@@ -12,12 +11,13 @@
   .stepper-wrapper::before {
     content: "";
     position: absolute;
-    top: 15px;
+    top: 50%;
     left: 5%;
     right: 5%;
     height: 2px;
     background: #e0e0e0;
     z-index: 1;
+    transform: translateY(-50%);
   }
   .stepper-item {
     position: relative;
@@ -26,45 +26,55 @@
     align-items: center;
     flex: 1;
     z-index: 2;
+    padding: 15px 5px;
+    border-radius: 15px;
+    margin: 0 5px;
     transition: all 0.3s ease;
-    cursor: pointer;
+    cursor: default !important;
+    pointer-events: none; 
   }
+  
+  
+  .stepper-item.completed {
+    background-color: #198754; 
+    color: white;
+  }
+  .stepper-item.active {
+    background-color: #0d6efd; 
+    color: white;
+  }
+  .stepper-item.pending {
+    background-color: #e9ecef; 
+    color: #6c757d;
+  }
+
   .step-counter {
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: #fff;
-    border: 2px solid #e0e0e0;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
     margin-bottom: 6px;
     font-weight: bold;
-    font-size: 14px;
-    transition: all 0.3s ease;
+    font-size: 12px;
   }
-  .stepper-item.completed .step-counter {
-    background-color: #198754; 
-    border-color: #198754;
-    color: white;
+  .stepper-item.pending .step-counter {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    color: #adb5bd;
   }
-  .stepper-item.active .step-counter {
-    background-color: #0d6efd; 
-    border-color: #0d6efd;
-    color: white;
-  }
-  .step-name { font-size: 12px; color: #6c757d; font-weight: 500; text-transform: uppercase; }
-  .stepper-item.active .step-name { color: #0d6efd; font-weight: bold; }
-  .stepper-item.completed .step-name { color: #198754; }
-  
-  .status-card { transition: transform 0.2s; }
-  .status-card:hover { transform: translateY(-3px); }
 
-  /* Rejection Alert Styling */
-  .rejection-text {
-    font-size: 0.95rem;
-    line-height: 1.5;
+  .step-name { 
+    font-size: 10px; 
+    font-weight: 700; 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px;
   }
+
+  .status-card { transition: transform 0.2s; }
 </style>
 
 <div class="container py-5">
@@ -75,11 +85,10 @@
     <h2 class="fw-bold mb-0">My Application Tracker</h2>
   </div>
 
-  {% csrf_token %}
   <div class="row g-4">
     {% for application in applications %}
       <div class="col-12">
-        <div class="card border-0 shadow-sm rounded-4 status-card" data-app-id="{{ application.id }}">
+        <div class="card border-0 shadow-sm rounded-4 status-card">
           <div class="card-body p-4">
             <div class="row align-items-center">
               <div class="col-lg-3 border-end">
@@ -96,29 +105,41 @@
                     <i class="bi bi-x-circle-fill me-3 fs-3"></i>
                     <div>
                       <h6 class="fw-bold mb-1">Update on your application</h6>
-                      <p class="mb-0 rejection-text">We had many strong applicants, and have decided to go in a different direction. Thank you for your interest in {{ application.job.company }} and for your time during this process.</p>
+                      <p class="mb-0 small">We have decided to move forward with other candidates. Thank you for your interest in {{ application.job.company }}.</p>
                     </div>
                   </div>
                 {% else %}
                   <div class="stepper-wrapper">
-                    {% for key, label in application.STATUS_CHOICES %}
-                      {% if key != 'rejected' %}
-                        <div class="stepper-item progress-step 
-                           {% if key == application.status %}active
-                           {% elif application.status == 'closed' %}completed
-                           {% endif %}" 
-                           data-status="{{ key }}">
-                          <div class="step-counter">
-                            {% if key == application.status %}
-                              <i class="bi bi-play-fill"></i>
-                            {% else %}
-                              {{ forloop.counter }}
-                            {% endif %}
+                    {# Hardcoded list to compare against status #}
+                    {% with "applied review interview offer closed" as status_order %}
+                      {% for key, label in application.STATUS_CHOICES %}
+                        {% if key != 'rejected' %}
+                          
+                          {# Logic: Is this step before, equal to, or after the current status? #}
+                          <div class="stepper-item 
+                            {% if key == application.status %}active
+                            {% elif key in status_order and application.status in status_order %}
+                               {# This is a simple way to check progress in a template #}
+                               {% if application.status == 'review' and key == 'applied' %}completed
+                               {% elif application.status == 'interview' and key == 'applied' or application.status == 'interview' and key == 'review' %}completed
+                               {% elif application.status == 'offer' and key != 'offer' and key != 'closed' %}completed
+                               {% elif application.status == 'closed' %}completed
+                               {% else %}pending{% endif %}
+                            {% else %}pending{% endif %}">
+                            
+                            <div class="step-counter">
+                              {% if key == application.status %}
+                                <i class="bi bi-circle-fill" style="font-size: 8px;"></i>
+                              {% else %}
+                                <i class="bi bi-circle"></i>
+                              {% endif %}
+                            </div>
+                            <div class="step-name">{{ label }}</div>
                           </div>
-                          <div class="step-name">{{ label }}</div>
-                        </div>
-                      {% endif %}
-                    {% endfor %}
+
+                        {% endif %}
+                      {% endfor %}
+                    {% endwith %}
                   </div>
                 {% endif %}
               </div>
@@ -128,81 +149,9 @@
       </div>
     {% empty %}
       <div class="col-12 text-center py-5">
-        <div class="bg-light rounded-4 p-5">
-            <i class="bi bi-send-dash fs-1 text-muted"></i>
-            <h4 class="mt-3">No applications found</h4>
-            <p class="text-muted">Explore open roles and start applying!</p>
-            <a href="{% url 'jobposts.search' %}" class="btn btn-primary rounded-pill px-4">Browse Jobs</a>
-        </div>
+        <p class="text-muted">No applications found.</p>
       </div>
     {% endfor %}
   </div>
 </div>
-
-<script>
-function getCSRFToken() {
-  return document.querySelector('[name=csrfmiddlewaretoken]').value;
-}
-
-const STATUS_ORDER = ["applied", "review", "interview", "offer", "closed"];
-
-document.querySelectorAll(".status-card").forEach(card => {
-  const appId = card.dataset.appId;
-  const activeStep = card.querySelector('.progress-step.active');
-  
-  // Only run JS logic if the stepper exists (not rejected)
-  if (activeStep) {
-    const steps = card.querySelectorAll(".progress-step");
-    const currentStatus = activeStep.dataset.status;
-    updateUI(card, currentStatus);
-
-    steps.forEach(step => {
-      step.addEventListener("click", () => {
-        const newStatus = step.dataset.status;
-        fetch(`/apply/update-status/${appId}/`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": getCSRFToken()
-          },
-          body: JSON.stringify({ status: newStatus })
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            // If we manually move it to a status that hides the stepper (like rejected if clicked), reload
-            if (newStatus === 'rejected') {
-              window.location.reload();
-            } else {
-              updateUI(card, newStatus);
-            }
-          }
-        });
-      });
-    });
-  }
-});
-
-function updateUI(card, currentStatus) {
-  const steps = card.querySelectorAll(".progress-step");
-  const currentIndex = STATUS_ORDER.indexOf(currentStatus);
-
-  steps.forEach(step => {
-    const stepIndex = STATUS_ORDER.indexOf(step.dataset.status);
-    step.classList.remove("active", "completed");
-    
-    const counter = step.querySelector('.step-counter');
-
-    if (stepIndex < currentIndex) {
-      step.classList.add("completed");
-      counter.innerHTML = '<i class="bi bi-check-lg"></i>';
-    } else if (stepIndex === currentIndex) {
-      step.classList.add("active");
-      counter.innerHTML = '<i class="bi bi-play-fill"></i>';
-    } else {
-      counter.innerHTML = stepIndex + 1;
-    }
-  });
-}
-</script>
 {% endblock %}

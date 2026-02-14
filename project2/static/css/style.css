@@ -101,9 +101,32 @@
 }
 
 .logo {
-    max-width: 150px;    /* maximum width */
-    max-height: 40px;    /* maximum height */
-    width: 100%;         /* allow it to shrink proportionally */
-    height: auto;        /* maintain aspect ratio */
-    display: block;      /* remove inline spacing issues */
+    max-width: 150px;  
+    max-height: 40px;   
+    width: 100%;      
+    height: auto;        
+    display: block;      
+}
+
+.home-logo-img {
+    width: 150px;       
+    height: auto;        
+    object-fit: contain; 
+    display: block;
+    margin-left: auto;   
+    border-radius: 8px; 
+}
+
+.dashboard-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+}
+.table-hover tbody tr:hover {
+    background-color: #f8faff;
+}
+.bg-success-subtle {
+    background-color: #dcfce7 !important;
 }

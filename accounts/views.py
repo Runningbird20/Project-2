@@ -4,7 +4,7 @@ from django.contrib.auth import login as auth_login, authenticate, logout as aut
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from django.http import Http404, HttpResponseForbidden
-
+from django.contrib.auth.models import User
 from .forms import SignupWithProfileForm, CustomErrorList, ProfileEditForm
 from .models import Profile
 
@@ -83,11 +83,25 @@ def signup(request):
     return redirect("accounts.login")
 
 @login_required
-def profile(request):
-    template_data = {"title": "My Profile"}
-    # Ensure profile exists
-    prof, _ = Profile.objects.get_or_create(user=request.user)
-    template_data["profile"] = prof
+def profile(request, user_id=None):
+    if user_id:
+        # Viewing someone else (an applicant from the Kanban board)
+        user_to_view = get_object_or_404(User, id=user_id)
+        title = f"{user_to_view.username}'s Profile"
+    else:
+        # Viewing yourself
+        user_to_view = request.user
+        title = "My Profile"
+
+    prof, _ = Profile.objects.get_or_create(user=user_to_view)
+
+    template_data = {
+        "title": title,
+        "profile": prof,
+        "viewed_user": user_to_view,
+        "is_own_profile": (user_to_view == request.user)
+    }
+    
     return render(request, "accounts/profile.html", {"template_data": template_data})
 
 @login_required
