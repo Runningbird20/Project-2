@@ -493,6 +493,33 @@ main {
   background-color: rgba(107, 114, 128, 0.08);
 }
 
+.job-post-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 1rem;
+  align-items: start;
+}
+
+.job-post-main {
+  min-width: 0;
+}
+
+.job-post-map {
+  justify-self: end;
+  width: 100%;
+  max-width: 240px;
+}
+
+.job-post-map-frame {
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.job-post-map-frame iframe {
+  border: 0;
+}
+
 #applyModal {
   position: fixed;
   inset: 0;
@@ -555,6 +582,15 @@ main {
 
   .page-shell {
     padding-top: 1.5rem;
+  }
+
+  .job-post-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .job-post-map {
+    justify-self: start;
+    max-width: 320px;
   }
 }
 

@@ -84,44 +84,46 @@
                     <span class="badge bg-dark-subtle text-dark text-uppercase">{{ post.get_work_setting_display }}</span>
                     {% if post.visa_sponsorship %}
                       <span class="badge bg-success-subtle text-success text-uppercase">Visa</span>
-                    {% endif %}
                   </div>
                 </div>
-                <div class="mt-3">
-                  {% if post.salary_min or post.salary_max %}
-                    <div class="small text-muted">
-                      Salary:
-                      {% if post.salary_min %}${{ post.salary_min }}{% endif %}
-                      {% if post.salary_min and post.salary_max %} - {% endif %}
-                      {% if post.salary_max %}${{ post.salary_max }}{% endif %}
-                    </div>
-                  {% endif %}
-                  {% if post.pay_range %}
-                    <div class="small text-muted">Pay Range {{ post.pay_range }}</div>
-                  {% endif %}
-                  {% if post.skills %}
-                    <div class="small text-muted">Skills: {{ post.skills }}</div>
-                  {% endif %}
-                  <p class="mt-3 mb-0">{{ post.description|truncatewords:40 }}</p>
 
-                  <div class="mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    {% if template_data.can_post_job and post.owner_id == request.user.id %}
-                      <div class="d-flex gap-2 flex-wrap">
-                        <a class="secondary-btn" href="{% url 'jobposts.edit' post.id %}">Edit post</a>
-                        <a href="{% url 'apply:employer_pipeline' post.id %}" class="secondary-btn">View Applicants</a>
+                <div class="job-post-layout mt-3">
+                  <div class="job-post-main">
+                    {% if post.salary_min or post.salary_max %}
+                      <div class="small text-muted">
+                        Salary:
+                        {% if post.salary_min %}${{ post.salary_min }}{% endif %}
+                        {% if post.salary_min and post.salary_max %} - {% endif %}
+                        {% if post.salary_max %}${{ post.salary_max }}{% endif %}
                       </div>
                     {% endif %}
+                    {% if post.pay_range %}
+                      <div class="small text-muted">Pay Range {{ post.pay_range }}</div>
+                    {% endif %}
+                    {% if post.skills %}
+                      <div class="small text-muted">Skills: {{ post.skills }}</div>
+                    {% endif %}
+                    <p class="mt-3 mb-0">{{ post.description|truncatewords:40 }}</p>
 
-                    {% if request.user.is_authenticated and not template_data.can_post_job %}
-                      <button type="button" class="primary-btn border-0 ms-auto" data-bs-toggle="modal" data-bs-target="#applyModal{{ post.id }}">Apply Now</button>
+                    <div class="mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                      {% if template_data.can_post_job and post.owner_id == request.user.id %}
+                        <div class="d-flex gap-2 flex-wrap">
+                          <a class="secondary-btn" href="{% url 'jobposts.edit' post.id %}">Edit post</a>
+                          <a href="{% url 'apply:employer_pipeline' post.id %}" class="secondary-btn">View Applicants</a>
+                        </div>
+                      {% endif %}
+
+                      {% if request.user.is_authenticated and not template_data.can_post_job %}
+                        <button type="button" class="primary-btn border-0 ms-auto" data-bs-toggle="modal" data-bs-target="#applyModal{{ post.id }}">Apply Now</button>
+                      {% endif %}
+                    </div>
                     {% endif %}
                   </div>
-                </div>
 
-                {% if post.office_location %}
-                  <div class="mt-3">
-                    <div class="ratio ratio-4x3">
-                      <iframe title="Office location map" src="{{ post.office_location.osm_embed_url }}" style="border: 1px solid #e5e7eb;" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                  {% if post.office_location %}
+                  <aside class="job-post-map">
+                    <div class="ratio ratio-4x3 job-post-map-frame">
+                      <iframe title="Office location map" src="{{ post.office_location.osm_embed_url }}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
                     </div>
                     <div class="small text-muted mt-2">
                       {% if post.office_location.full_address %}
@@ -129,8 +131,9 @@
                       {% endif %}
                       <a href="{% url 'map.job_location' post.id %}" class="link-secondary">Full map</a>
                     </div>
-                  </div>
-                {% endif %}
+                  </aside>
+                  {% endif %}
+                </div>
               </div>
 
               <div class="modal fade" id="applyModal{{ post.id }}" tabindex="-1" aria-labelledby="applyModalLabel{{ post.id }}" aria-hidden="true">
