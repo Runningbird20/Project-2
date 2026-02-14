@@ -2,22 +2,19 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction
 from django.contrib.auth import login as auth_login, authenticate, logout as auth_logout
 from django.contrib.auth.decorators import login_required
-<<<<<<< HEAD
 from django.contrib.admin.views.decorators import staff_member_required
-from django.conf import settings
-from django.shortcuts import get_object_or_404
-=======
 from django.contrib.auth import get_user_model
 from django.http import Http404, HttpResponseForbidden
->>>>>>> origin/main
 
 from .forms import SignupWithProfileForm, CustomErrorList, ProfileEditForm
 from .models import Profile
+
 
 @login_required
 def logout(request):
     auth_logout(request)
     return redirect('home.index')
+
 
 def login(request):
     template_data = {"title": "Login"}
@@ -32,6 +29,7 @@ def login(request):
     auth_login(request, user)
     return redirect('home.index')
 
+
 def signup(request):
     template_data = {"title": "Sign Up"}
 
@@ -39,7 +37,6 @@ def signup(request):
         template_data["form"] = SignupWithProfileForm()
         return render(request, "accounts/signup.html", {"template_data": template_data})
 
-    # POST
     form = SignupWithProfileForm(request.POST, error_class=CustomErrorList)
     template_data["form"] = form
 
@@ -48,38 +45,30 @@ def signup(request):
 
     with transaction.atomic():
         user = form.save()
-
         profile, _ = Profile.objects.get_or_create(user=user)
 
         acct = form.cleaned_data.get("account_type", Profile.AccountType.APPLICANT)
         profile.account_type = acct
 
         if acct == Profile.AccountType.EMPLOYER:
-            # Employer fields
             profile.company_name = form.cleaned_data.get("company_name", "")
             profile.company_website = form.cleaned_data.get("company_website", "")
             profile.company_description = form.cleaned_data.get("company_description", "")
-
-            # Clear applicant fields (recommended)
             profile.headline = ""
             profile.skills = ""
             profile.education = ""
             profile.work_experience = ""
         else:
-            # Applicant fields
             profile.headline = form.cleaned_data.get("headline", "")
             profile.skills = form.cleaned_data.get("skills", "")
             profile.education = form.cleaned_data.get("education", "")
             profile.work_experience = form.cleaned_data.get("work_experience", "")
-
-            # Clear employer fields
             profile.company_name = ""
             profile.company_website = ""
             profile.company_description = ""
 
         profile.save()
 
-        # Save up to 2 links from the signup template (unchanged)
         for i in range(2):
             label = request.POST.get(f"link_label_{i}", "").strip()
             url = request.POST.get(f"link_url_{i}", "").strip()
@@ -88,13 +77,14 @@ def signup(request):
 
     return redirect("accounts.login")
 
+
 @login_required
 def profile(request):
     template_data = {"title": "My Profile"}
-    # Ensure profile exists
     prof, _ = Profile.objects.get_or_create(user=request.user)
     template_data["profile"] = prof
     return render(request, "accounts/profile.html", {"template_data": template_data})
+
 
 @login_required
 def edit_profile(request, username=None):
@@ -109,7 +99,6 @@ def edit_profile(request, username=None):
         template_data["form"] = ProfileEditForm(instance=profile)
         return render(request, "accounts/edit_profile.html", {"template_data": template_data})
 
-    # POST
     form = ProfileEditForm(request.POST, instance=profile)
     template_data["form"] = form
 
@@ -119,7 +108,6 @@ def edit_profile(request, username=None):
     with transaction.atomic():
         prof = form.save(commit=False)
 
-        # If they are an employer, wipe applicant fields; if applicant, wipe employer fields
         if prof.account_type == Profile.AccountType.EMPLOYER:
             prof.headline = ""
             prof.skills = ""
@@ -134,31 +122,29 @@ def edit_profile(request, username=None):
 
     return redirect("accounts.profile")
 
-<<<<<<< HEAD
-
 
 @staff_member_required
 def manage_users(request):
-    template_data = {}
-    template_data["title"] = "Manage Users"
-    template_data["users"] = Profile.objects.all()
-    return render(request, 'accounts/manage_users.html',
-        {'template_data': template_data})
+    template_data = {
+        "title": "Manage Users",
+        "users": Profile.objects.all(),
+    }
+    return render(request, 'accounts/manage_users.html', {'template_data': template_data})
 
+
+@staff_member_required
 def edit_user(request, user_id):
-
-    template_data = {}
-    template_data["title"] = "Edit User"
+    template_data = {"title": "Edit User"}
     profile = get_object_or_404(Profile, id=user_id)
     template_data["user"] = profile
 
-    if (profile.user.is_superuser and not request.user.is_superuser):
+    if profile.user.is_superuser and not request.user.is_superuser:
         return redirect("accounts.manage_users")
 
     if request.method == "GET":
         template_data["form"] = ProfileEditForm(instance=profile)
         return render(request, "accounts/edit_user.html", {"template_data": template_data})
-    
+
     form = ProfileEditForm(request.POST, instance=profile)
     template_data["form"] = form
 
@@ -183,21 +169,15 @@ def edit_user(request, user_id):
     return redirect("accounts.manage_users")
 
 
-
-
-
 @staff_member_required
 def remove_user(request, user_id):
     if request.method == "POST":
         user = Profile.objects.get(id=user_id)
         user.user.delete()
         return redirect('accounts.manage_users')
-    else:
-        return redirect('accounts.manage_users')
-    
+    return redirect('accounts.manage_users')
 
 
-=======
 def public_profile(request, username):
     User = get_user_model()
     user = get_object_or_404(User, username=username)
@@ -211,4 +191,3 @@ def public_profile(request, username):
         "public_view": True,
     }
     return render(request, "accounts/public_profile.html", {"template_data": template_data})
->>>>>>> origin/main
