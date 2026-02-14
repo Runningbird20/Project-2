@@ -8,17 +8,9 @@ urlpatterns = [
     path('profile/', views.profile, name='accounts.profile'),
     path('profile/<int:user_id>/', views.profile, name='accounts.profile_with_id'),
     path("profile/edit/", views.edit_profile, name="accounts.profile_edit"),
-<<<<<<< HEAD
     path("manage_users/", views.manage_users, name="accounts.manage_users"),
     path('edit_user/<int:user_id>/', views.edit_user, name='accounts.edit_user'),
     path('remove_user/<int:user_id>/', views.remove_user, name='accounts.remove_user'),
-]
-=======
     path("profile/<str:username>/edit/", views.edit_profile, name="accounts.profile_edit_user"),
     path("profile/<str:username>/", views.public_profile, name="accounts.public_profile"),
-<<<<<<< HEAD
 ]
-=======
-]
->>>>>>> origin/main
->>>>>>> e3e8a5718894168c257e8850a1fbde8d86cd64ed

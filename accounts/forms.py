@@ -92,45 +92,27 @@ class ProfileEditForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = [
-<<<<<<< HEAD
             "account_type",
-=======
-<<<<<<< HEAD
-=======
             "account_type",
-
->>>>>>> e3e8a5718894168c257e8850a1fbde8d86cd64ed
->>>>>>> e7dc03fe6bff4b71bede7a2df0e2984315fb23bb
             "headline",
             "skills",
             "education",
             "work_experience",
-<<<<<<< HEAD
             "company_name",
             "company_website",
             "company_description",
-=======
-
             "company_name",
             "company_website",
             "company_description",
-
->>>>>>> e7dc03fe6bff4b71bede7a2df0e2984315fb23bb
             "visible_to_recruiters",
             "show_headline",
             "show_skills",
             "show_education",
             "show_work_experience",
             "show_links",
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
             "account_type",
             "headline", "skills", "education", "work_experience",
             "company_name", "company_website", "company_description",
-=======
->>>>>>> e3e8a5718894168c257e8850a1fbde8d86cd64ed
->>>>>>> e7dc03fe6bff4b71bede7a2df0e2984315fb23bb
         ]
 
         widgets = {
@@ -139,20 +121,12 @@ class ProfileEditForm(forms.ModelForm):
             "skills": forms.TextInput(attrs={"class": "form-control"}),
             "education": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "work_experience": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
-<<<<<<< HEAD
             "company_name": forms.TextInput(attrs={"class": "form-control"}),
             "company_website": forms.URLInput(attrs={"class": "form-control"}),
             "company_description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
-=======
-<<<<<<< HEAD
-=======
-
             "company_name": forms.TextInput(attrs={"class": "form-control"}),
             "company_website": forms.URLInput(attrs={"class": "form-control"}),
             "company_description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
-
->>>>>>> e3e8a5718894168c257e8850a1fbde8d86cd64ed
->>>>>>> e7dc03fe6bff4b71bede7a2df0e2984315fb23bb
             "visible_to_recruiters": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "show_headline": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "show_skills": forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -170,15 +144,9 @@ class ProfileEditForm(forms.ModelForm):
             "show_education": "Show education",
             "show_work_experience": "Show work experience",
             "show_links": "Show links",
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
             "company_name": "Company Name",
             "company_website": "Company Website",
             "company_description": "Company Description",
-=======
->>>>>>> e3e8a5718894168c257e8850a1fbde8d86cd64ed
->>>>>>> e7dc03fe6bff4b71bede7a2df0e2984315fb23bb
         }
 
     def clean(self):
@@ -189,8 +157,6 @@ class ProfileEditForm(forms.ModelForm):
             self.add_error("company_name", "Company name is required for employers.")
 
         return cleaned
-<<<<<<< HEAD
-=======
 
     def clean(self):
         cleaned = super().clean()
@@ -202,5 +168,3 @@ class ProfileEditForm(forms.ModelForm):
 
         return cleaned
 
-
->>>>>>> e7dc03fe6bff4b71bede7a2df0e2984315fb23bb
