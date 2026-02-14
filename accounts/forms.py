@@ -1,7 +1,8 @@
+from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.forms.utils import ErrorList
 from django.utils.safestring import mark_safe
-from django import forms
+
 from .models import Profile
 
 
@@ -14,7 +15,7 @@ class CustomErrorList(ErrorList):
 
 class CustomUserCreationForm(UserCreationForm):
     def __init__(self, *args, **kwargs):
-        super(CustomUserCreationForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         for fieldname in ['username', 'password1', 'password2']:
             self.fields[fieldname].help_text = None
             self.fields[fieldname].widget.attrs.update({'class': 'form-control'})
@@ -25,7 +26,7 @@ class SignupWithProfileForm(CustomUserCreationForm):
         choices=Profile.AccountType.choices,
         required=True,
         widget=forms.Select(attrs={"class": "form-control"}),
-        label="I am signing up as"
+        label="I am signing up as",
     )
 
     # Applicant fields
@@ -33,23 +34,23 @@ class SignupWithProfileForm(CustomUserCreationForm):
         max_length=120,
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control'}),
-        label="Headline"
+        label="Headline",
     )
     skills = forms.CharField(
         max_length=300,
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control'}),
-        label="Skills"
+        label="Skills",
     )
     education = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-        label="Education"
+        label="Education",
     )
     work_experience = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-        label="Work Experience"
+        label="Work Experience",
     )
 
     # Employer fields
@@ -57,22 +58,21 @@ class SignupWithProfileForm(CustomUserCreationForm):
         max_length=120,
         required=False,
         widget=forms.TextInput(attrs={"class": "form-control"}),
-        label="Company Name"
+        label="Company Name",
     )
     company_website = forms.URLField(
         required=False,
         widget=forms.URLInput(attrs={"class": "form-control"}),
-        label="Company Website"
+        label="Company Website",
     )
     company_description = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={"class": "form-control", "rows": 3}),
-        label="Company Description"
+        label="Company Description",
     )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Optional: remove Django's default password help text if it appears
         if "password1" in self.fields:
             self.fields["password1"].help_text = None
         if "password2" in self.fields:
@@ -82,41 +82,40 @@ class SignupWithProfileForm(CustomUserCreationForm):
         cleaned = super().clean()
         acct = cleaned.get("account_type")
 
-        if acct == Profile.AccountType.EMPLOYER:
-            if not cleaned.get("company_name"):
-                self.add_error("company_name", "Company name is required for employers.")
+        if acct == Profile.AccountType.EMPLOYER and not cleaned.get("company_name"):
+            self.add_error("company_name", "Company name is required for employers.")
 
         return cleaned
+
 
 class ProfileEditForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = [
-<<<<<<< HEAD
+            "account_type",
             "headline",
             "skills",
             "education",
             "work_experience",
+            "company_name",
+            "company_website",
+            "company_description",
             "visible_to_recruiters",
             "show_headline",
             "show_skills",
             "show_education",
             "show_work_experience",
             "show_links",
-=======
-            "account_type",
-            "headline", "skills", "education", "work_experience",
-            "company_name", "company_website", "company_description",
->>>>>>> 31b252403f190b143c177b5dd876e878a5d5a1b4
         ]
         widgets = {
             "account_type": forms.Select(attrs={"class": "form-control"}),
-
             "headline": forms.TextInput(attrs={"class": "form-control"}),
             "skills": forms.TextInput(attrs={"class": "form-control"}),
             "education": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "work_experience": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
-<<<<<<< HEAD
+            "company_name": forms.TextInput(attrs={"class": "form-control"}),
+            "company_website": forms.URLInput(attrs={"class": "form-control"}),
+            "company_description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "visible_to_recruiters": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "show_headline": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "show_skills": forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -131,22 +130,13 @@ class ProfileEditForm(forms.ModelForm):
             "show_education": "Show education",
             "show_work_experience": "Show work experience",
             "show_links": "Show links",
-=======
-
-            "company_name": forms.TextInput(attrs={"class": "form-control"}),
-            "company_website": forms.URLInput(attrs={"class": "form-control"}),
-            "company_description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
->>>>>>> 31b252403f190b143c177b5dd876e878a5d5a1b4
         }
 
     def clean(self):
         cleaned = super().clean()
         acct = cleaned.get("account_type")
 
-        if acct == Profile.AccountType.EMPLOYER:
-            if not cleaned.get("company_name"):
-                self.add_error("company_name", "Company name is required for employers.")
+        if acct == Profile.AccountType.EMPLOYER and not cleaned.get("company_name"):
+            self.add_error("company_name", "Company name is required for employers.")
 
         return cleaned
-
-
