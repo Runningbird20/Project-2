@@ -2,7 +2,7 @@ from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
-
+from django.db import models
 from accounts.models import Profile
 from map.forms import OfficeLocationForm
 from map.models import OfficeLocation
@@ -132,6 +132,7 @@ def search(request):
     }
     return render(request, 'jobposts/search.html', {'template_data': template_data})
 
+<<<<<<< HEAD
 
 def _save_office_location(post, map_form):
     if not getattr(map_form, 'has_location_data', False):
@@ -162,3 +163,21 @@ def _save_office_location(post, map_form):
             'longitude': longitude,
         },
     )
+=======
+@login_required
+def employer_dashboard(request):
+    my_jobs = JobPost.objects.filter(owner=request.user).annotate(
+        total_apps=models.Count('applications'),
+        new_apps=models.Count(
+            'applications', 
+            filter=models.Q(applications__status='applied')
+        )
+    ).order_by('-created_at')
+
+    overall_total = sum(job.total_apps for job in my_jobs)
+
+    return render(request, 'jobposts/dashboard.html', {
+        'jobs': my_jobs,
+        'overall_total': overall_total
+    })
+>>>>>>> e7dc03fe6bff4b71bede7a2df0e2984315fb23bb

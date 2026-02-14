@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+  .stepper-wrapper {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    position: relative;
+  }
+  .stepper-wrapper::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 5%;
+    right: 5%;
+    height: 2px;
+    background: #e0e0e0;
+    z-index: 1;
+    transform: translateY(-50%);
+  }
+  .stepper-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    z-index: 2;
+    padding: 15px 5px;
+    border-radius: 15px;
+    margin: 0 5px;
+    transition: all 0.3s ease;
+    cursor: default !important;
+    pointer-events: none; 
+  }
+  
+  
+  .stepper-item.completed {
+    background-color: #198754; 
+    color: white;
+  }
+  .stepper-item.active {
+    background-color: #0d6efd; 
+    color: white;
+  }
+  .stepper-item.pending {
+    background-color: #e9ecef; 
+    color: #6c757d;
+  }
+
+  .step-counter {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    margin-bottom: 6px;
+    font-weight: bold;
+    font-size: 12px;
+  }
+  .stepper-item.pending .step-counter {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    color: #adb5bd;
+  }
+
+  .step-name { 
+    font-size: 10px; 
+    font-weight: 700; 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px;
+  }
+
+  .status-card { transition: transform 0.2s; }
+</style>
+
+<div class="container py-5">
+  <div class="d-flex align-items-center mb-4">
+    <div class="bg-primary p-2 rounded-3 me-3">
+        <i class="bi bi-briefcase-fill text-white fs-4"></i>
+    </div>
+    <h2 class="fw-bold mb-0">My Application Tracker</h2>
+  </div>
+
+  <div class="row g-4">
+    {% for application in applications %}
+      <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-4 status-card">
+          <div class="card-body p-4">
+            <div class="row align-items-center">
+              <div class="col-lg-3 border-end">
+                <h5 class="fw-bold mb-1">{{ application.job.title }}</h5>
+                <p class="text-muted mb-0 small"><i class="bi bi-building me-1"></i>{{ application.job.company }}</p>
+                <div class="mt-2">
+                    <span class="badge bg-light text-dark border">ID: #{{ application.id }}</span>
+                </div>
+              </div>
+
+              <div class="col-lg-9">
+                {% if application.status == 'rejected' %}
+                  <div class="alert alert-danger border-0 rounded-4 d-flex align-items-start mb-0 p-4 shadow-sm">
+                    <i class="bi bi-x-circle-fill me-3 fs-3"></i>
+                    <div>
+                      <h6 class="fw-bold mb-1">Update on your application</h6>
+                      <p class="mb-0 small">We have decided to move forward with other candidates. Thank you for your interest in {{ application.job.company }}.</p>
+                    </div>
+                  </div>
+                {% else %}
+                  <div class="stepper-wrapper">
+                    {# Hardcoded list to compare against status #}
+                    {% with "applied review interview offer closed" as status_order %}
+                      {% for key, label in application.STATUS_CHOICES %}
+                        {% if key != 'rejected' %}
+                          
+                          {# Logic: Is this step before, equal to, or after the current status? #}
+                          <div class="stepper-item 
+                            {% if key == application.status %}active
+                            {% elif key in status_order and application.status in status_order %}
+                               {# This is a simple way to check progress in a template #}
+                               {% if application.status == 'review' and key == 'applied' %}completed
+                               {% elif application.status == 'interview' and key == 'applied' or application.status == 'interview' and key == 'review' %}completed
+                               {% elif application.status == 'offer' and key != 'offer' and key != 'closed' %}completed
+                               {% elif application.status == 'closed' %}completed
+                               {% else %}pending{% endif %}
+                            {% else %}pending{% endif %}">
+                            
+                            <div class="step-counter">
+                              {% if key == application.status %}
+                                <i class="bi bi-circle-fill" style="font-size: 8px;"></i>
+                              {% else %}
+                                <i class="bi bi-circle"></i>
+                              {% endif %}
+                            </div>
+                            <div class="step-name">{{ label }}</div>
+                          </div>
+
+                        {% endif %}
+                      {% endfor %}
+                    {% endwith %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="col-12 text-center py-5">
+        <p class="text-muted">No applications found.</p>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

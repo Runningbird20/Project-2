@@ -14,9 +14,14 @@
   <body>
     <nav class="navbar navbar-expand-lg site-nav py-3">
       <div class="container">
+<<<<<<< HEAD
         <a class="navbar-brand brand-mark" href="{% url 'home.index' %}">
           <img src="{% static 'img/logo.png' %}" alt="logo" height="40" />
           <span>JobBoard</span>
+=======
+        <a class="navbar-brand" href="{% url 'home.index' %}">
+          <img src="{% static 'img/logo.png' %}" alt="logo" class="logo" />
+>>>>>>> e7dc03fe6bff4b71bede7a2df0e2984315fb23bb
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup"
           aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
@@ -30,9 +35,27 @@
             {% elif user.is_authenticated %}
               <a class="nav-link site-link" href="{% url 'accounts.profile_edit' %}?highlight=account_type">Become an Employer</a>
             {% endif %}
+<<<<<<< HEAD
             {% if user.is_authenticated %}
               <a class="nav-link site-link" href="{% url 'accounts.profile' %}">Profile</a>
               <a class="nav-link site-link" href="{% url 'accounts.logout' %}">Logout</a>
+=======
+            <div class="vr bg-white mx-2 d-none d-lg-block"></div>
+            
+            {% if user.is_staff %}
+            <a class="nav-link" href="{% url 'accounts.manage_users' %}">Manage Users</a>
+            {% endif %}
+
+
+            {% if user.is_authenticated %}
+              <a class="nav-link" href="{% url 'accounts.profile' %}">Profile</a>
+            {% if can_post_job %}
+              <a class="nav-link" href="{% url 'jobposts.dashboard' %}">Dashboard</a>
+            {% else %}
+              <a class="nav-link" href="{% url 'apply:application_status' %}">My Applications</a>
+            {% endif %}
+              <a class="nav-link" href="{% url 'accounts.logout' %}">Logout</a>
+>>>>>>> e7dc03fe6bff4b71bede7a2df0e2984315fb23bb
             {% else %}
               <a class="nav-link site-link" href="{% url 'accounts.login' %}">Login</a>
               <a class="site-cta" href="{% url 'accounts.signup' %}">Get Started</a>

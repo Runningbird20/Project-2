@@ -118,14 +118,14 @@
                     refresh();
                   }
 
-                  {% if template_data.highlight_account_type %}
+                  if (template_data.highlight_account_type) {
                     if (select) {
                       select.focus();
                     }
                     if (accountTypeSection) {
                       accountTypeSection.scrollIntoView({ behavior: "smooth", block: "center" });
                     }
-                  {% endif %}
+                  }
                 })();
               </script>
 
