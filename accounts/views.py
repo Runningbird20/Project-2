@@ -2,15 +2,12 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction
 from django.contrib.auth import login as auth_login, authenticate, logout as auth_logout
 from django.contrib.auth.decorators import login_required
-<<<<<<< HEAD
 from django.contrib.admin.views.decorators import staff_member_required
 from django.conf import settings
 from django.shortcuts import get_object_or_404
-=======
 from django.contrib.auth import get_user_model
 from django.http import Http404, HttpResponseForbidden
->>>>>>> origin/main
-
+from django.contrib.auth.models import User
 from .forms import SignupWithProfileForm, CustomErrorList, ProfileEditForm
 from .models import Profile
 
@@ -89,11 +86,25 @@ def signup(request):
     return redirect("accounts.login")
 
 @login_required
-def profile(request):
-    template_data = {"title": "My Profile"}
-    # Ensure profile exists
-    prof, _ = Profile.objects.get_or_create(user=request.user)
-    template_data["profile"] = prof
+def profile(request, user_id=None):
+    if user_id:
+        # Viewing someone else (an applicant from the Kanban board)
+        user_to_view = get_object_or_404(User, id=user_id)
+        title = f"{user_to_view.username}'s Profile"
+    else:
+        # Viewing yourself
+        user_to_view = request.user
+        title = "My Profile"
+
+    prof, _ = Profile.objects.get_or_create(user=user_to_view)
+
+    template_data = {
+        "title": title,
+        "profile": prof,
+        "viewed_user": user_to_view,
+        "is_own_profile": (user_to_view == request.user)
+    }
+    
     return render(request, "accounts/profile.html", {"template_data": template_data})
 
 @login_required
@@ -133,9 +144,6 @@ def edit_profile(request, username=None):
         prof.save()
 
     return redirect("accounts.profile")
-
-<<<<<<< HEAD
-
 
 @staff_member_required
 def manage_users(request):
@@ -195,9 +203,6 @@ def remove_user(request, user_id):
     else:
         return redirect('accounts.manage_users')
     
-
-
-=======
 def public_profile(request, username):
     User = get_user_model()
     user = get_object_or_404(User, username=username)
@@ -211,4 +216,3 @@ def public_profile(request, username):
         "public_view": True,
     }
     return render(request, "accounts/public_profile.html", {"template_data": template_data})
->>>>>>> origin/main

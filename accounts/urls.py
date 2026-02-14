@@ -2,10 +2,11 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('signup', views.signup, name='accounts.signup'),
+    path('signup/', views.signup, name='accounts.signup'),
     path('login/', views.login, name='accounts.login'),
     path('logout/', views.logout, name='accounts.logout'),
     path('profile/', views.profile, name='accounts.profile'),
+    path('profile/<int:user_id>/', views.profile, name='accounts.profile_with_id'),
     path("profile/edit/", views.edit_profile, name="accounts.profile_edit"),
 <<<<<<< HEAD
     path("manage_users/", views.manage_users, name="accounts.manage_users"),
@@ -15,5 +16,9 @@ urlpatterns = [
 =======
     path("profile/<str:username>/edit/", views.edit_profile, name="accounts.profile_edit_user"),
     path("profile/<str:username>/", views.public_profile, name="accounts.public_profile"),
+<<<<<<< HEAD
+]
+=======
 ]
 >>>>>>> origin/main
+>>>>>>> e3e8a5718894168c257e8850a1fbde8d86cd64ed
