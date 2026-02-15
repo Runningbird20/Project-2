@@ -1,17 +1,23 @@
 # accounts/views.py
 
+import csv
+import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction
 from django.contrib.auth import login as auth_login, authenticate, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import get_user_model
-from django.http import Http404, HttpResponseForbidden
-from django.db.models import Q
+from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse
+from django.db.models import Q, Count
 
 from .forms import SignupWithProfileForm, CustomErrorList, ProfileEditForm
 from .models import Profile
 
+class Echo:
+    """An object that implements write() to return the string its writer was given."""
+    def write(self, value):
+        return value
 
 def _is_employer(user):
     return Profile.objects.filter(
@@ -19,6 +25,67 @@ def _is_employer(user):
         account_type=Profile.AccountType.EMPLOYER
     ).exists()
 
+
+@staff_member_required
+def export_usage_report(request):
+    User = get_user_model()
+    users = User.objects.select_related('profile').annotate(
+        apps_sent=Count('application', distinct=True),
+        jobs_posted=Count('job_posts', distinct=True), 
+        successful_hires=Count(
+            'application', 
+            filter=Q(application__status__in=['offer', 'closed']), 
+            distinct=True
+        )
+    )
+
+    rows = []
+    rows.append([
+        'Full Name', 'Email', 'Account Type', 'Date Joined', 
+        'Last Login', 'Apps Sent', 'Jobs Posted', 'Successful Hires', 'Success Rate %'
+    ])
+
+    total_apps = 0
+    total_jobs = 0
+    total_hires = 0
+
+    for user in users:
+        success_rate = 0
+        if user.apps_sent > 0:
+            success_rate = (user.successful_hires / user.apps_sent) * 100
+        
+        total_apps += user.apps_sent
+        total_jobs += user.jobs_posted
+        total_hires += user.successful_hires
+
+        rows.append([
+            user.get_full_name() or user.username,
+            user.email,
+            user.profile.get_account_type_display() if hasattr(user, 'profile') else 'N/A',
+            user.date_joined.strftime('%Y-%m-%d'),
+            user.last_login.strftime('%Y-%m-%d') if user.last_login else 'Never',
+            user.apps_sent,
+            user.jobs_posted,
+            user.successful_hires,
+            f"{success_rate:.1f}%"
+        ])
+
+    rows.append([''] * 9) 
+    platform_conversion = (total_hires / total_apps * 100) if total_apps > 0 else 0
+    
+    rows.append([
+        'PLATFORM TOTALS', '', '', '', '', 
+        total_apps, total_jobs, total_hires, f"{platform_conversion:.1f}%"
+    ])
+
+    pseudo_buffer = Echo()
+    writer = csv.writer(pseudo_buffer)
+    response = StreamingHttpResponse(
+        (writer.writerow(row) for row in rows),
+        content_type="text/csv",
+    )
+    response['Content-Disposition'] = 'attachment; filename="platform_usage_report.csv"'
+    return response
 
 @login_required
 def logout(request):
@@ -51,7 +118,6 @@ def signup(request):
         template_data["form"] = SignupWithProfileForm()
         return render(request, "accounts/signup.html", {"template_data": template_data})
 
-    # POST (must include request.FILES for profile_picture)
     form = SignupWithProfileForm(request.POST, request.FILES, error_class=CustomErrorList)
     template_data["form"] = form
 
@@ -64,40 +130,29 @@ def signup(request):
 
         acct = form.cleaned_data.get("account_type", Profile.AccountType.APPLICANT)
         profile.account_type = acct
-
-        # Profile picture (works for both account types)
         profile.profile_picture = form.cleaned_data.get("profile_picture")
-
-        # Shared fields (you added these)
         profile.location = form.cleaned_data.get("location", "")
         profile.projects = form.cleaned_data.get("projects", "")
 
         if acct == Profile.AccountType.EMPLOYER:
-            # Employer fields
             profile.company_name = form.cleaned_data.get("company_name", "")
             profile.company_website = form.cleaned_data.get("company_website", "")
             profile.company_description = form.cleaned_data.get("company_description", "")
-
-            # Clear applicant fields
             profile.headline = ""
             profile.skills = ""
             profile.education = ""
             profile.work_experience = ""
         else:
-            # Applicant fields
             profile.headline = form.cleaned_data.get("headline", "")
             profile.skills = form.cleaned_data.get("skills", "")
             profile.education = form.cleaned_data.get("education", "")
             profile.work_experience = form.cleaned_data.get("work_experience", "")
-
-            # Clear employer fields
             profile.company_name = ""
             profile.company_website = ""
             profile.company_description = ""
 
         profile.save()
 
-        # Save up to 2 links
         for i in range(2):
             label = request.POST.get(f"link_label_{i}", "").strip()
             url = request.POST.get(f"link_url_{i}", "").strip()
@@ -121,7 +176,6 @@ def profile(request, user_id=None):
     prof, _ = Profile.objects.get_or_create(user=user_to_view)
     is_own = (user_to_view == request.user)
 
-    # If viewing someone else, only allow public APPLICANT profiles
     if not is_own:
         if prof.account_type != Profile.AccountType.APPLICANT:
             raise Http404("Profile not available.")
@@ -151,7 +205,6 @@ def edit_profile(request, username=None):
         template_data["form"] = ProfileEditForm(instance=profile)
         return render(request, "accounts/edit_profile.html", {"template_data": template_data})
 
-    # POST (must include request.FILES for profile_picture)
     form = ProfileEditForm(request.POST, request.FILES, instance=profile)
     template_data["form"] = form
 
@@ -160,12 +213,8 @@ def edit_profile(request, username=None):
 
     with transaction.atomic():
         prof = form.save(commit=False)
-
-        # IMPORTANT: don't allow users to switch account type by editing profile
-        # (prevents "Become an Employer" hacks). If you *want* to allow it, remove this line.
         prof.account_type = profile.account_type
 
-        # If employer, wipe applicant fields; if applicant, wipe employer fields
         if prof.account_type == Profile.AccountType.EMPLOYER:
             prof.headline = ""
             prof.skills = ""
@@ -183,9 +232,19 @@ def edit_profile(request, username=None):
 
 @staff_member_required
 def manage_users(request):
+    query = request.GET.get('search', '').strip()
+    profiles = Profile.objects.all().select_related('user')
+
+    if query:
+        profiles = profiles.filter(
+            Q(user__username__icontains=query) | 
+            Q(user__email__icontains=query)
+        )
+
     template_data = {
         "title": "Manage Users",
-        "users": Profile.objects.all(),
+        "users": profiles,
+        "search_query": query,
     }
     return render(request, "accounts/manage_users.html", {"template_data": template_data})
 
@@ -211,7 +270,6 @@ def edit_user(request, user_id):
 
     with transaction.atomic():
         prof = form.save(commit=False)
-
         if prof.account_type == Profile.AccountType.EMPLOYER:
             prof.headline = ""
             prof.skills = ""
@@ -221,7 +279,6 @@ def edit_user(request, user_id):
             prof.company_name = ""
             prof.company_website = ""
             prof.company_description = ""
-
         prof.save()
 
     return redirect("accounts.manage_users")
@@ -242,11 +299,9 @@ def public_profile(request, username):
 
     is_owner = request.user.is_authenticated and request.user == user
 
-    # Only applicants have public candidate profiles
     if profile.account_type != Profile.AccountType.APPLICANT:
         raise Http404("Profile not available.")
 
-    # If not the owner, enforce privacy
     if not is_owner and not profile.visible_to_recruiters:
         raise Http404("Profile not available.")
 

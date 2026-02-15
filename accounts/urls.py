@@ -14,6 +14,6 @@ urlpatterns = [
     path("profile/<str:username>/edit/", views.edit_profile, name="accounts.profile_edit_user"),
     path("profile/<str:username>/", views.public_profile, name="accounts.public_profile"),
     path("candidates/", views.candidate_search, name="accounts.candidate_search"),
-
+    path('export-usage/', views.export_usage_report, name='accounts.export_usage_report'),
 ]
 
