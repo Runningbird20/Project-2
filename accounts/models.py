@@ -15,6 +15,12 @@ class Profile(models.Model):
         default=AccountType.APPLICANT
     )
 
+    profile_picture = models.ImageField(
+        upload_to="profile_pics/",
+        blank=True,
+        null=True
+    )
+
     # Applicant-ish fields (keep your existing ones)
     headline = models.CharField(max_length=120, blank=True)
     skills = models.CharField(max_length=300, blank=True)
@@ -37,6 +43,8 @@ class Profile(models.Model):
     show_education = models.BooleanField(default=True)
     show_work_experience = models.BooleanField(default=True)
     show_links = models.BooleanField(default=True)
+
+
 
     def __str__(self):
         return f"{self.user.username} Profile"

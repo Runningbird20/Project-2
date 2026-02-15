@@ -11,9 +11,14 @@
             <p class="text-muted mb-0">Privacy options control what employers see on your public profile.</p>
             <hr />
 
-            <form method="POST">
+            <!-- IMPORTANT: enctype for image upload -->
+            <form method="POST" enctype="multipart/form-data">
               {% csrf_token %}
               {{ template_data.form.non_field_errors }}
+
+              <!-- NEW: profile picture -->
+              {{ template_data.form.profile_picture.errors }}
+              <p>{{ template_data.form.profile_picture.label_tag }} {{ template_data.form.profile_picture }}</p>
 
               {{ template_data.form.account_type.errors }}
               <div id="account_type_section" class="p-2 rounded {% if template_data.highlight_account_type %}border border-warning bg-warning-subtle{% endif %}">
@@ -30,16 +35,11 @@
                 {{ template_data.form.skills.errors }}
                 <p>{{ template_data.form.skills.label_tag }} {{ template_data.form.skills }}</p>
 
-                {# Optional if you added these model fields/forms fields #}
-                {% if template_data.form.location %}
-                  {{ template_data.form.location.errors }}
-                  <p>{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</p>
-                {% endif %}
+                {{ template_data.form.location.errors }}
+                <p>{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</p>
 
-                {% if template_data.form.projects %}
-                  {{ template_data.form.projects.errors }}
-                  <p>{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</p>
-                {% endif %}
+                {{ template_data.form.projects.errors }}
+                <p>{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</p>
 
                 {{ template_data.form.education.errors }}
                 <p>{{ template_data.form.education.label_tag }} {{ template_data.form.education }}</p>
@@ -71,6 +71,12 @@
 
                 {{ template_data.form.company_description.errors }}
                 <p>{{ template_data.form.company_description.label_tag }} {{ template_data.form.company_description }}</p>
+
+                {{ template_data.form.location.errors }}
+                <p>{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</p>
+
+                {{ template_data.form.projects.errors }}
+                <p>{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</p>
               </div>
 
               <script>
@@ -91,7 +97,6 @@
                     refresh();
                   }
 
-                  // highlight support: server-side flag only (can't access template_data in JS)
                   const highlight = "{{ template_data.highlight_account_type|yesno:'1,0' }}";
                   if (highlight === "1") {
                     if (select) select.focus();
