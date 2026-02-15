@@ -81,5 +81,91 @@
         </div>
       </div>
     </footer>
+    <script>
+      window.burstConfettiFromBottom = function (messageText) {
+        const existingLayer = document.getElementById("confetti-layer");
+        if (existingLayer) existingLayer.remove();
+        const existingBanner = document.getElementById("confetti-banner");
+        if (existingBanner) existingBanner.remove();
+
+        const layer = document.createElement("div");
+        layer.id = "confetti-layer";
+        layer.style.position = "fixed";
+        layer.style.inset = "0";
+        layer.style.pointerEvents = "none";
+        layer.style.overflow = "hidden";
+        layer.style.zIndex = "2500";
+        document.body.appendChild(layer);
+
+        const banner = document.createElement("div");
+        banner.id = "confetti-banner";
+        banner.textContent = messageText || "Congrats! Application submitted successfully.";
+        banner.style.position = "fixed";
+        banner.style.left = "50%";
+        banner.style.bottom = "26px";
+        banner.style.transform = "translateX(-50%) translateY(10px)";
+        banner.style.background = "#161a25";
+        banner.style.color = "#fff";
+        banner.style.padding = "0.75rem 1.1rem";
+        banner.style.borderRadius = "999px";
+        banner.style.fontWeight = "700";
+        banner.style.fontSize = "0.95rem";
+        banner.style.boxShadow = "0 12px 24px rgba(22, 26, 37, 0.28)";
+        banner.style.zIndex = "2600";
+        banner.style.opacity = "0";
+        document.body.appendChild(banner);
+
+        banner.animate(
+          [
+            { opacity: 0, transform: "translateX(-50%) translateY(10px)" },
+            { opacity: 1, transform: "translateX(-50%) translateY(0)" }
+          ],
+          { duration: 260, easing: "ease-out", fill: "forwards" }
+        );
+
+        const colors = ["#ff6b6b", "#ffd166", "#4ecdc4", "#6ca0ff", "#7ddf64", "#f78fb3"];
+        const pieceCount = 110;
+        for (let i = 0; i < pieceCount; i += 1) {
+          const piece = document.createElement("span");
+          const size = 5 + Math.random() * 7;
+          const startX = Math.random() * window.innerWidth;
+          const driftX = (Math.random() - 0.5) * 280;
+          const riseY = window.innerHeight * (0.55 + Math.random() * 0.38);
+          const rotation = (Math.random() - 0.5) * 960;
+          const duration = 900 + Math.random() * 900;
+
+          piece.style.position = "fixed";
+          piece.style.left = startX + "px";
+          piece.style.bottom = "-20px";
+          piece.style.width = size + "px";
+          piece.style.height = size * (0.6 + Math.random() * 0.9) + "px";
+          piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+          piece.style.borderRadius = Math.random() > 0.5 ? "1px" : "999px";
+          piece.style.opacity = "0.95";
+          piece.style.pointerEvents = "none";
+          layer.appendChild(piece);
+
+          piece.animate(
+            [
+              { transform: "translate3d(0,0,0) rotate(0deg)", opacity: 1 },
+              { transform: `translate3d(${driftX}px,-${riseY}px,0) rotate(${rotation}deg)`, opacity: 0 }
+            ],
+            { duration: duration, easing: "cubic-bezier(.17,.67,.4,1)", fill: "forwards" }
+          ).onfinish = () => piece.remove();
+        }
+
+        setTimeout(() => {
+          banner.animate(
+            [
+              { opacity: 1, transform: "translateX(-50%) translateY(0)" },
+              { opacity: 0, transform: "translateX(-50%) translateY(8px)" }
+            ],
+            { duration: 260, easing: "ease-in", fill: "forwards" }
+          ).onfinish = () => banner.remove();
+        }, 2400);
+
+        setTimeout(() => layer.remove(), 3200);
+      };
+    </script>
   </body>
 </html>

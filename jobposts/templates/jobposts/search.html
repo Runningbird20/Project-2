@@ -8,6 +8,21 @@
       <p class="page-copy">Filter by title, skills, location, salary, and work setting to find roles that match your goals.</p>
     </div>
 
+    {% if messages %}
+      <div class="mb-3">
+        {% for message in messages %}
+          <div
+            class="alert {% if 'success' in message.tags %}alert-success{% elif 'warning' in message.tags %}alert-warning{% elif 'error' in message.tags %}alert-danger{% else %}alert-info{% endif %} alert-dismissible fade show"
+            role="alert"
+            {% if 'success' in message.tags and 'submitted successfully' in message|lower %}data-apply-success="1"{% endif %}
+          >
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     <div class="row g-4">
       <div class="col-lg-4">
         <div class="surface-card">
@@ -193,6 +208,15 @@
 </section>
 
 <script>
+  (function () {
+    const shouldCelebrate = Boolean(document.querySelector("[data-apply-success='1']"));
+    window.addEventListener("load", function () {
+      if (shouldCelebrate && typeof window.burstConfettiFromBottom === "function") {
+        window.burstConfettiFromBottom("Congrats! Your application was submitted.");
+      }
+    });
+  })();
+
   function toggleResumeUpload(selectElement, postId) {
     const uploadDiv = document.getElementById('uploadField' + postId);
     if (selectElement.value === 'uploaded') {
