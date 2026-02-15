@@ -1,3 +1,4 @@
+{# accounts/templates/accounts/signup.html #}
 {% extends 'base.html' %}
 {% block content %}
 <div class="p-3 mt-4">
@@ -9,7 +10,8 @@
             <h2>Sign Up</h2>
             <hr />
 
-            <form method="POST">
+            <!-- IMPORTANT: enctype for image upload -->
+            <form method="POST" enctype="multipart/form-data">
               {% csrf_token %}
 
               {{ template_data.form.non_field_errors }}
@@ -28,6 +30,10 @@
               <hr />
               <h5>Profile</h5>
 
+              <!-- NEW: Profile picture (all account types) -->
+              {{ template_data.form.profile_picture.errors }}
+              <p>{{ template_data.form.profile_picture.label_tag }} {{ template_data.form.profile_picture }}</p>
+
               {{ template_data.form.account_type.errors }}
               <p>{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</p>
 
@@ -37,6 +43,13 @@
 
                 {{ template_data.form.skills.errors }}
                 <p>{{ template_data.form.skills.label_tag }} {{ template_data.form.skills }}</p>
+
+                <!-- NEW -->
+                {{ template_data.form.location.errors }}
+                <p>{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</p>
+
+                {{ template_data.form.projects.errors }}
+                <p>{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</p>
 
                 {{ template_data.form.education.errors }}
                 <p>{{ template_data.form.education.label_tag }} {{ template_data.form.education }}</p>
@@ -54,6 +67,13 @@
 
                 {{ template_data.form.company_description.errors }}
                 <p>{{ template_data.form.company_description.label_tag }} {{ template_data.form.company_description }}</p>
+
+                <!-- Optional: employers can fill these too -->
+                {{ template_data.form.location.errors }}
+                <p>{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</p>
+
+                {{ template_data.form.projects.errors }}
+                <p>{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</p>
               </div>
 
               <script>
@@ -64,8 +84,8 @@
 
                   function refresh() {
                     const isEmployer = select && select.value === "EMPLOYER";
-                    employer.style.display = isEmployer ? "block" : "none";
-                    applicant.style.display = isEmployer ? "none" : "block";
+                    if (employer) employer.style.display = isEmployer ? "block" : "none";
+                    if (applicant) applicant.style.display = isEmployer ? "none" : "block";
                   }
 
                   if (select) {

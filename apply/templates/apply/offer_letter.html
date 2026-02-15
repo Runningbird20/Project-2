@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container py-5">
+  <div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-5">
+
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+        <div>
+          <h2 class="fw-bold mb-1">Offer Letter</h2>
+          <div class="text-muted">
+            {{ template_data.job.company }} • {{ template_data.today|date:"F j, Y" }}
+          </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+          <!-- Applicant picture -->
+          <div class="text-center">
+            {% if template_data.applicant_profile.profile_picture %}
+              <img src="{{ template_data.applicant_profile.profile_picture.url }}"
+                   class="rounded-circle border"
+                   style="width:72px;height:72px;object-fit:cover;"
+                   alt="Applicant photo">
+            {% else %}
+              <img src="{% static 'img/default_avatar.png' %}"
+                   class="rounded-circle border"
+                   style="width:72px;height:72px;object-fit:cover;"
+                   alt="Applicant photo">
+            {% endif %}
+            <div class="small text-muted mt-1">Candidate</div>
+          </div>
+
+          <!-- Recruiter picture -->
+          <div class="text-center">
+            {% if template_data.recruiter_profile.profile_picture %}
+              <img src="{{ template_data.recruiter_profile.profile_picture.url }}"
+                   class="rounded-circle border"
+                   style="width:72px;height:72px;object-fit:cover;"
+                   alt="Recruiter photo">
+            {% else %}
+              <img src="{% static 'img/default_avatar.png' %}"
+                   class="rounded-circle border"
+                   style="width:72px;height:72px;object-fit:cover;"
+                   alt="Recruiter photo">
+            {% endif %}
+            <div class="small text-muted mt-1">Recruiter</div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="my-4">
+
+      <p class="mb-3">
+        Dear <b>{{ template_data.application.user.get_full_name|default:template_data.application.user.username }}</b>,
+      </p>
+
+      <p class="mb-3">
+        Congratulations! We are pleased to offer you the position of
+        <b>{{ template_data.job.title }}</b> with <b>{{ template_data.job.company }}</b>.
+      </p>
+
+      <div class="row g-3 my-4">
+        <div class="col-md-6">
+          <div class="p-3 bg-light rounded-4 h-100">
+            <div class="text-uppercase small text-muted">Role</div>
+            <div class="fw-semibold">{{ template_data.job.title }}</div>
+            {% if template_data.job.location %}
+              <div class="text-muted small">Location: {{ template_data.job.location }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="p-3 bg-light rounded-4 h-100">
+            <div class="text-uppercase small text-muted">Compensation</div>
+            {% if template_data.job.salary_range %}
+              <div class="fw-semibold">{{ template_data.job.salary_range }}</div>
+            {% else %}
+              <div class="text-muted">Compensation details to be provided.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      {% if template_data.job.description %}
+        <h5 class="fw-bold mt-4">Job Summary</h5>
+        <p style="white-space: pre-wrap;">{{ template_data.job.description }}</p>
+      {% endif %}
+
+      <h5 class="fw-bold mt-4">Offer Details</h5>
+      <ul class="mb-4">
+        <li>This offer is contingent upon completion of any required onboarding steps.</li>
+        <li>Your start date and reporting details will be confirmed by the hiring team.</li>
+        <li>Please reply to this offer by the date communicated by your recruiter.</li>
+      </ul>
+
+      <p class="mb-4">
+        If you have questions, please contact
+        <b>{{ template_data.job.owner.get_full_name|default:template_data.job.owner.username }}</b>.
+      </p>
+
+      <div class="d-flex gap-2">
+        <button class="btn btn-dark" onclick="window.print()">Print</button>
+        {% if template_data.is_applicant %}
+          <a class="btn btn-outline-secondary" href="{% url 'apply:application_status' %}">Back to tracker</a>
+        {% else %}
+          <a class="btn btn-outline-secondary" href="{% url 'apply:employer_pipeline' template_data.job.id %}">Back to pipeline</a>
+        {% endif %}
+      </div>
+
+      <div class="small text-muted mt-4">
+        This offer letter is for informational purposes inside the platform.
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
