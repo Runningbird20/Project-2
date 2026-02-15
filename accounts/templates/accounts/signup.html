@@ -31,9 +31,8 @@
               <hr />
               <h5 class="surface-title">Profile</h5>
 
-              <!-- NEW: Profile picture (all account types) -->
               {{ template_data.form.profile_picture.errors }}
-              <p>{{ template_data.form.profile_picture.label_tag }} {{ template_data.form.profile_picture }}</p>
+              <div class="field-block">{{ template_data.form.profile_picture.label_tag }} {{ template_data.form.profile_picture }}</div>
 
               {{ template_data.form.account_type.errors }}
               <div class="field-block">{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</div>
@@ -45,12 +44,11 @@
                 {{ template_data.form.skills.errors }}
                 <div class="field-block">{{ template_data.form.skills.label_tag }} {{ template_data.form.skills }}</div>
 
-                <!-- NEW -->
                 {{ template_data.form.location.errors }}
-                <p>{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</p>
+                <div class="field-block">{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</div>
 
                 {{ template_data.form.projects.errors }}
-                <p>{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</p>
+                <div class="field-block">{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</div>
 
                 {{ template_data.form.education.errors }}
                 <div class="field-block">{{ template_data.form.education.label_tag }} {{ template_data.form.education }}</div>
@@ -67,18 +65,13 @@
                 <div class="field-block">{{ template_data.form.company_website.label_tag }} {{ template_data.form.company_website }}</div>
 
                 {{ template_data.form.company_description.errors }}
-<<<<<<< HEAD
                 <div class="field-block">{{ template_data.form.company_description.label_tag }} {{ template_data.form.company_description }}</div>
-=======
-                <p>{{ template_data.form.company_description.label_tag }} {{ template_data.form.company_description }}</p>
 
-                <!-- Optional: employers can fill these too -->
                 {{ template_data.form.location.errors }}
-                <p>{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</p>
+                <div class="field-block">{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</div>
 
                 {{ template_data.form.projects.errors }}
-                <p>{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</p>
->>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db
+                <div class="field-block">{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</div>
               </div>
 
               <script>

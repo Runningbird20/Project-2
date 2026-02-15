@@ -495,7 +495,7 @@ main {
 
 .job-post-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 240px;
+  grid-template-columns: minmax(0, 1fr) 200px;
   gap: 1rem;
   align-items: start;
 }
@@ -507,7 +507,7 @@ main {
 .job-post-map {
   justify-self: end;
   width: 100%;
-  max-width: 240px;
+  max-width: 200px;
 }
 
 .job-post-map-frame {

@@ -27,7 +27,9 @@
 
         <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
           <div class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
-            <a class="nav-link site-link" href="{% url 'jobposts.search' %}">Open Positions</a>
+            <a class="nav-link site-link" href="{% url 'jobposts.search' %}">
+              {% if can_post_job %}Candidate Search{% else %}Open Positions{% endif %}
+            </a>
 
             {% if can_post_job %}
               <a class="nav-link site-link" href="{% url 'jobposts.create' %}">Post a Job</a>

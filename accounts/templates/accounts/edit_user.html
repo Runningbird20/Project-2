@@ -69,7 +69,7 @@
           <div class="form-actions mt-3">
             <form action="{% url 'accounts.remove_user' template_data.user.id %}" method="POST">
               {% csrf_token %}
-              <button class="btn btn-danger">Remove User</button>
+              <button type="submit" class="secondary-btn border-0">Remove User</button>
             </form>
           </div>
         </div>

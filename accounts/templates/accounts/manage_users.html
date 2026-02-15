@@ -1,105 +1,29 @@
 {% extends 'base.html' %}
 {% block content %}
-<<<<<<< HEAD
 <section class="page-shell">
   <div class="container">
-    <div class="page-intro text-start">
+    <div class="page-intro text-start mb-3">
       <p class="page-kicker">Admin</p>
       <h1 class="page-title page-title-sm">Manage Users</h1>
       <p class="page-copy mb-0">Review account roles and open user management actions.</p>
-=======
-
-<div class="p-3">
-    <div class="container">
-        <div class="row mt-3">
-            <div class="col mx-auto mb-3">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h2>Users</h2>
-                    {% if user.is_staff %}
-                    <a href="{% url 'accounts.export_usage_report' %}" class="btn btn-success">
-                        <i class="bi bi-download"></i> Export Usage Report (CSV)
-                    </a>
-                    {% endif %}
-                </div>
-                <hr />
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <form method="GET" action="{% url 'accounts.manage_users' %}" class="d-flex">
-                            <input 
-                                type="text" 
-                                name="search" 
-                                class="form-control me-2" 
-                                placeholder="Search by username..." 
-                                value="{{ template_data.search_query }}"
-                            >
-                            <button type="submit" class="btn btn-primary">Search</button>
-                            {% if template_data.search_query %}
-                                <a href="{% url 'accounts.manage_users' %}" class="btn btn-link text-secondary">Clear</a>
-                            {% endif %}
-                        </form>
-                    </div>
-                </div>
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <table class="table table-bordered table-striped text-center mt-3">
-                            <thead>
-                                <tr>
-                                    <th scope="col">User ID</th>
-                                    <th scope="col">Username</th>
-                                    <th scope="col">Type</th>
-                                    <th scope="col">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for u in template_data.users %}
-                                <tr>
-                                    <td>{{ u.id }}</td>
-                                    <td>{{ u.user.username }}</td>
-                                    
-                                    <td>
-                                        {% if u.user.is_superuser %}
-                                            <span class="badge bg-dark">Superuser</span>
-                                        {% elif u.user.is_staff %}
-                                            <span class="badge bg-info text-dark">Staff</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">{{ u.get_account_type_display }}</span>
-                                        {% endif %}
-                                    </td>
-
-                                    <td>
-                                        {% if user.is_superuser %}
-                                            <a href="{% url 'accounts.edit_user' u.id %}" class="btn btn-danger btn-sm">
-                                                Edit User
-                                            </a>
-                                        {% else %}
-                                            {% if u.user.is_staff %}
-                                                <button class="btn btn-outline-dark btn-sm" disabled>
-                                                    Cannot Edit Staff
-                                                </button> 
-                                            {% else %}
-                                                <a href="{% url 'accounts.edit_user' u.id %}" class="btn btn-danger btn-sm">
-                                                    Edit User
-                                                </a>
-                                            {% endif %}
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="4">No users found.</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-            </div>
-        </div>
->>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db
     </div>
 
-    <div class="surface-card">
+    <div class="surface-card mb-3">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <form method="GET" action="{% url 'accounts.manage_users' %}" class="d-flex gap-2 flex-wrap">
+          <input type="text" name="search" class="form-control" placeholder="Search by username or email..." value="{{ template_data.search_query }}">
+          <button type="submit" class="primary-btn border-0">Search</button>
+          {% if template_data.search_query %}
+            <a href="{% url 'accounts.manage_users' %}" class="secondary-btn">Clear</a>
+          {% endif %}
+        </form>
+        {% if user.is_staff %}
+          <a href="{% url 'accounts.export_usage_report' %}" class="secondary-btn">Export Usage Report</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="surface-card p-0 overflow-hidden">
       <div class="table-responsive">
         <table class="table align-middle text-center job-table mb-0">
           <thead class="table-light">
@@ -114,27 +38,21 @@
             {% for u in template_data.users %}
             <tr>
               <td>{{ u.id }}</td>
-              <td>{{ u.user }}</td>
+              <td>{{ u.user.username }}</td>
               <td>
                 {% if u.user.is_superuser %}
-                  Superuser
+                  <span class="badge bg-dark">Superuser</span>
+                {% elif u.user.is_staff %}
+                  <span class="badge bg-info text-dark">Staff</span>
                 {% else %}
-                  {% if u.user.is_staff %}
-                    Staff
-                  {% else %}
-                    {{ u.account_type }}
-                  {% endif %}
+                  <span class="badge bg-secondary">{{ u.get_account_type_display }}</span>
                 {% endif %}
               </td>
               <td>
-                {% if user.is_superuser %}
+                {% if user.is_superuser or not u.user.is_staff %}
                   <a href="{% url 'accounts.edit_user' u.id %}" class="secondary-btn">Edit User</a>
                 {% else %}
-                  {% if u.user.is_staff %}
-                    <button class="secondary-btn" disabled>Cannot Edit Superuser</button>
-                  {% else %}
-                    <a href="{% url 'accounts.edit_user' u.id %}" class="secondary-btn">Edit User</a>
-                  {% endif %}
+                  <button class="secondary-btn" disabled>Cannot Edit Staff</button>
                 {% endif %}
               </td>
             </tr>
