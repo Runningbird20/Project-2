@@ -1,7 +1,8 @@
+from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.forms.utils import ErrorList
 from django.utils.safestring import mark_safe
-from django import forms
+
 from .models import Profile
 
 
@@ -14,7 +15,7 @@ class CustomErrorList(ErrorList):
 
 class CustomUserCreationForm(UserCreationForm):
     def __init__(self, *args, **kwargs):
-        super(CustomUserCreationForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         for fieldname in ['username', 'password1', 'password2']:
             self.fields[fieldname].help_text = None
             self.fields[fieldname].widget.attrs.update({'class': 'form-control'})
@@ -27,7 +28,7 @@ class SignupWithProfileForm(CustomUserCreationForm):
         choices=Profile.AccountType.choices,
         required=True,
         widget=forms.Select(attrs={"class": "form-control"}),
-        label="I am signing up as"
+        label="I am signing up as",
     )
 
     # Applicant fields
@@ -35,23 +36,23 @@ class SignupWithProfileForm(CustomUserCreationForm):
         max_length=120,
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control'}),
-        label="Headline"
+        label="Headline",
     )
     skills = forms.CharField(
         max_length=300,
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control'}),
-        label="Skills"
+        label="Skills",
     )
     education = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-        label="Education"
+        label="Education",
     )
     work_experience = forms.CharField(
         required=False,
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-        label="Work Experience"
+        label="Work Experience",
     )
 
     # Employer fields
@@ -59,12 +60,12 @@ class SignupWithProfileForm(CustomUserCreationForm):
         max_length=120,
         required=False,
         widget=forms.TextInput(attrs={"class": "form-control"}),
-        label="Company Name"
+        label="Company Name",
     )
     company_website = forms.URLField(
         required=False,
         widget=forms.URLInput(attrs={"class": "form-control"}),
-        label="Company Website"
+        label="Company Website",
     )
     company_description = forms.CharField(
         required=False,
@@ -86,7 +87,6 @@ class SignupWithProfileForm(CustomUserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Optional: remove Django's default password help text if it appears
         if "password1" in self.fields:
             self.fields["password1"].help_text = None
         if "password2" in self.fields:
@@ -96,11 +96,11 @@ class SignupWithProfileForm(CustomUserCreationForm):
         cleaned = super().clean()
         acct = cleaned.get("account_type")
 
-        if acct == Profile.AccountType.EMPLOYER:
-            if not cleaned.get("company_name"):
-                self.add_error("company_name", "Company name is required for employers.")
+        if acct == Profile.AccountType.EMPLOYER and not cleaned.get("company_name"):
+            self.add_error("company_name", "Company name is required for employers.")
 
         return cleaned
+
 
 class ProfileEditForm(forms.ModelForm):
     class Meta:
@@ -117,11 +117,12 @@ class ProfileEditForm(forms.ModelForm):
             "projects",
             "education",
             "work_experience",
-
             "company_name",
             "company_website",
             "company_description",
-
+            "company_name",
+            "company_website",
+            "company_description",
             "visible_to_recruiters",
             "show_headline",
             "show_skills",
@@ -172,9 +173,8 @@ class ProfileEditForm(forms.ModelForm):
         cleaned = super().clean()
         acct = cleaned.get("account_type")
 
-        if acct == Profile.AccountType.EMPLOYER:
-            if not cleaned.get("company_name"):
-                self.add_error("company_name", "Company name is required for employers.")
+        if acct == Profile.AccountType.EMPLOYER and not cleaned.get("company_name"):
+            self.add_error("company_name", "Company name is required for employers.")
 
         return cleaned
 
