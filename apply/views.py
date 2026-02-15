@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import Application
 from jobposts.models import JobPost
-from django.http import JsonResponse, HttpResponseForbidden, HttpResponse
+from django.http import JsonResponse, HttpResponseForbidden, HttpResponse, Http404
 from django.views.decorators.http import require_POST
 import json
 import csv
@@ -113,9 +113,6 @@ def export_applicants_csv(request, job_id):
         ])
 
     return response
-<<<<<<< HEAD
-=======
-    
 @login_required
 def offer_letter(request, application_id):
     application = get_object_or_404(
@@ -150,4 +147,3 @@ def offer_letter(request, application_id):
     }
 
     return render(request, "apply/offer_letter.html", {"template_data": template_data})
->>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db

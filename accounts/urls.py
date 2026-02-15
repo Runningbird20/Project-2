@@ -7,23 +7,12 @@ urlpatterns = [
     path('logout/', views.logout, name='accounts.logout'),
     path('profile/', views.profile, name='accounts.profile'),
     path('profile/<int:user_id>/', views.profile, name='accounts.profile_with_id'),
-<<<<<<< HEAD
     path('profile/edit/', views.edit_profile, name='accounts.profile_edit'),
     path('profile/<str:username>/edit/', views.edit_profile, name='accounts.profile_edit_user'),
     path('profile/<str:username>/', views.public_profile, name='accounts.public_profile'),
     path('manage_users/', views.manage_users, name='accounts.manage_users'),
     path('edit_user/<int:user_id>/', views.edit_user, name='accounts.edit_user'),
     path('remove_user/<int:user_id>/', views.remove_user, name='accounts.remove_user'),
-]
-=======
-    path("profile/edit/", views.edit_profile, name="accounts.profile_edit"),
-    path("manage_users/", views.manage_users, name="accounts.manage_users"),
-    path('edit_user/<int:user_id>/', views.edit_user, name='accounts.edit_user'),
-    path('remove_user/<int:user_id>/', views.remove_user, name='accounts.remove_user'),
-    path("profile/<str:username>/edit/", views.edit_profile, name="accounts.profile_edit_user"),
-    path("profile/<str:username>/", views.public_profile, name="accounts.public_profile"),
     path("candidates/", views.candidate_search, name="accounts.candidate_search"),
     path('export-usage/', views.export_usage_report, name='accounts.export_usage_report'),
 ]
-
->>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db

@@ -283,10 +283,6 @@ def edit_user(request, user_id):
 
     return redirect("accounts.manage_users")
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db
 @staff_member_required
 def remove_user(request, user_id):
     if request.method == "POST":

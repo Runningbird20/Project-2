@@ -11,7 +11,6 @@ from map.services import OfficeLocationGeocodingError, geocode_office_address
 from .forms import JobPostForm
 from .models import JobPost
 
-
 from django.db.models import Count, Q
 
 @login_required
@@ -155,15 +154,7 @@ def search(request):
             return redirect("accounts.candidate_search")
 
     template_data = {'title': 'Job Search'}
-<<<<<<< HEAD
     posts = JobPost.objects.select_related('office_location').all().order_by('-created_at')
-=======
-    if request.user.is_authenticated:
-        prof = Profile.objects.filter(user=request.user).first()
-        if prof and prof.account_type == Profile.AccountType.EMPLOYER:
-            template_data["title"] = "Candidate Search"
-    posts = JobPost.objects.all().order_by('-created_at')
->>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db
     can_post_job = False
     if request.user.is_authenticated:
         can_post_job = _is_employer(request.user)
@@ -214,8 +205,6 @@ def search(request):
     }
     return render(request, 'jobposts/search.html', {'template_data': template_data})
 
-<<<<<<< HEAD
-
 @login_required
 def employer_dashboard(request):
     my_jobs = JobPost.objects.filter(owner=request.user).annotate(
@@ -260,5 +249,3 @@ def _save_office_location(post, map_form):
             'longitude': longitude,
         },
     )
-=======
->>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db

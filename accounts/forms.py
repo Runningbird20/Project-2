@@ -2,10 +2,6 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.forms.utils import ErrorList
 from django.utils.safestring import mark_safe
-<<<<<<< HEAD
-from django import forms
-=======
->>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db
 
 from .models import Profile
 
@@ -113,15 +109,8 @@ class ProfileEditForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = [
-<<<<<<< HEAD
-            "account_type",
-=======
-            # NEW: allow editing profile picture
             "profile_picture",
-
             "account_type",
-
->>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db
             "headline",
             "skills",
             "location",
@@ -131,12 +120,6 @@ class ProfileEditForm(forms.ModelForm):
             "company_name",
             "company_website",
             "company_description",
-<<<<<<< HEAD
-=======
-            "company_name",
-            "company_website",
-            "company_description",
->>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db
             "visible_to_recruiters",
             "show_headline",
             "show_skills",
@@ -145,30 +128,17 @@ class ProfileEditForm(forms.ModelForm):
             "show_links",
         ]
         widgets = {
-            "account_type": forms.Select(attrs={"class": "form-control"}),
-<<<<<<< HEAD
-=======
-
             "profile_picture": forms.ClearableFileInput(attrs={"class": "form-control"}),
-
->>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db
+            "account_type": forms.Select(attrs={"class": "form-control"}),
             "headline": forms.TextInput(attrs={"class": "form-control"}),
             "skills": forms.TextInput(attrs={"class": "form-control"}),
             "location": forms.TextInput(attrs={"class": "form-control"}),
             "projects": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
             "education": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "work_experience": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
-<<<<<<< HEAD
             "company_name": forms.TextInput(attrs={"class": "form-control"}),
             "company_website": forms.URLInput(attrs={"class": "form-control"}),
             "company_description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
-=======
-
-            "company_name": forms.TextInput(attrs={"class": "form-control"}),
-            "company_website": forms.URLInput(attrs={"class": "form-control"}),
-            "company_description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
-
->>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db
             "visible_to_recruiters": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "show_headline": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "show_skills": forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -179,42 +149,25 @@ class ProfileEditForm(forms.ModelForm):
         labels = {
             "profile_picture": "Profile picture",
             "account_type": "Account type",
-<<<<<<< HEAD
             "visible_to_recruiters": "Visible to recruiters",
-=======
-            "visible_to_recruiters": "Visible to employers",
->>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db
             "show_headline": "Show headline",
             "show_skills": "Show skills",
             "show_education": "Show education",
             "show_work_experience": "Show work experience",
             "show_links": "Show links",
-<<<<<<< HEAD
-=======
             "company_name": "Company Name",
             "company_website": "Company Website",
             "company_description": "Company Description",
->>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db
         }
 
     def clean(self):
         cleaned = super().clean()
         acct = cleaned.get("account_type")
 
-<<<<<<< HEAD
         if not acct and self.instance and self.instance.pk:
             acct = self.instance.account_type
             cleaned["account_type"] = acct
-
-=======
->>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db
         if acct == Profile.AccountType.EMPLOYER and not cleaned.get("company_name"):
             self.add_error("company_name", "Company name is required for employers.")
 
         return cleaned
-<<<<<<< HEAD
-=======
-
-
-
->>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db
