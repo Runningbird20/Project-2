@@ -9,4 +9,6 @@ urlpatterns = [
     path('update-status/<int:application_id>/', views.update_status, name='update_status'),
     path('pipeline/<int:job_id>/', views.employer_pipeline, name='employer_pipeline'),
     path('pipeline/<int:job_id>/export/', views.export_applicants_csv, name='export_applicants_csv'),
+    path('offer-letter/<int:application_id>/', views.offer_letter, name='offer_letter'),
+
 ]

@@ -7,6 +7,8 @@ from django.http import JsonResponse, HttpResponseForbidden, HttpResponse
 from django.views.decorators.http import require_POST
 import json
 import csv
+from django.utils import timezone
+from accounts.models import Profile
 
 @login_required
 def submit_application(request, job_id):
@@ -111,3 +113,41 @@ def export_applicants_csv(request, job_id):
         ])
 
     return response
+<<<<<<< HEAD
+=======
+    
+@login_required
+def offer_letter(request, application_id):
+    application = get_object_or_404(
+        Application.objects.select_related("user", "job", "job__owner"),
+        id=application_id
+    )
+
+    is_applicant = application.user == request.user
+    is_recruiter = application.job.owner == request.user
+
+    # Only applicant or the job owner can view the offer letter
+    if not (is_applicant or is_recruiter):
+        return HttpResponseForbidden("You do not have access to this offer letter.")
+
+    # Only visible once accepted (you said “once they get accepted”)
+    # Use 'offer' as accepted stage (or include 'closed' if you later use it for “accepted/complete”).
+    if application.status not in ("offer", "closed"):
+        raise Http404("Offer letter not available.")
+
+    applicant_profile, _ = Profile.objects.get_or_create(user=application.user)
+    recruiter_profile, _ = Profile.objects.get_or_create(user=application.job.owner)
+
+    template_data = {
+        "title": "Offer Letter",
+        "application": application,
+        "job": application.job,
+        "applicant_profile": applicant_profile,
+        "recruiter_profile": recruiter_profile,
+        "is_applicant": is_applicant,
+        "is_recruiter": is_recruiter,
+        "today": timezone.now(),
+    }
+
+    return render(request, "apply/offer_letter.html", {"template_data": template_data})
+>>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db

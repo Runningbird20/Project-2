@@ -1,24 +1,37 @@
+{# accounts/templates/accounts/edit_profile.html #}
 {% extends 'base.html' %}
 {% block content %}
 <section class="page-shell">
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-md-10 col-lg-8">
+<<<<<<< HEAD
         <div class="surface-card">
             <p class="page-kicker mb-2">Account settings</p>
             <h1 class="page-title page-title-sm">Edit Profile</h1>
             <p class="surface-copy mb-0">Privacy options control what recruiters see on your public profile.</p>
+=======
+        <div class="card shadow p-3 mb-4 rounded">
+          <div class="card-body">
+            <h2>Edit Profile</h2>
+            <p class="text-muted mb-0">Privacy options control what employers see on your public profile.</p>
+>>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db
             <hr />
 
-            <form method="POST">
+            <!-- IMPORTANT: enctype for image upload -->
+            <form method="POST" enctype="multipart/form-data">
               {% csrf_token %}
               {{ template_data.form.non_field_errors }}
+
+              <!-- NEW: profile picture -->
+              {{ template_data.form.profile_picture.errors }}
+              <p>{{ template_data.form.profile_picture.label_tag }} {{ template_data.form.profile_picture }}</p>
 
               {{ template_data.form.account_type.errors }}
               <div id="account_type_section" class="p-2 rounded {% if template_data.highlight_account_type %}border border-warning bg-warning-subtle{% endif %}">
                 <div class="field-block mb-0">{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</div>
                 {% if template_data.highlight_account_type %}
-                  <p class="small mb-0 text-warning-emphasis">Change this to Employer to unlock job posting.</p>
+                  <p class="small mb-0 text-warning-emphasis">Change this to Employer to unlock candidate search.</p>
                 {% endif %}
               </div>
 
@@ -29,11 +42,35 @@
                 {{ template_data.form.skills.errors }}
                 <div class="field-block">{{ template_data.form.skills.label_tag }} {{ template_data.form.skills }}</div>
 
+                {{ template_data.form.location.errors }}
+                <p>{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</p>
+
+                {{ template_data.form.projects.errors }}
+                <p>{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</p>
+
                 {{ template_data.form.education.errors }}
                 <div class="field-block">{{ template_data.form.education.label_tag }} {{ template_data.form.education }}</div>
 
                 {{ template_data.form.work_experience.errors }}
+<<<<<<< HEAD
                 <div class="field-block">{{ template_data.form.work_experience.label_tag }} {{ template_data.form.work_experience }}</div>
+=======
+                <p>{{ template_data.form.work_experience.label_tag }} {{ template_data.form.work_experience }}</p>
+
+                <hr />
+                <h5 class="mt-2">Public visibility</h5>
+
+                {{ template_data.form.visible_to_recruiters.errors }}
+                <div class="form-check mb-2">
+                  {{ template_data.form.visible_to_recruiters }}
+                  <label class="form-check-label" for="{{ template_data.form.visible_to_recruiters.id_for_label }}">
+                    Make my profile visible to employers (public)
+                  </label>
+                </div>
+                <div class="small text-muted">
+                  If this is off, employers can’t view your public profile. You can still preview it yourself from your profile page.
+                </div>
+>>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db
               </div>
 
               <div id="employer_fields">
@@ -44,6 +81,7 @@
                 <div class="field-block">{{ template_data.form.company_website.label_tag }} {{ template_data.form.company_website }}</div>
 
                 {{ template_data.form.company_description.errors }}
+<<<<<<< HEAD
                 <div class="field-block">{{ template_data.form.company_description.label_tag }} {{ template_data.form.company_description }}</div>
               </div>
 
@@ -98,6 +136,15 @@
                     </label>
                   </div>
                 </div>
+=======
+                <p>{{ template_data.form.company_description.label_tag }} {{ template_data.form.company_description }}</p>
+
+                {{ template_data.form.location.errors }}
+                <p>{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</p>
+
+                {{ template_data.form.projects.errors }}
+                <p>{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</p>
+>>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db
               </div>
 
               <script>
@@ -109,8 +156,8 @@
 
                   function refresh() {
                     const isEmployer = select && select.value === "EMPLOYER";
-                    employer.style.display = isEmployer ? "block" : "none";
-                    applicant.style.display = isEmployer ? "none" : "block";
+                    if (employer) employer.style.display = isEmployer ? "block" : "none";
+                    if (applicant) applicant.style.display = isEmployer ? "none" : "block";
                   }
 
                   if (select) {
@@ -118,10 +165,9 @@
                     refresh();
                   }
 
-                  if (template_data.highlight_account_type) {
-                    if (select) {
-                      select.focus();
-                    }
+                  const highlight = "{{ template_data.highlight_account_type|yesno:'1,0' }}";
+                  if (highlight === "1") {
+                    if (select) select.focus();
                     if (accountTypeSection) {
                       accountTypeSection.scrollIntoView({ behavior: "smooth", block: "center" });
                     }

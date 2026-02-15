@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
+<<<<<<< HEAD
 <section class="page-shell">
   <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
@@ -10,6 +11,138 @@
         <p class="page-copy mb-0">Manage your job listings and track applicants.</p>
       </div>
       <a href="{% url 'jobposts.create' %}" class="primary-btn border-0">Post New Job</a>
+=======
+<style>
+    .dashboard-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+    .table-hover tbody tr:hover {
+        background-color: #f8faff;
+        cursor: pointer;
+    }
+    .bg-success-subtle {
+        background-color: #dcfce7 !important;
+        color: #166534 !important;
+    }
+    .bg-primary-subtle {
+        background-color: #e0e7ff !important;
+        color: #3730a3 !important;
+    }
+    .bg-warning-subtle {
+        background-color: #fef9c3 !important;
+        color: #854d0e !important;
+    }
+</style>
+
+<div class="container py-5">
+
+    {# ======================== APPLICANT VIEW ======================== #}
+    {% if user.profile.account_type == 'APPLICANT' %}
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h2 class="fw-bold mb-0">My Career Dashboard</h2>
+            <p class="text-muted">Discover roles tailored to your skills and track your applications.</p>
+        </div>
+        <a href="{% url 'jobposts.search' %}" class="btn btn-primary rounded-pill px-4 shadow-sm">
+            <i class="bi bi-search me-2"></i>Browse All Jobs
+        </a>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-primary text-white dashboard-card">
+                <div class="card-body d-flex align-items-center p-4">
+                    <div class="flex-grow-1">
+                        <h6 class="text-uppercase small fw-bold opacity-75">Applications Sent</h6>
+                        <h2 class="fw-bold mb-0">{{ apps_sent_count|default:"0" }}</h2>
+                    </div>
+                    <div class="opacity-25">
+                        <i class="bi bi-send fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white dashboard-card">
+                <div class="card-body d-flex align-items-center p-4 border-start border-warning border-5 rounded-start">
+                    <div class="flex-grow-1">
+                        <h6 class="text-uppercase small fw-bold text-muted">Interview Invites</h6>
+                        <h2 class="fw-bold mb-0 text-dark">{{ success_count|default:"0" }}</h2>
+                    </div>
+                    <div class="text-warning opacity-25">
+                        <i class="bi bi-calendar-check fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-5">
+        <div class="card-header bg-white border-0 py-3 px-4 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold"><i class="bi bi-magic me-2 text-primary"></i>Recommended For You</h5>
+            <span class="badge bg-primary-subtle rounded-pill px-3">Based on your skills</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-muted small text-uppercase">
+                        <tr>
+                            <th class="ps-4 py-3">Opportunity</th>
+                            <th class="py-3">Location</th>
+                            <th class="py-3">Match Reason</th>
+                            <th class="py-3 text-end pe-4">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for job in recommendations %}
+                        <tr onclick="window.location='{% url 'jobposts.detail' job.id %}'">
+                            <td class="ps-4 py-3">
+                                <div class="fw-bold text-dark mb-0">{{ job.title }}</div>
+                                <div class="small text-muted">{{ job.company_name }}</div>
+                            </td>
+                            <td class="text-muted small">
+                                <i class="bi bi-geo-alt me-1"></i>{{ job.location }}
+                            </td>
+                            <td>
+                                <span class="badge bg-success-subtle rounded-pill">Skill Overlap</span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <a href="{% url 'jobposts.detail' job.id %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                    View Details
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-5 text-muted">
+                                <i class="bi bi-stars fs-1 d-block mb-2"></i>
+                                No specific matches found yet. Try adding more skills to your profile!
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ======================== EMPLOYER VIEW ======================== #}
+    {% if user.profile.account_type == 'EMPLOYER' %}
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h2 class="fw-bold mb-0">Employer Dashboard</h2>
+            <p class="text-muted">Manage your job listings and track applicants.</p>
+        </div>
+        <a href="{% url 'jobposts.create' %}" class="btn btn-primary rounded-pill px-4 shadow-sm">
+            <i class="bi bi-plus-lg me-2"></i>Post New Job
+        </a>
+>>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db
     </div>
 
     <div class="row g-4 mb-4">
@@ -78,6 +211,93 @@
         </table>
       </div>
     </div>
+<<<<<<< HEAD
   </div>
 </section>
 {% endblock %}
+=======
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-white border-0 py-3 px-4">
+            <h5 class="mb-0 fw-bold">Your Job Listings</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-muted small text-uppercase">
+                        <tr>
+                            <th class="ps-4 py-3">Job Details</th>
+                            <th class="py-3">Posted On</th>
+                            <th class="py-3 text-center">Total Apps</th>
+                            <th class="py-3 text-center">New</th>
+                            <th class="py-3 text-end pe-4">Manage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for job in jobs %}
+                        <tr onclick="window.location='{% url 'apply:employer_pipeline' job.id %}'">
+                            <td class="ps-4 py-3">
+                                <div class="fw-bold text-dark mb-0">{{ job.title }}</div>
+                                <div class="small text-muted"><i class="bi bi-building me-1"></i>{{ job.company }}</div>
+                            </td>
+                            <td class="text-muted small">
+                                <span class="badge bg-light text-dark fw-normal border">
+                                    {{ job.created_at|date:"M d, Y" }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="fw-bold text-dark">{{ job.total_apps }}</span>
+                            </td>
+                            <td class="text-center">
+                                {% if job.new_apps > 0 %}
+                                    <span class="badge bg-success-subtle rounded-pill px-3">
+                                        <i class="bi bi-lightning-fill me-1"></i>{{ job.new_apps }} New
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-4" onclick="event.stopPropagation();">
+                                <div class="btn-group shadow-sm">
+                                    <a href="{% url 'apply:employer_pipeline' job.id %}" class="btn btn-sm btn-dark px-3">
+                                        <i class="bi bi-kanban me-1"></i> Pipeline
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-dark dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false"></button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                                        <li><a class="dropdown-item py-2" href="{% url 'jobposts.edit' job.id %}"><i class="bi bi-pencil me-2"></i>Edit Post</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item py-2 text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete Listing</a></li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5">
+                                <div class="py-4">
+                                    <i class="bi bi-folder2-open fs-1 text-muted d-block mb-3"></i>
+                                    <h5 class="text-dark">No active job posts</h5>
+                                    <p class="text-muted mb-4">Start by creating your first job listing to see it here.</p>
+                                    <a href="{% url 'jobposts.create' %}" class="btn btn-primary rounded-pill px-4">
+                                        Create First Post
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+    document.querySelectorAll('.dropdown-menu').forEach(menu => {
+        menu.addEventListener('click', (e) => e.stopPropagation());
+    });
+</script>
+{% endblock %}
+>>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db

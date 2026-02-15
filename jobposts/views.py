@@ -12,6 +12,74 @@ from .forms import JobPostForm
 from .models import JobPost
 
 
+from django.db.models import Count, Q
+
+@login_required
+def dashboard(request):
+    profile = request.user.profile
+    context = {}
+    
+    # --- APPLICANT LOGIC ---
+    if profile.account_type == Profile.AccountType.APPLICANT:
+        recommendations = get_job_recommendations(profile)
+        
+        apps = request.user.application_set.all() 
+        apps_sent_count = apps.count()
+        success_count = apps.filter(status__in=['offer', 'closed']).count()
+        
+        context.update({
+            'recommendations': recommendations,
+            'skills': profile.skills,
+            'apps_sent_count': apps_sent_count,
+            'success_count': success_count,
+        })
+
+    # --- EMPLOYER LOGIC ---
+    elif profile.account_type == Profile.AccountType.EMPLOYER:
+        my_jobs = JobPost.objects.filter(owner=request.user).annotate(
+            total_apps=Count('applications'), 
+            new_apps=Count(
+                'applications', 
+                filter=Q(applications__status='applied')
+            )
+        ).order_by('-created_at')
+
+        overall_total = sum(job.total_apps for job in my_jobs)
+        
+        context.update({
+            'jobs': my_jobs,
+            'overall_total': overall_total
+        })
+
+    return render(request, 'jobposts/dashboard.html', context)
+
+def get_job_recommendations(user_profile):
+    """
+    Ranks jobs based on the overlap between user skills and job requirements.
+    """
+    if not user_profile.skills:
+        return JobPost.objects.none()
+
+    user_skills = [s.strip().lower() for s in user_profile.skills.split(',') if s.strip()]
+    
+    query = Q()
+    for skill in user_skills:
+        query |= Q(title__icontains=skill) | Q(description__icontains=skill)
+
+    applied_job_ids = user_profile.user.application_set.values_list('job_id', flat=True)    
+    suggested_jobs = JobPost.objects.filter(query).exclude(id__in=applied_job_ids).distinct()
+
+    recommended_list = []
+    for job in suggested_jobs:
+        match_count = sum(1 for skill in user_skills if skill in job.description.lower() or skill in job.title.lower())
+        recommended_list.append({
+            'job': job,
+            'match_count': match_count
+        })
+
+    recommended_list.sort(key=lambda x: x['match_count'], reverse=True)
+    
+    return [item['job'] for item in recommended_list[:5]] # Return top 5
 def _is_employer(user):
     return Profile.objects.filter(
         user=user,
@@ -81,8 +149,21 @@ def edit(request, post_id):
 
 
 def search(request):
+    if request.user.is_authenticated:
+        prof = Profile.objects.filter(user=request.user).first()
+        if prof and prof.account_type == Profile.AccountType.EMPLOYER:
+            return redirect("accounts.candidate_search")
+
     template_data = {'title': 'Job Search'}
+<<<<<<< HEAD
     posts = JobPost.objects.select_related('office_location').all().order_by('-created_at')
+=======
+    if request.user.is_authenticated:
+        prof = Profile.objects.filter(user=request.user).first()
+        if prof and prof.account_type == Profile.AccountType.EMPLOYER:
+            template_data["title"] = "Candidate Search"
+    posts = JobPost.objects.all().order_by('-created_at')
+>>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db
     can_post_job = False
     if request.user.is_authenticated:
         can_post_job = _is_employer(request.user)
@@ -133,6 +214,7 @@ def search(request):
     }
     return render(request, 'jobposts/search.html', {'template_data': template_data})
 
+<<<<<<< HEAD
 
 @login_required
 def employer_dashboard(request):
@@ -178,3 +260,5 @@ def _save_office_location(post, map_form):
             'longitude': longitude,
         },
     )
+=======
+>>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db

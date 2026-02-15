@@ -1,3 +1,4 @@
+{# accounts/templates/accounts/signup.html #}
 {% extends 'base.html' %}
 {% block content %}
 <section class="page-shell">
@@ -10,7 +11,8 @@
             <h1 class="page-title page-title-sm">Create your account</h1>
           </div>
 
-            <form method="POST">
+            <!-- IMPORTANT: enctype for image upload -->
+            <form method="POST" enctype="multipart/form-data">
               {% csrf_token %}
 
               {{ template_data.form.non_field_errors }}
@@ -29,6 +31,10 @@
               <hr />
               <h5 class="surface-title">Profile</h5>
 
+              <!-- NEW: Profile picture (all account types) -->
+              {{ template_data.form.profile_picture.errors }}
+              <p>{{ template_data.form.profile_picture.label_tag }} {{ template_data.form.profile_picture }}</p>
+
               {{ template_data.form.account_type.errors }}
               <div class="field-block">{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</div>
 
@@ -38,6 +44,13 @@
 
                 {{ template_data.form.skills.errors }}
                 <div class="field-block">{{ template_data.form.skills.label_tag }} {{ template_data.form.skills }}</div>
+
+                <!-- NEW -->
+                {{ template_data.form.location.errors }}
+                <p>{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</p>
+
+                {{ template_data.form.projects.errors }}
+                <p>{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</p>
 
                 {{ template_data.form.education.errors }}
                 <div class="field-block">{{ template_data.form.education.label_tag }} {{ template_data.form.education }}</div>
@@ -54,7 +67,18 @@
                 <div class="field-block">{{ template_data.form.company_website.label_tag }} {{ template_data.form.company_website }}</div>
 
                 {{ template_data.form.company_description.errors }}
+<<<<<<< HEAD
                 <div class="field-block">{{ template_data.form.company_description.label_tag }} {{ template_data.form.company_description }}</div>
+=======
+                <p>{{ template_data.form.company_description.label_tag }} {{ template_data.form.company_description }}</p>
+
+                <!-- Optional: employers can fill these too -->
+                {{ template_data.form.location.errors }}
+                <p>{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</p>
+
+                {{ template_data.form.projects.errors }}
+                <p>{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</p>
+>>>>>>> 721dea6db0a42497a6757770dea36b37d0a335db
               </div>
 
               <script>
@@ -65,8 +89,8 @@
 
                   function refresh() {
                     const isEmployer = select && select.value === "EMPLOYER";
-                    employer.style.display = isEmployer ? "block" : "none";
-                    applicant.style.display = isEmployer ? "none" : "block";
+                    if (employer) employer.style.display = isEmployer ? "block" : "none";
+                    if (applicant) applicant.style.display = isEmployer ? "none" : "block";
                   }
 
                   if (select) {
