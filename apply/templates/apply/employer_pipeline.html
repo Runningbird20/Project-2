@@ -24,16 +24,6 @@
 </style>
 
 <div class="container-fluid py-5 px-4">
-    {# Display Django Success Messages if any #}
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
-
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <nav aria-label="breadcrumb">
@@ -88,6 +78,7 @@
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted mb-1">Move To:</label>
                             <select class="form-select form-select-sm border-0 bg-light" 
+                                    id="status-select-{{ app.id }}"
                                     data-prev-status="{{ app.status }}" 
                                     onchange="updateStatus(this, '{{ app.id }}')">
                                 {% for key, label in app.STATUS_CHOICES %}
@@ -118,6 +109,8 @@
     </div>
 </div>
 
+<div id="undo-toast-container"></div>
+
 <div class="modal fade" id="rejectionModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow">
@@ -126,7 +119,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-4">
-        <p class="mb-0">Are you sure you want to reject this applicant? This will move them to the rejected column and they will see the notice on their tracker.</p>
+        <p class="mb-0">Are you sure you want to reject this applicant? This will move them to the rejected column.</p>
       </div>
       <div class="modal-footer border-0">
         <button type="button" class="btn btn-light rounded-pill px-4" id="cancelRejection">Cancel</button>
@@ -140,34 +133,34 @@
 let pendingUpdate = null;
 const rejectionModal = new bootstrap.Modal(document.getElementById('rejectionModal'));
 
-// CHECK FOR UNDO PARAMETERS ON LOAD
-window.onload = function() {
+document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const undoAppId = urlParams.get('undo_app');
     const oldStatus = urlParams.get('old_status');
     
     if (undoAppId && oldStatus) {
         showUndoToast(undoAppId, oldStatus);
-        // Clean the URL so the toast doesn't reappear on manual refresh
         window.history.replaceState({}, document.title, window.location.pathname);
     }
-};
+});
 
 function updateStatus(select, appId, isUndo = false) {
     const newStatus = select.value;
     const previousStatus = select.getAttribute('data-prev-status');
 
-    if (newStatus === 'rejected' && !isUndo) {
+    if (newStatus === previousStatus) return;
+
+    if (newStatus === 'REJECTED' && !isUndo) { 
         pendingUpdate = { select, appId, previousStatus };
         rejectionModal.show();
         select.value = previousStatus; 
         return;
     }
 
-    executeStatusUpdate(appId, newStatus, previousStatus, isUndo, select);
+    executeStatusUpdate(appId, newStatus, previousStatus, isUndo);
 }
 
-function executeStatusUpdate(appId, newStatus, previousStatus, isUndo, select) {
+function executeStatusUpdate(appId, newStatus, previousStatus, isUndo) {
     fetch(`/apply/update-status/${appId}/`, {
         method: "POST",
         headers: {
@@ -177,13 +170,8 @@ function executeStatusUpdate(appId, newStatus, previousStatus, isUndo, select) {
         body: JSON.stringify({ status: newStatus })
     }).then(res => {
         if(res.ok) {
-            if (isUndo) {
-                window.location.reload(); 
-            } else {
-                // Redirect with parameters to show the Undo toast after refresh
-                const currentUrl = window.location.pathname;
-                window.location.href = `${currentUrl}?undo_app=${appId}&old_status=${previousStatus}`;
-            }
+            const redirectUrl = isUndo ? window.location.pathname : `${window.location.pathname}?undo_app=${appId}&old_status=${previousStatus}`;
+            window.location.href = redirectUrl;
         } else {
             alert("Error updating status.");
         }
@@ -191,30 +179,30 @@ function executeStatusUpdate(appId, newStatus, previousStatus, isUndo, select) {
 }
 
 function showUndoToast(appId, oldStatus) {
+    const container = document.getElementById('undo-toast-container');
     const toast = document.createElement('div');
-    toast.className = "fixed-bottom m-4 p-3 bg-dark text-white rounded-3 shadow-lg d-flex justify-content-between align-items-center";
+    toast.className = "fixed-bottom m-4 p-3 bg-dark text-white rounded-3 shadow-lg d-flex justify-content-between align-items-center bounce-in";
     toast.style.zIndex = "1050";
-    toast.style.width = "300px";
+    toast.style.width = "320px";
     toast.innerHTML = `
-        <span>Status updated!</span>
-        <button class="btn btn-sm btn-warning fw-bold" onclick="undoChange('${appId}', '${oldStatus}')">UNDO</button>
+        <div class="d-flex align-items-center">
+            <i class="bi bi-check-circle-fill text-success me-2"></i>
+            <span>Status updated!</span>
+        </div>
+        <button class="btn btn-sm btn-warning fw-bold ms-3" onclick="undoChange('${appId}', '${oldStatus}')">UNDO</button>
     `;
-    document.body.appendChild(toast);
-    setTimeout(() => { if(toast) toast.remove(); }, 6000); 
+    container.appendChild(toast);
+    setTimeout(() => { if(toast) toast.remove(); }, 8000); 
 }
 
 function undoChange(appId, oldStatus) {
-    const select = document.querySelector(`select[onchange*='${appId}']`);
-    if (select) {
-        select.value = oldStatus;
-        executeStatusUpdate(appId, oldStatus, null, true, select);
-    }
+    executeStatusUpdate(appId, oldStatus, null, true);
 }
 
 document.getElementById('confirmRejection').addEventListener('click', () => {
     if (pendingUpdate) {
         rejectionModal.hide();
-        executeStatusUpdate(pendingUpdate.appId, 'rejected', pendingUpdate.previousStatus, false, pendingUpdate.select);
+        executeStatusUpdate(pendingUpdate.appId, 'REJECTED', pendingUpdate.previousStatus, false);
     }
 });
 
@@ -223,4 +211,13 @@ document.getElementById('cancelRejection').addEventListener('click', () => {
     pendingUpdate = null;
 });
 </script>
+
+<style>
+@keyframes bounceIn {
+    0% { transform: translateY(100px); opacity: 0; }
+    70% { transform: translateY(-10px); }
+    100% { transform: translateY(0); opacity: 1; }
+}
+.bounce-in { animation: bounceIn 0.5s ease-out; }
+</style>
 {% endblock content %}

@@ -11,7 +11,6 @@
             <div class="d-flex justify-content-between align-items-start gap-3">
               <div class="d-flex align-items-start gap-3">
 
-                <!-- Profile picture -->
                 <div class="flex-shrink-0">
                   {% if template_data.profile.profile_picture %}
                     <img
@@ -35,6 +34,12 @@
                     {{ template_data.viewed_user.get_full_name|default:template_data.viewed_user.username }}
                   </h2>
                   <p class="text-muted mb-1">{{ template_data.profile.get_account_type_display }}</p>
+
+                  {% if template_data.profile.location %}
+                    <p class="small text-muted mb-1">
+                      <i class="bi bi-geo-alt-fill me-1"></i> {{ template_data.profile.location }}
+                    </p>
+                  {% endif %}
 
                   {% if template_data.profile.account_type == "APPLICANT" and template_data.profile.headline %}
                     <p class="text-secondary mb-0">{{ template_data.profile.headline }}</p>
@@ -82,6 +87,17 @@
                   <p class="text-dark">{{ template_data.profile.skills }}</p>
                 {% else %}
                   <p class="text-muted fst-italic">No skills added yet.</p>
+                {% endif %}
+              </div>
+
+              <hr class="my-4" />
+
+              <h5 class="fw-bold"><i class="bi bi-code-slash me-2"></i>Projects</h5>
+              <div class="ps-4">
+                {% if template_data.profile.projects %}
+                  <p style="white-space: pre-wrap;" class="text-dark">{{ template_data.profile.projects }}</p>
+                {% else %}
+                  <p class="text-muted fst-italic">No projects listed yet.</p>
                 {% endif %}
               </div>
 
