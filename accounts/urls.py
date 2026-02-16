@@ -15,5 +15,7 @@ urlpatterns = [
     path("profile/<str:username>/", views.public_profile, name="accounts.public_profile"),
     path("candidates/", views.candidate_search, name="accounts.candidate_search"),
     path('export-usage/', views.export_usage_report, name='accounts.export_usage_report'),
+    path('save-search/', views.save_candidate_search, name='accounts.save_search'),
+    path('delete-search/<int:search_id>/', views.delete_candidate_search, name='accounts.delete_search'),
 ]
 
