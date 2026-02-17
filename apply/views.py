@@ -22,13 +22,9 @@ def submit_application(request, job_id):
     resume_type = request.POST.get("resume_type")  # expects 'profile' or 'uploaded'
     resume_file = request.FILES.get("resume_file")
 
-<<<<<<< HEAD
     if Application.objects.filter(user=request.user, job=job).exists():
         messages.warning(request, f"You have already applied for {job.title}.")
         return redirect("jobposts.search")
-=======
-        return redirect('apply:application_submitted', job_id=job.id)
->>>>>>> d10233fb639d0033b8165f6aa1e818283a5cfada
 
     # Safety: normalize resume_type
     if resume_type not in ("profile", "uploaded"):
@@ -47,7 +43,7 @@ def submit_application(request, job_id):
     # ✅ This survives redirects and can be consumed by templates
     request.session["panda_apply_success"] = True
 
-    return redirect("jobposts.search")
+    return redirect("apply:application_submitted", job_id=job.id)
 
 @login_required
 def application_submitted(request, job_id):
@@ -139,10 +135,6 @@ def export_applicants_csv(request, job_id):
         ])
 
     return response
-<<<<<<< HEAD
-
-=======
->>>>>>> d10233fb639d0033b8165f6aa1e818283a5cfada
 @login_required
 def offer_letter(request, application_id):
     application = get_object_or_404(

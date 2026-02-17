@@ -107,10 +107,7 @@ class ProfileEditForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = [
-<<<<<<< HEAD
-=======
             "profile_picture",
->>>>>>> 4c996b028ab039e2ece29bac8e189950cc13238b
             "account_type",
             "headline",
             "skills",
@@ -137,17 +134,9 @@ class ProfileEditForm(forms.ModelForm):
             "projects": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
             "education": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "work_experience": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
-<<<<<<< HEAD
-
             "company_name": forms.TextInput(attrs={"class": "form-control"}),
             "company_website": forms.URLInput(attrs={"class": "form-control"}),
             "company_description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
-
-=======
-            "company_name": forms.TextInput(attrs={"class": "form-control"}),
-            "company_website": forms.URLInput(attrs={"class": "form-control"}),
-            "company_description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
->>>>>>> 4c996b028ab039e2ece29bac8e189950cc13238b
             "visible_to_recruiters": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "show_headline": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "show_skills": forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -164,12 +153,9 @@ class ProfileEditForm(forms.ModelForm):
             "show_education": "Show education",
             "show_work_experience": "Show work experience",
             "show_links": "Show links",
-<<<<<<< HEAD
-=======
             "company_name": "Company Name",
             "company_website": "Company Website",
             "company_description": "Company Description",
->>>>>>> 4c996b028ab039e2ece29bac8e189950cc13238b
         }
 
     def clean(self):
