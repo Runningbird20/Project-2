@@ -31,8 +31,6 @@
           <input type="file" id="resumeFile" hidden onchange="handleFile(this)">
         </div>
       </div>
-
-<<<<<<< HEAD
     <label>
       <input type="radio" name="resume_choice" value="uploaded">
       <strong>Uploaded Resume</strong>
@@ -43,25 +41,6 @@
     <input type="file" id="resumeFile" hidden onchange="handleFile(this)">
   </div>
 
-  <!-- RIGHT: Jobs Panel -->
-  <div class="jobs-panel">
-    {% for job in jobs %}
-      <div class="job-card" id="job-card-{{ job.id }}">
-        {% if job.logo %}
-          <img src="{{ job.logo.url }}" class="company-logo">
-        {% endif %}
-
-        <div class="job-info">
-          <h3>{{ job.title }}</h3>
-          <p>{{ job.company }}</p>
-          <p>{{ job.salary_range }}</p>
-        </div>
-
-        {# Give the apply button an id so panda can target it #}
-        <button id="applyButton-{{ job.id }}" onclick="openApplyModal('{{ job.id }}')">
-          Apply
-        </button>
-=======
       <div class="col-lg-8">
         <div class="page-intro text-start mb-3">
           <p class="page-kicker mb-2">Open Positions</p>
@@ -77,7 +56,9 @@
                 <p class="text-muted mb-0">{{ job.company }}</p>
                 <p class="text-muted mb-0 small">{{ job.salary_range }}</p>
               </div>
-              <button class="primary-btn border-0" onclick="openApplyModal('{{ job.id }}')">Apply</button>
+              <button id="applyButton-{{ job.id }}" onclick="openApplyModal('{{ job.id }}')">
+                Apply
+              </button>
             </div>
           </div>
           {% empty %}
@@ -86,7 +67,6 @@
           </div>
           {% endfor %}
         </div>
->>>>>>> d10233fb639d0033b8165f6aa1e818283a5cfada
       </div>
     </div>
   </div>
@@ -108,7 +88,6 @@ function handleFile(input) {
     if (uploaded) uploaded.checked = true;
   }
 }
-<<<<<<< HEAD
 
 document.addEventListener("DOMContentLoaded", function () {
   // Bubble on page load
@@ -126,6 +105,3 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 {% endblock %}
-=======
-</script>
->>>>>>> d10233fb639d0033b8165f6aa1e818283a5cfada
