@@ -6,6 +6,7 @@ from django.db import models
 from accounts.models import Profile
 from .forms import JobPostForm
 from .models import JobPost
+from django.contrib.admin.views.decorators import staff_member_required
 
 
 def _is_employer(user):
@@ -130,3 +131,32 @@ def employer_dashboard(request):
         'jobs': my_jobs,
         'overall_total': overall_total
     })
+
+
+@staff_member_required
+def edit_post(request, post_id):
+    post = get_object_or_404(JobPost, pk=post_id)
+    template_data = {'title': 'Edit Job Post'}
+
+    if request.method == 'POST':
+        form = JobPostForm(request.POST, instance=post)
+        if form.is_valid():
+            updated_post = form.save(commit=False)
+            updated_post.save()
+            return redirect('jobposts.search')
+    else:
+        form = JobPostForm(instance=post)
+
+    template_data['form'] = form
+    template_data['submit_label'] = 'Save Changes'
+    template_data['post_id'] = post_id
+    return render(request, 'jobposts/create.html', {'template_data': template_data})
+
+@staff_member_required
+def remove_post(request, post_id):
+    if request.method == "POST":
+        post = JobPost.objects.get(id=post_id)
+        post.delete()
+        return redirect('jobposts.search')
+    else:
+        return redirect('jobposts.search')

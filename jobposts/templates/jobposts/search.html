@@ -110,12 +110,22 @@
                       </div>                    
                     {% endif %}
                     
+                    <div clas="ms-audo">
                     {% if request.user.is_authenticated and not template_data.can_post_job %}
-                      <button type="button" class="btn btn-primary ms-auto" data-bs-toggle="modal" data-bs-target="#applyModal{{ post.id }}">
+                      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#applyModal{{ post.id }}">
                         Apply Now
                       </button>
                     {% endif %}
+
+                      {% if user.is_staff %}
+                        <a href="{% url 'jobposts.edit_post' post.id%}" class="btn btn-danger">
+                            Edit Post
+                        </a>
+                      {% endif %}
+                      </div>
                   </div>
+
+
                 </div>
               </div>
 
