@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+
 {% block content %}
 <div class="container py-5">
   <div class="card border-0 shadow-sm rounded-4">
@@ -115,4 +116,14 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  window.dispatchEvent(new CustomEvent("panda:celebrate", {
+    detail: { text: "Congratulations on your offer! 🎉" }
+  }));
+});
+</script>
 {% endblock %}

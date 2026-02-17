@@ -1,0 +1,159 @@
+/* static/mascot/panda.css */
+
+:root{
+    --panda-size: 84px;
+    --panda-z: 9999;
+    --panda-gap: 16px;
+    --panda-shadow: 0 10px 25px rgba(0,0,0,.18);
+    --panda-bubble-bg: rgba(0,0,0,.82);
+    --panda-bubble-color: #fff;
+    --panda-bubble-radius: 14px;
+  }
+  
+  /* Container that floats above the site */
+  #panda-mascot {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: var(--panda-z);
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    align-items: end;
+  
+    /* allow it to be "non-blocking" unless we enable interaction */
+    pointer-events: none;
+  }
+  
+  #panda-mascot .panda-wrap {
+    width: var(--panda-size);
+    height: var(--panda-size);
+    border-radius: 999px;
+    overflow: hidden;
+    box-shadow: var(--panda-shadow);
+    background: #fff;
+    border: 1px solid rgba(0,0,0,.08);
+    transform: translate3d(0,0,0);
+    pointer-events: auto; /* clickable mascot */
+  }
+  
+  #panda-mascot img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  
+  /* Bubble */
+  #panda-mascot .panda-bubble {
+    position: relative; /* ✅ needed for ::after tail positioning */
+    max-width: 260px;
+    padding: 10px 12px;
+    border-radius: var(--panda-bubble-radius);
+    background: var(--panda-bubble-bg);
+    color: var(--panda-bubble-color);
+    font-size: 13px;
+    line-height: 1.25;
+    box-shadow: var(--panda-shadow);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity .18s ease, transform .18s ease;
+    pointer-events: none;
+  }
+  
+  #panda-mascot .panda-bubble.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+  /* Little tail triangle */
+  #panda-mascot .panda-bubble::after {
+    content: "";
+    position: absolute;
+    right: 38px;
+    bottom: -8px;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 10px solid var(--panda-bubble-bg);
+  }
+  
+  /* Idle animations */
+  #panda-mascot.idle .panda-wrap {
+    animation: panda-bob 1.9s ease-in-out infinite;
+  }
+  
+  #panda-mascot.blink img {
+    animation: panda-blink 5.2s infinite;
+  }
+  
+  /* Moving state */
+  #panda-mascot.moving .panda-wrap {
+    animation: panda-walk 0.55s ease-in-out infinite;
+  }
+  
+  /* Celebrating */
+  #panda-mascot.celebrate .panda-wrap {
+    animation: panda-celebrate 0.45s ease-in-out infinite;
+  }
+  
+  @keyframes panda-bob {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-6px); }
+  }
+  
+  @keyframes panda-walk {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50%      { transform: translateY(-2px) rotate(-1.5deg); }
+  }
+  
+  @keyframes panda-celebrate {
+    0%, 100% { transform: translateY(0) rotate(0deg) scale(1.0); }
+    50%      { transform: translateY(-6px) rotate(2deg) scale(1.04); }
+  }
+  
+  /* Simple "blink" illusion */
+  @keyframes panda-blink {
+    0%, 92%, 100% { transform: scaleY(1); }
+    94%           { transform: scaleY(0.92); }
+    96%           { transform: scaleY(1); }
+  }
+  
+  /* Confetti */
+  #panda-confetti {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--panda-z) - 1);
+    pointer-events: none;
+    overflow: hidden;
+  }
+  
+  .panda-confetti-piece {
+    position: absolute;
+    top: -12px;
+    width: 10px;
+    height: 14px;
+    opacity: 0.9;
+    border-radius: 2px;
+    animation: panda-confetti-fall linear forwards;
+  }
+  
+  @keyframes panda-confetti-fall {
+    to {
+      transform: translateY(calc(100vh + 40px)) rotate(720deg);
+      opacity: 0.95;
+    }
+  }
+  
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    #panda-mascot.idle .panda-wrap,
+    #panda-mascot.moving .panda-wrap,
+    #panda-mascot.celebrate .panda-wrap,
+    #panda-mascot.blink img {
+      animation: none !important;
+    }
+  }
+  

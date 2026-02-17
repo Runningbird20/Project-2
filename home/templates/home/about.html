@@ -16,3 +16,14 @@
   </div>
 </div>
 {% endblock content %}
+
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  window.dispatchEvent(new CustomEvent("panda:bubble", {
+    detail: { text: "Welcome back! 🐼" }
+  }));
+});
+</script>
+{% endblock %}

@@ -20,7 +20,7 @@
     <label>
       <input type="radio" name="resume_choice" value="uploaded">
       <strong>Uploaded Resume</strong>
-      <button type="button" onclick="triggerFileUpload()">Upload</button>
+      <button type="button" id="uploadResumeBtn" onclick="triggerFileUpload()">Upload</button>
       <p id="fileName">No file selected</p>
     </label>
 
@@ -30,7 +30,7 @@
   <!-- RIGHT: Jobs Panel -->
   <div class="jobs-panel">
     {% for job in jobs %}
-      <div class="job-card">
+      <div class="job-card" id="job-card-{{ job.id }}">
         {% if job.logo %}
           <img src="{{ job.logo.url }}" class="company-logo">
         {% endif %}
@@ -41,7 +41,10 @@
           <p>{{ job.salary_range }}</p>
         </div>
 
-        <button onclick="openApplyModal('{{ job.id }}')">Apply</button>
+        {# Give the apply button an id so panda can target it #}
+        <button id="applyButton-{{ job.id }}" onclick="openApplyModal('{{ job.id }}')">
+          Apply
+        </button>
       </div>
     {% endfor %}
   </div>
@@ -51,14 +54,33 @@
 {% include "apply/apply_modal.html" %}
 {% endblock content %}
 
+{% block extra_scripts %}
 <script>
 function triggerFileUpload() {
   document.getElementById("resumeFile").click();
 }
 
 function handleFile(input) {
-  document.getElementById("fileName").innerText = input.files[0].name;
-  document.querySelector('input[value="uploaded"]').checked = true;
+  if (input.files && input.files[0]) {
+    document.getElementById("fileName").innerText = input.files[0].name;
+    const uploaded = document.querySelector('input[name="resume_choice"][value="uploaded"]');
+    if (uploaded) uploaded.checked = true;
+  }
 }
-</script>
 
+document.addEventListener("DOMContentLoaded", function () {
+  // Bubble on page load
+  window.dispatchEvent(new CustomEvent("panda:bubble", {
+    detail: { text: "Ready to apply? 🚀" }
+  }));
+
+  // Move near the first apply button, if one exists
+  const firstApplyBtn = document.querySelector('button[id^="applyButton-"]');
+  if (firstApplyBtn && firstApplyBtn.id) {
+    window.dispatchEvent(new CustomEvent("panda:moveTo", {
+      detail: { selector: "#" + firstApplyBtn.id }
+    }));
+  }
+});
+</script>
+{% endblock %}

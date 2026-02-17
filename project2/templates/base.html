@@ -7,9 +7,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
     <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    {# ✅ Mascot CSS #}
+    <link rel="stylesheet" href="{% static 'mascot/panda.css' %}">
   </head>
 
   <body>
@@ -35,12 +39,10 @@
             <a class="nav-link" href="{% url 'home.about' %}">About</a>
 
             {% if user.is_authenticated and can_post_job %}
-              <!-- Employer -->
               <a class="nav-link" href="{% url 'accounts.candidate_search' %}">
                 Candidate Search
               </a>
             {% else %}
-              <!-- Applicant or Guest -->
               <a class="nav-link" href="{% url 'jobposts.search' %}">
                 Job Search
               </a>
@@ -86,7 +88,6 @@
               <a class="nav-link" href="{% url 'accounts.logout' %}">
                 Logout
               </a>
-
             {% else %}
               <a class="nav-link" href="{% url 'accounts.login' %}">
                 Login
@@ -154,5 +155,21 @@
       </div>
     </section>
     <!-- Footer -->
+
+    {# ✅ Mascot DOM (must exist for panda.js to work) #}
+    <div id="panda-confetti" aria-hidden="true"></div>
+
+    <div id="panda-mascot" aria-label="Site mascot">
+      <div class="panda-bubble" role="status" aria-live="polite"></div>
+      <div class="panda-wrap" title="Panda mascot">
+        <img src="{% static 'img/logo.png' %}" alt="Panda mascot">
+      </div>
+    </div>
+
+    {# ✅ Mascot JS (load before per-page scripts so events work) #}
+    <script src="{% static 'mascot/panda.js' %}"></script>
+
+    {# ✅ Put per-page scripts here #}
+    {% block extra_scripts %}{% endblock %}
   </body>
 </html>

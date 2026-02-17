@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+
 {% block content %}
 <header class="masthead bg-index text-white text-center py-4">
   <div class="container d-flex align-items-center flex-column pt-2">
@@ -16,3 +17,13 @@
   </div>
 </div>
 {% endblock content %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  window.dispatchEvent(new CustomEvent("panda:bubble", {
+    detail: { text: "Welcome to PandaPulse! 🐼" }
+  }));
+});
+</script>
+{% endblock %}
