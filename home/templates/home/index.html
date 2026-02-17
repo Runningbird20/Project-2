@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+
 {% block content %}
 <section class="hero-shell">
   <div class="container hero-content text-center">
@@ -30,6 +31,20 @@
       </div>
     </div>
   </div>
+<<<<<<< HEAD
+</div>
+{% endblock content %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  window.dispatchEvent(new CustomEvent("panda:bubble", {
+    detail: { text: "Welcome to PandaPulse! 🐼" }
+  }));
+});
+</script>
+{% endblock %}
+=======
   <div class="hero-panels" aria-hidden="true">
     <div class="panel"></div>
     <div class="panel"></div>
@@ -41,3 +56,4 @@
 </section>
 {% endblock content %}
 
+>>>>>>> d10233fb639d0033b8165f6aa1e818283a5cfada

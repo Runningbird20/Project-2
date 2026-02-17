@@ -25,5 +25,21 @@
       </div>
     </div>
   </div>
+<<<<<<< HEAD
+</div>
+{% endblock content %}
+
+
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  window.dispatchEvent(new CustomEvent("panda:bubble", {
+    detail: { text: "Welcome back! 🐼" }
+  }));
+});
+</script>
+{% endblock %}
+=======
 </section>
 {% endblock content %}
+>>>>>>> d10233fb639d0033b8165f6aa1e818283a5cfada
