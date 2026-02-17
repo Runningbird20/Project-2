@@ -13,9 +13,9 @@
   
     /* ✅ smaller bubble */
     --panda-bubble-font: 12px;
-    --panda-bubble-pad-y: 8px;
-    --panda-bubble-pad-x: 10px;
-    --panda-bubble-maxw: 220px;        /* smaller max width */
+    --panda-bubble-pad-y: 10px;
+    --panda-bubble-pad-x: 30px;
+    --panda-bubble-maxw: 350px;        /* smaller max width */
   }
   
   /* ===============================
