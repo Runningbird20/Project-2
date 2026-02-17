@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+
 {% block content %}
 <section class="page-shell">
   <div class="container">
@@ -25,15 +26,14 @@
       </div>
     </div>
   </div>
-</div>
+</section>
 {% endblock content %}
-
 
 {% block extra_scripts %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   window.dispatchEvent(new CustomEvent("panda:bubble", {
-    detail: { text: "Welcome back! 🐼" }
+    detail: { text: "Welcome back!" }
   }));
 });
 </script>

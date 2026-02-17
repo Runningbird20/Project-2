@@ -90,12 +90,10 @@ function handleFile(input) {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-  // Bubble on page load
   window.dispatchEvent(new CustomEvent("panda:bubble", {
-    detail: { text: "Ready to apply? 🚀" }
+    detail: { text: "Ready to apply?" }
   }));
 
-  // Move near the first apply button, if one exists
   const firstApplyBtn = document.querySelector('button[id^="applyButton-"]');
   if (firstApplyBtn && firstApplyBtn.id) {
     window.dispatchEvent(new CustomEvent("panda:moveTo", {
