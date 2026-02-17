@@ -150,7 +150,7 @@ def edit_post(request, post_id):
     template_data['form'] = form
     template_data['submit_label'] = 'Save Changes'
     template_data['post_id'] = post_id
-    return render(request, 'jobposts/create.html', {'template_data': template_data})
+    return render(request, 'jobposts/edit_post.html', {'template_data': template_data})
 
 @staff_member_required
 def remove_post(request, post_id):
