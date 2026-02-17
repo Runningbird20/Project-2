@@ -1,3 +1,5 @@
+import math
+
 from django.db import models
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
@@ -16,6 +18,22 @@ from apply.models import Application
 from django.contrib.admin.views.decorators import staff_member_required
 
 from django.db.models import Count
+
+
+def _haversine_miles(lat1, lon1, lat2, lon2):
+    """Calculate great-circle distance in miles between two lat/lon points."""
+    earth_radius_miles = 3958.8
+    d_lat = math.radians(lat2 - lat1)
+    d_lon = math.radians(lon2 - lon1)
+    a = (
+        math.sin(d_lat / 2) ** 2
+        + math.cos(math.radians(lat1))
+        * math.cos(math.radians(lat2))
+        * math.sin(d_lon / 2) ** 2
+    )
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return earth_radius_miles * c
+
 
 @login_required
 def dashboard(request):
@@ -196,6 +214,13 @@ def search(request):
     salary_max = request.GET.get('salary_max', '').strip()
     work_setting = request.GET.get('work_setting', '').strip()
     visa_sponsorship = request.GET.get('visa_sponsorship', '').strip()
+    use_home_radius = False
+    radius_miles = ''
+    radius_warning = ''
+    radius_active = False
+    is_applicant = False
+    has_home_address = False
+    home_address = ''
 
     if title:
         posts = posts.filter(title__icontains=title)
@@ -222,6 +247,65 @@ def search(request):
         except ValueError:
             pass
 
+    if request.user.is_authenticated:
+        profile = Profile.objects.filter(user=request.user).first()
+        if profile and profile.account_type == Profile.AccountType.APPLICANT:
+            is_applicant = True
+            home_address = (profile.location or '').strip()
+            has_home_address = bool(home_address)
+
+            session_use_home_radius = request.session.get('job_search_use_home_radius', False)
+            session_radius_miles = request.session.get('job_search_radius_miles', '25')
+
+            use_home_radius = (
+                request.GET.get('use_home_radius') == 'true'
+                if 'use_home_radius' in request.GET
+                else bool(session_use_home_radius)
+            )
+            raw_radius = request.GET.get('radius_miles', str(session_radius_miles)).strip()
+            try:
+                radius_value = float(raw_radius)
+                if radius_value <= 0:
+                    raise ValueError
+                radius_miles = str(int(radius_value)) if radius_value.is_integer() else f'{radius_value:.1f}'
+            except (ValueError, TypeError):
+                radius_miles = '25'
+
+            request.session['job_search_use_home_radius'] = use_home_radius
+            request.session['job_search_radius_miles'] = radius_miles
+
+            if use_home_radius:
+                if not has_home_address:
+                    radius_warning = 'Add your home address in your profile to use radius filtering.'
+                else:
+                    try:
+                        home_lat, home_lon = geocode_office_address(home_address)
+                        home_lat = float(home_lat)
+                        home_lon = float(home_lon)
+                        filtered_posts = []
+                        for post in posts:
+                            if post.work_setting == 'remote':
+                                filtered_posts.append(post)
+                                continue
+
+                            office_location = getattr(post, 'office_location', None)
+                            if not office_location:
+                                continue
+
+                            distance_miles = _haversine_miles(
+                                home_lat,
+                                home_lon,
+                                float(office_location.latitude),
+                                float(office_location.longitude),
+                            )
+                            if distance_miles <= float(radius_miles):
+                                post.distance_from_home_miles = round(distance_miles, 1)
+                                filtered_posts.append(post)
+                        posts = filtered_posts
+                        radius_active = True
+                    except OfficeLocationGeocodingError:
+                        radius_warning = 'Could not map your home address right now. Showing all search results.'
+
     template_data['posts'] = posts
     template_data['can_post_job'] = can_post_job
     template_data['filters'] = {
@@ -232,7 +316,14 @@ def search(request):
         'salary_max': salary_max,
         'work_setting': work_setting,
         'visa_sponsorship': visa_sponsorship == 'true',
+        'use_home_radius': use_home_radius,
+        'radius_miles': radius_miles,
     }
+    template_data['is_applicant'] = is_applicant
+    template_data['has_home_address'] = has_home_address
+    template_data['home_address'] = home_address
+    template_data['radius_warning'] = radius_warning
+    template_data['radius_active'] = radius_active
     return render(request, 'jobposts/search.html', {'template_data': template_data})
 
 def _save_office_location(post, map_form):

@@ -45,7 +45,10 @@
                 <div class="field-block">{{ template_data.form.skills.label_tag }} {{ template_data.form.skills }}</div>
 
                 {{ template_data.form.location.errors }}
-                <div class="field-block">{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</div>
+                <div class="field-block">
+                  {{ template_data.form.location.label_tag }} {{ template_data.form.location }}
+                  <div class="form-text">Only your city and state are shown to employers.</div>
+                </div>
 
                 {{ template_data.form.projects.errors }}
                 <div class="field-block">{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</div>

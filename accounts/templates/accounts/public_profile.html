@@ -18,7 +18,11 @@
               <div>
                 <p class="page-kicker mb-2">Public candidate profile</p>
                 <h1 class="page-title page-title-sm mb-1">{{ template_data.profile.user.get_username }}</h1>
-                {% if template_data.profile.location %}<p class="small text-muted mb-1">{{ template_data.profile.location }}</p>{% endif %}
+                {% if template_data.is_owner %}
+                  {% if template_data.profile.location %}<p class="small text-muted mb-1">{{ template_data.profile.location }}</p>{% endif %}
+                {% else %}
+                  {% if template_data.profile.location_city_state %}<p class="small text-muted mb-1">{{ template_data.profile.location_city_state }}</p>{% endif %}
+                {% endif %}
                 {% if template_data.profile.show_headline and template_data.profile.headline %}<p class="surface-copy mb-0">{{ template_data.profile.headline }}</p>{% endif %}
               </div>
             </div>

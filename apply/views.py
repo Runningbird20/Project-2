@@ -17,6 +17,13 @@ def submit_application(request, job_id):
         return redirect("jobposts.search")
 
     job = get_object_or_404(JobPost, id=job_id)
+    profile, _ = Profile.objects.get_or_create(user=request.user)
+    if not (profile.location or "").strip():
+        messages.warning(
+            request,
+            "Please add your address to your profile before applying."
+        )
+        return redirect("accounts.profile_edit")
 
     note = request.POST.get("note", "")
     resume_type = request.POST.get("resume_type")  # expects 'profile' or 'uploaded'

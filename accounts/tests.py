@@ -74,3 +74,15 @@ class ProfilePrivacyAuthorizationTests(TestCase):
         self.assertEqual(response.status_code, 403)
         self.other_profile.refresh_from_db()
         self.assertTrue(self.other_profile.visible_to_recruiters)
+
+    def test_public_profile_hides_street_address_for_non_owner(self):
+        self.owner_profile.location = "123 Peachtree St NE, Atlanta, GA 30303"
+        self.owner_profile.save(update_fields=["location"])
+
+        response = self.client.get(
+            reverse("accounts.public_profile", kwargs={"username": self.owner.username})
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Atlanta, GA")
+        self.assertNotContains(response, "123 Peachtree St NE")
