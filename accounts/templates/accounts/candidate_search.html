@@ -6,8 +6,14 @@
       <div class="col-lg-4">
         <div class="surface-card">
           <div class="text-uppercase text-muted small mb-2">Candidate search</div>
+<<<<<<< HEAD
           <h2 class="surface-title mb-3">Find talent</h2>
           <form method="get" class="vstack gap-3">
+=======
+          <h2 class="mb-3">Find talent</h2>
+
+          <form method="get" id="searchForm" class="vstack gap-3">
+>>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2
             <div>
               <label class="form-label">Skills</label>
               <input type="text" name="skills" class="form-control" placeholder="e.g. Python, Django" value="{{ template_data.filters.skills }}">
@@ -21,9 +27,21 @@
               <label class="form-label">Projects</label>
               <input type="text" name="projects" class="form-control" placeholder="e.g. robotics, GPU" value="{{ template_data.filters.projects }}">
             </div>
+<<<<<<< HEAD
             <div class="form-actions">
               <button type="submit" class="primary-btn border-0">Search</button>
               <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn">Reset</a>
+=======
+
+            <div class="vstack gap-2">
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-dark flex-grow-1">Search</button>
+                <a href="{% url 'accounts.candidate_search' %}" class="btn btn-outline-secondary">Reset</a>
+              </div>
+              <button type="button" id="saveAlertTrigger" class="btn btn-primary-subtle border text-primary w-100 rounded-pill" data-bs-toggle="modal" data-bs-target="#saveSearchModal">
+                <i class="bi bi-bell me-2"></i>Save as Alert
+              </button>
+>>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2
             </div>
           </form>
         </div>
@@ -46,10 +64,10 @@
                       <div class="text-muted">{{ p.headline }}</div>
                     {% endif %}
                     {% if p.location %}
-                      <div class="small text-muted">Location: {{ p.location }}</div>
+                      <div class="small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ p.location }}</div>
                     {% endif %}
                     {% if p.skills %}
-                      <div class="small text-muted">Skills: {{ p.skills }}</div>
+                      <div class="small text-muted"><i class="bi bi-person-gear me-1"></i>{{ p.skills }}</div>
                     {% endif %}
                   </div>
                   <div class="text-end">
@@ -57,7 +75,7 @@
                   </div>
                 </div>
                 {% if p.projects %}
-                  <p class="mt-3 mb-0">{{ p.projects|truncatewords:30 }}</p>
+                  <p class="mt-3 mb-0 text-muted small">{{ p.projects|truncatewords:40 }}</p>
                 {% endif %}
               </div>
             {% endfor %}
@@ -72,4 +90,88 @@
     </div>
   </div>
 </section>
+
+<div class="modal fade" id="saveSearchModal" tabindex="-1" aria-labelledby="saveSearchModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg rounded-4">
+      <form action="{% url 'accounts.save_search' %}" method="post">
+        {% csrf_token %}
+        <div class="modal-header border-0 pb-0">
+          <h5 class="fw-bold mb-0" id="saveSearchModalLabel">Create Candidate Alert</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body py-4">
+          <p class="text-muted small mb-4">We'll notify you on your dashboard when new candidates match these criteria.</p>
+          
+          <input type="hidden" name="skills" id="modalHiddenSkills">
+          <input type="hidden" name="location" id="modalHiddenLocation">
+          <input type="hidden" name="projects" id="modalHiddenProjects">
+
+          <div class="mb-3">
+            <label class="form-label fw-bold small">Alert Name</label>
+            <input type="text" name="search_name" class="form-control form-control-lg rounded-3" 
+                   placeholder="e.g. Python Engineers in Atlanta" required>
+          </div>
+          
+          <div class="p-3 bg-light rounded-3">
+            <div class="small text-muted mb-1">Current Filters:</div>
+            <div id="modalFilterPreview" class="fw-bold small">
+              All Candidates
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary rounded-pill px-4">Save Alert</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const skillsIn = document.querySelector('input[name="skills"]');
+        const locIn = document.querySelector('input[name="location"]');
+        const projIn = document.querySelector('input[name="projects"]');
+        const saveBtn = document.getElementById('saveAlertTrigger');
+
+        const modalSkills = document.getElementById('modalHiddenSkills');
+        const modalLoc = document.getElementById('modalHiddenLocation');
+        const modalProj = document.getElementById('modalHiddenProjects');
+        const previewDiv = document.getElementById('modalFilterPreview');
+
+        function syncAndToggle() {
+            const s = skillsIn.value.trim();
+            const l = locIn.value.trim();
+            const p = projIn.value.trim();
+
+            modalSkills.value = s;
+            modalLoc.value = l;
+            modalProj.value = p;
+
+            let previewHTML = [];
+            if (s) previewHTML.push(`Skills: ${s}`);
+            if (l) previewHTML.push(`Location: ${l}`);
+            if (p) previewHTML.push(`Projects: ${p}`);
+            
+            previewDiv.innerHTML = previewHTML.length > 0 ? previewHTML.join('<br>') : "All Candidates";
+
+            const hasValue = s !== '' || l !== '' || p !== '';
+            if (hasValue) {
+                saveBtn.removeAttribute('disabled');
+                saveBtn.classList.remove('opacity-50');
+            } else {
+                saveBtn.setAttribute('disabled', 'true');
+                saveBtn.classList.add('opacity-50');
+            }
+        }
+
+        [skillsIn, locIn, projIn].forEach(input => {
+            input.addEventListener('input', syncAndToggle);
+        });
+
+        syncAndToggle();
+    });
+</script>
 {% endblock content %}

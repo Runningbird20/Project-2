@@ -10,6 +10,8 @@ from map.models import OfficeLocation
 from map.services import OfficeLocationGeocodingError, geocode_office_address
 from .forms import JobPostForm
 from .models import JobPost
+from django.views.decorators.http import require_POST
+from apply.models import Application
 
 from django.db.models import Count, Q
 
@@ -45,40 +47,66 @@ def dashboard(request):
 
         overall_total = sum(job.total_apps for job in my_jobs)
         
+        saved_searches = request.user.saved_searches.all()
+    
         context.update({
             'jobs': my_jobs,
-            'overall_total': overall_total
+            'overall_total': overall_total,
+            'saved_searches': saved_searches,
         })
 
     return render(request, 'jobposts/dashboard.html', context)
 
 def get_job_recommendations(user_profile):
     """
-    Ranks jobs based on the overlap between user skills and job requirements.
+    Ranks jobs based on location match AND overlap between user skills and job requirements.
     """
-    if not user_profile.skills:
+    user_skills = []
+    if user_profile.skills:
+        user_skills = [s.strip().lower() for s in user_profile.skills.split(',') if s.strip()]
+    
+    user_location = user_profile.location.strip().lower() if user_profile.location else ""
+
+    if not user_skills and not user_location:
         return JobPost.objects.none()
 
-    user_skills = [s.strip().lower() for s in user_profile.skills.split(',') if s.strip()]
-    
     query = Q()
+    
     for skill in user_skills:
-        query |= Q(title__icontains=skill) | Q(description__icontains=skill)
+        query |= Q(title__icontains=skill) | Q(description__icontains=skill) | Q(skills__icontains=skill)
+
+    if user_location:
+        query |= Q(location__icontains=user_location)
 
     applied_job_ids = user_profile.user.application_set.values_list('job_id', flat=True)    
     suggested_jobs = JobPost.objects.filter(query).exclude(id__in=applied_job_ids).distinct()
 
     recommended_list = []
     for job in suggested_jobs:
-        match_count = sum(1 for skill in user_skills if skill in job.description.lower() or skill in job.title.lower())
+        score = 0
+        job_title = job.title.lower()
+        job_desc = job.description.lower()
+        job_loc = job.location.lower()
+        job_skills = job.skills.lower() if job.skills else ""
+
+        for skill in user_skills:
+            if skill in job_title: score += 3  
+            if skill in job_skills: score += 2 
+            if skill in job_desc: score += 1   
+
+        if user_location and user_location in job_loc:
+            score += 5 
+
         recommended_list.append({
             'job': job,
-            'match_count': match_count
+            'score': score
         })
 
-    recommended_list.sort(key=lambda x: x['match_count'], reverse=True)
+    recommended_list.sort(key=lambda x: x['score'], reverse=True)
     
-    return [item['job'] for item in recommended_list[:5]] # Return top 5
+    return [item['job'] for item in recommended_list[:5]]
+
+
 def _is_employer(user):
     return Profile.objects.filter(
         user=user,
@@ -206,6 +234,7 @@ def search(request):
     return render(request, 'jobposts/search.html', {'template_data': template_data})
 
 @login_required
+<<<<<<< HEAD
 def employer_dashboard(request):
     my_jobs = JobPost.objects.filter(owner=request.user).annotate(
         total_apps=models.Count('applications'),
@@ -249,3 +278,23 @@ def _save_office_location(post, map_form):
             'longitude': longitude,
         },
     )
+=======
+@require_POST
+def delete_job(request, job_id):
+    job = get_object_or_404(JobPost, id=job_id, owner=request.user)
+    job.delete()
+    messages.success(request, "Job listing deleted successfully.")
+    return redirect('jobposts.dashboard')
+
+def job_detail(request, post_id):
+    job = get_object_or_404(JobPost, pk=post_id)
+    has_applied = False
+    
+    if request.user.is_authenticated:
+        has_applied = Application.objects.filter(user=request.user, job=job).exists()
+    
+    return render(request, 'jobposts/job_detail.html', {
+        'job': job,
+        'has_applied': has_applied
+    })
+>>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2

@@ -49,21 +49,26 @@ def update_status(request, application_id):
     try:
         data = json.loads(request.body)
         new_status = data.get("status")
+        
         application = get_object_or_404(Application, id=application_id)
 
         if application.job.owner != request.user:
-            return JsonResponse({"success": False}, status=403)
+            return JsonResponse({"success": False, "error": "Unauthorized"}, status=403)
 
-        if new_status in dict(Application.STATUS_CHOICES):
-            old_status = application.get_status_display()
+        valid_statuses = [choice[0] for choice in Application.STATUS_CHOICES]
+        
+        if new_status in valid_statuses:
             application.status = new_status
             application.save()
             
-            messages.success(request, f"Moved to {application.get_status_display()}.")
+            messages.success(request, f"Status updated for {application.user.username}.")
             
             return JsonResponse({"success": True})
         
-        return JsonResponse({"success": False}, status=400)
+        return JsonResponse({"success": False, "error": f"Invalid status: {new_status}"}, status=400)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
     

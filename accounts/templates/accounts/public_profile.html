@@ -5,6 +5,7 @@
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-md-10 col-lg-8">
+<<<<<<< HEAD
         <div class="surface-card">
           <div class="d-flex justify-content-between align-items-start gap-3">
             <div class="d-flex align-items-start gap-3">
@@ -21,10 +22,56 @@
                 {% if template_data.profile.show_headline and template_data.profile.headline %}
                   <p class="surface-copy mb-0">{{ template_data.profile.headline }}</p>
                 {% endif %}
+=======
+        <div class="card shadow p-3 mb-4 rounded border-0">
+          <div class="card-body">
+
+            <div class="d-flex justify-content-between align-items-start gap-3">
+              <div class="d-flex align-items-start gap-3">
+
+                <div class="flex-shrink-0">
+                  {% if template_data.profile.profile_picture %}
+                    <img
+                      src="{{ template_data.profile.profile_picture.url }}"
+                      alt="Profile picture"
+                      class="rounded-circle border"
+                      style="width: 84px; height: 84px; object-fit: cover;"
+                    />
+                  {% else %}
+                    <img
+                      src="{% static 'img/default_avatar.png' %}"
+                      alt="Default profile picture"
+                      class="rounded-circle border"
+                      style="width: 84px; height: 84px; object-fit: cover;"
+                    />
+                  {% endif %}
+                </div>
+
+                <div>
+                  <h2 class="mb-1 fw-bold text-dark">{{ template_data.profile.user.username }}</h2>
+                  
+                  {% if template_data.profile.location %}
+                    <p class="small text-muted mb-1">
+                      <i class="bi bi-geo-alt-fill me-1"></i> {{ template_data.profile.location }}
+                    </p>
+                  {% endif %}
+
+                  {% if template_data.profile.headline %}
+                    <p class="text-secondary mb-0">{{ template_data.profile.headline }}</p>
+                  {% endif %}
+                </div>
+>>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2
               </div>
+              
+              {% if template_data.is_owner %}
+                <a class="btn btn-sm btn-outline-dark rounded-pill px-3" href="{% url 'accounts.profile_edit' %}">
+                  <i class="bi bi-pencil me-1"></i> Edit
+                </a>
+              {% endif %}
             </div>
           </div>
 
+<<<<<<< HEAD
           {% if template_data.is_owner and not template_data.profile.visible_to_recruiters %}
             <div class="alert alert-warning mt-3 mb-0">
               You are previewing your public profile while set to private. Employers cannot see this profile until visibility is turned on.
@@ -78,9 +125,93 @@
               <p class="text-muted">No links added yet.</p>
             {% endif %}
           {% endif %}
+=======
+            {% if template_data.is_owner and not template_data.profile.visible_to_recruiters %}
+              <div class="alert alert-warning mt-3 mb-0 py-2 small">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>You are previewing your public profile while set to private.
+              </div>
+            {% endif %}
+
+            <hr class="my-4" />
+
+            <h5 class="fw-bold"><i class="bi bi-lightbulb me-2"></i>Skills</h5>
+            <div class="ps-4">
+              {% if template_data.profile.skills %}
+                <p class="text-dark">{{ template_data.profile.skills }}</p>
+              {% else %}
+                <p class="text-muted fst-italic">No skills listed.</p>
+              {% endif %}
+            </div>
+
+            <hr class="my-4" />
+
+            <h5 class="fw-bold"><i class="bi bi-code-slash me-2"></i>Projects</h5>
+            <div class="ps-4">
+              {% if template_data.profile.projects %}
+                <p style="white-space: pre-wrap;" class="text-dark">{{ template_data.profile.projects }}</p>
+              {% else %}
+                <p class="text-muted fst-italic">No projects listed.</p>
+              {% endif %}
+            </div>
+
+            <hr class="my-4" />
+
+            <h5 class="fw-bold"><i class="bi bi-mortarboard me-2"></i>Education</h5>
+            <div class="ps-4">
+              {% if template_data.profile.education %}
+                <p style="white-space: pre-wrap;" class="text-dark">{{ template_data.profile.education }}</p>
+              {% else %}
+                <p class="text-muted fst-italic">No education listed.</p>
+              {% endif %}
+            </div>
+
+            <hr class="my-4" />
+
+            <h5 class="fw-bold"><i class="bi bi-briefcase me-2"></i>Work Experience</h5>
+            <div class="ps-4">
+              {% if template_data.profile.work_experience %}
+                <p style="white-space: pre-wrap;" class="text-dark">{{ template_data.profile.work_experience }}</p>
+              {% else %}
+                <p class="text-muted fst-italic">No work experience listed.</p>
+              {% endif %}
+            </div>
+
+            <hr class="my-4" />
+
+            <h5 class="fw-bold"><i class="bi bi-share me-2"></i>Links</h5>
+            <div class="ps-4 mt-2">
+              {% if template_data.has_links %}
+                <ul class="list-unstyled mb-0">
+                  {% for link in template_data.profile.links.all %}
+                    <li class="mb-2">
+                      <i class="bi bi-link-45deg text-primary"></i>
+                      {% if link.label %}<b>{{ link.label }}:</b> {% endif %}
+                      <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" class="text-decoration-none">{{ link.url }}</a>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <p class="text-muted fst-italic">No links provided.</p>
+              {% endif %}
+            </div>
+
+          </div>
+>>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2
         </div>
+        
+        <div class="text-center">
+          <a href="{% url 'accounts.candidate_search' %}" class="btn btn-link text-muted text-decoration-none">
+            <i class="bi bi-arrow-left me-1"></i> Back to Search
+          </a>
+        </div>
+
       </div>
     </div>
   </div>
+<<<<<<< HEAD
 </section>
 {% endblock content %}
+=======
+</div>
+{% endblock content %}
+>>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2
