@@ -122,7 +122,8 @@ main {
 }
 
 .primary-btn,
-.secondary-btn {
+.secondary-btn,
+.danger-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -132,6 +133,12 @@ main {
   padding: 0.85rem 1.55rem;
   min-width: 158px;
   transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease;
+}
+
+.btn-compact {
+  min-width: auto;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.86rem;
 }
 
 .primary-btn {
@@ -145,16 +152,30 @@ main {
   color: #252b3b;
 }
 
+.danger-btn {
+  border: 1.3px solid #8b2026;
+  color: #8b2026;
+  background: transparent;
+}
+
 .primary-btn:hover,
 .primary-btn:focus,
 .secondary-btn:hover,
-.secondary-btn:focus {
+.secondary-btn:focus,
+.danger-btn:hover,
+.danger-btn:focus {
   transform: translateY(-1px);
 }
 
 .secondary-btn:hover,
 .secondary-btn:focus {
   background: #252b3b;
+  color: #fff;
+}
+
+.danger-btn:hover,
+.danger-btn:focus {
+  background: #8b2026;
   color: #fff;
 }
 
@@ -320,7 +341,8 @@ main {
 }
 
 .form-actions .primary-btn,
-.form-actions .secondary-btn {
+.form-actions .secondary-btn,
+.form-actions .danger-btn {
   min-width: 150px;
 }
 
@@ -634,7 +656,8 @@ main {
   }
 
   .form-actions .primary-btn,
-  .form-actions .secondary-btn {
+  .form-actions .secondary-btn,
+  .form-actions .danger-btn {
     min-width: auto;
     width: 100%;
   }
