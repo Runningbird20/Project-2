@@ -54,7 +54,9 @@ def inbox(request):
         })
 
     threads.sort(key=lambda x: x['last_message'].timestamp, reverse=True)
-    return render(request, 'messaging/inbox.html', {'threads': threads})
+    return render(request, 'messaging/inbox.html', {
+        'chat_threads': threads 
+    })
 
 @login_required
 def chat_detail(request, partner_id):
