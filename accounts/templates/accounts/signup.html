@@ -1,59 +1,77 @@
+{# accounts/templates/accounts/signup.html #}
 {% extends 'base.html' %}
 {% block content %}
-<div class="p-3 mt-4">
+<section class="page-shell">
   <div class="container">
     <div class="row justify-content-center">
-      <div class="col-md-8">
-        <div class="card shadow p-3 mb-4 rounded">
-          <div class="card-body">
-            <h2>Sign Up</h2>
-            <hr />
+      <div class="col-lg-9 col-xl-8">
+        <div class="surface-card">
+          <div class="page-intro text-start mb-3">
+            <p class="page-kicker">Join PandaPulse</p>
+            <h1 class="page-title page-title-sm">Create your account</h1>
+          </div>
 
-            <form method="POST">
+            <!-- IMPORTANT: enctype for image upload -->
+            <form method="POST" enctype="multipart/form-data">
               {% csrf_token %}
 
               {{ template_data.form.non_field_errors }}
 
-              <h5 class="mt-3">Account</h5>
+              <h5 class="surface-title mt-1">Account</h5>
 
               {{ template_data.form.username.errors }}
-              <p>{{ template_data.form.username.label_tag }} {{ template_data.form.username }}</p>
+              <div class="field-block">{{ template_data.form.username.label_tag }} {{ template_data.form.username }}</div>
 
               {{ template_data.form.password1.errors }}
-              <p>{{ template_data.form.password1.label_tag }} {{ template_data.form.password1 }}</p>
+              <div class="field-block">{{ template_data.form.password1.label_tag }} {{ template_data.form.password1 }}</div>
 
               {{ template_data.form.password2.errors }}
-              <p>{{ template_data.form.password2.label_tag }} {{ template_data.form.password2 }}</p>
+              <div class="field-block">{{ template_data.form.password2.label_tag }} {{ template_data.form.password2 }}</div>
 
               <hr />
-              <h5>Profile</h5>
+              <h5 class="surface-title">Profile</h5>
+
+              {{ template_data.form.profile_picture.errors }}
+              <div class="field-block">{{ template_data.form.profile_picture.label_tag }} {{ template_data.form.profile_picture }}</div>
 
               {{ template_data.form.account_type.errors }}
-              <p>{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</p>
+              <div class="field-block">{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</div>
 
               <div id="applicant_fields">
                 {{ template_data.form.headline.errors }}
-                <p>{{ template_data.form.headline.label_tag }} {{ template_data.form.headline }}</p>
+                <div class="field-block">{{ template_data.form.headline.label_tag }} {{ template_data.form.headline }}</div>
 
                 {{ template_data.form.skills.errors }}
-                <p>{{ template_data.form.skills.label_tag }} {{ template_data.form.skills }}</p>
+                <div class="field-block">{{ template_data.form.skills.label_tag }} {{ template_data.form.skills }}</div>
+
+                {{ template_data.form.location.errors }}
+                <div class="field-block">{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</div>
+
+                {{ template_data.form.projects.errors }}
+                <div class="field-block">{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</div>
 
                 {{ template_data.form.education.errors }}
-                <p>{{ template_data.form.education.label_tag }} {{ template_data.form.education }}</p>
+                <div class="field-block">{{ template_data.form.education.label_tag }} {{ template_data.form.education }}</div>
 
                 {{ template_data.form.work_experience.errors }}
-                <p>{{ template_data.form.work_experience.label_tag }} {{ template_data.form.work_experience }}</p>
+                <div class="field-block">{{ template_data.form.work_experience.label_tag }} {{ template_data.form.work_experience }}</div>
               </div>
 
               <div id="employer_fields">
                 {{ template_data.form.company_name.errors }}
-                <p>{{ template_data.form.company_name.label_tag }} {{ template_data.form.company_name }}</p>
+                <div class="field-block">{{ template_data.form.company_name.label_tag }} {{ template_data.form.company_name }}</div>
 
                 {{ template_data.form.company_website.errors }}
-                <p>{{ template_data.form.company_website.label_tag }} {{ template_data.form.company_website }}</p>
+                <div class="field-block">{{ template_data.form.company_website.label_tag }} {{ template_data.form.company_website }}</div>
 
                 {{ template_data.form.company_description.errors }}
-                <p>{{ template_data.form.company_description.label_tag }} {{ template_data.form.company_description }}</p>
+                <div class="field-block">{{ template_data.form.company_description.label_tag }} {{ template_data.form.company_description }}</div>
+
+                {{ template_data.form.location.errors }}
+                <div class="field-block">{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</div>
+
+                {{ template_data.form.projects.errors }}
+                <div class="field-block">{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</div>
               </div>
 
               <script>
@@ -64,8 +82,8 @@
 
                   function refresh() {
                     const isEmployer = select && select.value === "EMPLOYER";
-                    employer.style.display = isEmployer ? "block" : "none";
-                    applicant.style.display = isEmployer ? "none" : "block";
+                    if (employer) employer.style.display = isEmployer ? "block" : "none";
+                    if (applicant) applicant.style.display = isEmployer ? "none" : "block";
                   }
 
                   if (select) {
@@ -76,7 +94,7 @@
               </script>
 
               <hr />
-              <h5>Links</h5>
+              <h5 class="surface-title">Links</h5>
 
               <div class="row g-2 mb-2">
                 <div class="col-md-4">
@@ -96,15 +114,15 @@
                 </div>
               </div>
 
-              <button type="submit" class="btn bg-dark text-white">
-                Sign Up
-              </button>
+              <div class="form-actions mt-3">
+                <button type="submit" class="primary-btn border-0">Sign up</button>
+                <a class="secondary-btn" href="{% url 'accounts.login' %}">I already have an account</a>
+              </div>
             </form>
-
-          </div>
         </div>
       </div>
     </div>
   </div>
-</div>
+</section>
 {% endblock content %}
+

@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-shell">
+  <div class="container">
+    <div class="page-intro text-start mb-3">
+      <p class="page-kicker">Admin</p>
+      <h1 class="page-title page-title-sm">Manage Users</h1>
+      <p class="page-copy mb-0">Review account roles and open user management actions.</p>
+    </div>
+
+    <div class="surface-card mb-3">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <form method="GET" action="{% url 'accounts.manage_users' %}" class="d-flex gap-2 flex-wrap">
+          <input type="text" name="search" class="form-control" placeholder="Search by username or email..." value="{{ template_data.search_query }}">
+          <button type="submit" class="primary-btn border-0">Search</button>
+          {% if template_data.search_query %}
+            <a href="{% url 'accounts.manage_users' %}" class="secondary-btn">Clear</a>
+          {% endif %}
+        </form>
+        {% if user.is_staff %}
+          <a href="{% url 'accounts.export_usage_report' %}" class="secondary-btn">Export Usage Report</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="surface-card p-0 overflow-hidden">
+      <div class="table-responsive">
+        <table class="table align-middle text-center job-table mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>User ID</th>
+              <th>Username</th>
+              <th>Type</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in template_data.users %}
+            <tr>
+              <td>{{ u.id }}</td>
+              <td>{{ u.user.username }}</td>
+              <td>
+                {% if u.user.is_superuser %}
+                  <span class="badge bg-dark">Superuser</span>
+                {% elif u.user.is_staff %}
+                  <span class="badge bg-info text-dark">Staff</span>
+                {% else %}
+                  <span class="badge bg-secondary">{{ u.get_account_type_display }}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if user.is_superuser or not u.user.is_staff %}
+                  <a href="{% url 'accounts.edit_user' u.id %}" class="secondary-btn">Edit User</a>
+                {% else %}
+                  <button class="secondary-btn" disabled>Cannot Edit Staff</button>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="py-4 text-muted">No users found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock content %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-shell">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-10 col-lg-7">
+        <div class="surface-card text-center">
+          <p class="page-kicker">Application sent</p>
+          <h1 class="page-title page-title-sm">Application Submitted Successfully</h1>
+          <p class="page-copy mb-3">
+            Your application for <strong>{{ template_data.job.title }}</strong> at
+            <strong>{{ template_data.job.company }}</strong> has been submitted.
+          </p>
+          <p class="text-muted mb-4">You can return to the job board when you are ready.</p>
+          <div class="form-actions justify-content-center">
+            <a class="primary-btn" href="{% url 'jobposts.search' %}">Back to Job Board</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+function launchConfettiBurst() {
+  const colors = ['#1f9d55', '#1d2433', '#9fc3df', '#f7b500', '#ffffff'];
+  const pieces = 120;
+  for (let i = 0; i < pieces; i++) {
+    const piece = document.createElement('span');
+    piece.style.position = 'fixed';
+    piece.style.top = '-16px';
+    piece.style.left = `${Math.random() * 100}vw`;
+    piece.style.borderRadius = '2px';
+    piece.style.pointerEvents = 'none';
+    piece.style.zIndex = '3000';
+    piece.style.opacity = '0.95';
+    piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.width = `${6 + Math.random() * 6}px`;
+    piece.style.height = `${8 + Math.random() * 10}px`;
+    document.body.appendChild(piece);
+
+    const duration = 1800 + Math.random() * 1200;
+    const drift = (Math.random() - 0.5) * 140;
+    const spin = 360 + Math.random() * 360;
+    piece.animate(
+      [
+        { transform: `translate3d(0, 0, 0) rotate(0deg)`, opacity: 0.95 },
+        { transform: `translate3d(${drift}px, 105vh, 0) rotate(${spin}deg)`, opacity: 0 }
+      ],
+      { duration, easing: 'ease-out', fill: 'forwards' }
+    );
+
+    setTimeout(() => piece.remove(), duration + 120);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  requestAnimationFrame(() => launchConfettiBurst());
+});
+</script>
+{% endblock content %}

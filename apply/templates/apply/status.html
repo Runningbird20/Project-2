@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-shell">
+  <div class="container">
+    <div class="page-intro text-center">
+      <p class="page-kicker">Candidate tools</p>
+      <h1 class="page-title page-title-sm">My Application Tracker</h1>
+    </div>
+
+    <div class="row g-4">
+      {% for application in applications %}
+      <div class="col-12">
+        <div class="surface-card">
+          <div class="row align-items-center g-3">
+            <div class="col-lg-3">
+              <h5 class="surface-title mb-1">{{ application.job.title }}</h5>
+              <p class="text-muted mb-0 small">{{ application.job.company }}</p>
+              <div class="mt-2">
+                <span class="badge bg-light text-dark border">ID: #{{ application.id }}</span>
+              </div>
+            </div>
+
+            <div class="col-lg-9">
+              {% if application.status == 'rejected' %}
+              <div class="alert alert-danger rounded-4 mb-0">
+                <strong>Update on your application.</strong>
+                We moved forward with other candidates at {{ application.job.company }}.
+              </div>
+              {% else %}
+              <div class="stepper-wrapper">
+                {% with "applied review interview offer closed" as status_order %}
+                  {% for key, label in application.STATUS_CHOICES %}
+                    {% if key != 'rejected' %}
+                    <div class="stepper-item {% if key == application.status %}active{% elif key in status_order and application.status in status_order %}{% if application.status == 'review' and key == 'applied' %}completed{% elif application.status == 'interview' and key == 'applied' or application.status == 'interview' and key == 'review' %}completed{% elif application.status == 'offer' and key != 'offer' and key != 'closed' %}completed{% elif application.status == 'closed' %}completed{% else %}pending{% endif %}{% else %}pending{% endif %}">
+                      <div class="step-counter"></div>
+                      <div class="step-name">{{ label }}</div>
+                    </div>
+                    {% endif %}
+                  {% endfor %}
+                {% endwith %}
+              </div>
+              {% if application.status == 'offer' or application.status == 'closed' %}
+              <div class="form-actions mt-3">
+                <a class="primary-btn btn-compact" href="{% url 'apply:offer_letter' application.id %}">View Offer Letter</a>
+              </div>
+              {% endif %}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="col-12 text-center py-5">
+        <p class="text-muted">No applications found.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

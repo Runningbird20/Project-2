@@ -1,8 +1,10 @@
 from django.test import TestCase
 from django.contrib.auth.models import User
 from django.urls import reverse
+from unittest.mock import patch
 
 from accounts.models import Profile
+from map.models import OfficeLocation
 from .models import JobPost
 
 
@@ -54,6 +56,29 @@ class JobPostViewTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(JobPost.objects.count(), 1)
+
+    def test_employer_can_pin_office_location_on_create(self):
+        self.client.login(username='employer', password='pass12345')
+        payload = {
+            'title': 'Backend Engineer',
+            'company': 'Acme Inc',
+            'location': 'Atlanta, GA',
+            'pay_range': '$70k-$90k',
+            'work_setting': 'onsite',
+            'description': 'Build APIs and services.',
+            'map-address_line_1': '75 5th St NW',
+            'map-city': 'Atlanta',
+            'map-state': 'GA',
+            'map-postal_code': '30308',
+            'map-country': 'United States',
+        }
+
+        with patch('jobposts.views.geocode_office_address', return_value=('33.776500', '-84.398300')):
+            response = self.client.post(reverse('jobposts.create'), payload)
+
+        self.assertEqual(response.status_code, 302)
+        post = JobPost.objects.get()
+        self.assertTrue(OfficeLocation.objects.filter(job_post=post).exists())
 
     def test_applicant_post_does_not_create_jobpost(self):
         self.client.login(username='applicant', password='pass12345')
@@ -137,3 +162,43 @@ class JobPostViewTests(TestCase):
 
         self.assertEqual(response.status_code, 404)
         self.assertEqual(post.title, 'Backend Engineer')
+
+    def test_owner_can_clear_office_location_on_edit(self):
+        post = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Backend Engineer',
+            company='Acme Inc',
+            location='Atlanta, GA',
+            pay_range='$70k-$90k',
+            work_setting='onsite',
+            description='Build APIs and services.',
+        )
+        OfficeLocation.objects.create(
+            job_post=post,
+            address_line_1='75 5th St NW',
+            city='Atlanta',
+            state='GA',
+            postal_code='30308',
+            country='United States',
+            latitude='33.776500',
+            longitude='-84.398300',
+        )
+        payload = {
+            'title': 'Backend Engineer',
+            'company': 'Acme Inc',
+            'location': 'Atlanta, GA',
+            'pay_range': '$70k-$90k',
+            'work_setting': 'onsite',
+            'description': 'Build APIs and services.',
+            'map-address_line_1': '',
+            'map-address_line_2': '',
+            'map-city': '',
+            'map-state': '',
+            'map-postal_code': '',
+            'map-country': '',
+        }
+        self.client.login(username='employer', password='pass12345')
+        response = self.client.post(reverse('jobposts.edit', args=[post.id]), payload)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(OfficeLocation.objects.filter(job_post=post).exists())
