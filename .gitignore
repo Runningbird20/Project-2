@@ -4,17 +4,6 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Django
-db.sqlite3
-*.sqlite3
-
 # Virtual environments
 venv/
 env/
-
-# Ignore Python cache files
-__pycache__/
-*.pyc
-*.pyo
-
-db.sqlite3
