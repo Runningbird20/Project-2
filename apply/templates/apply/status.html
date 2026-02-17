@@ -40,6 +40,11 @@
                   {% endfor %}
                 {% endwith %}
               </div>
+              {% if application.status == 'offer' or application.status == 'closed' %}
+              <div class="form-actions mt-3">
+                <a class="primary-btn btn-compact" href="{% url 'apply:offer_letter' application.id %}">View Offer Letter</a>
+              </div>
+              {% endif %}
               {% endif %}
             </div>
           </div>
