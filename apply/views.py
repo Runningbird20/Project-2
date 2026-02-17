@@ -32,10 +32,18 @@ def submit_application(request, job_id):
             resume_file=resume_file if resume_type == 'uploaded' else None
         )
 
-        messages.success(request, f"Application for {job.title} submitted successfully!")
-        return redirect('jobposts.search')
+        return redirect('apply:application_submitted', job_id=job.id)
 
     return redirect('jobposts.search')
+
+@login_required
+def application_submitted(request, job_id):
+    job = get_object_or_404(JobPost, id=job_id)
+    template_data = {
+        "title": "Application Submitted",
+        "job": job,
+    }
+    return render(request, "apply/application_submitted.html", {"template_data": template_data})
 
 @login_required
 def application_status(request):
