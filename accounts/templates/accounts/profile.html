@@ -1,10 +1,20 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
-<div class="p-3 mt-4">
+<section class="page-shell">
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-md-10 col-lg-8">
+<<<<<<< HEAD
+        <div class="surface-card">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <p class="page-kicker mb-2">{% if template_data.is_own_profile %}My profile{% else %}Candidate profile{% endif %}</p>
+              <h1 class="page-title page-title-sm mb-1">{{ template_data.viewed_user.get_full_name|default:template_data.viewed_user.username }}</h1>
+              <p class="surface-copy mb-1">{{ template_data.profile.get_account_type_display }}</p>
+              {% if template_data.profile.account_type == "APPLICANT" and template_data.profile.headline %}
+                <p class="surface-copy mb-0">{{ template_data.profile.headline }}</p>
+=======
         <div class="card shadow p-3 mb-4 rounded border-0">
           <div class="card-body">
 
@@ -140,37 +150,105 @@
                 </ul>
               {% else %}
                 <p class="text-muted fst-italic">No links added yet.</p>
+>>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2
               {% endif %}
             </div>
 
             {% if template_data.is_own_profile %}
-              <hr class="my-4" />
-              <h5 class="fw-bold text-primary"><i class="bi bi-shield-lock me-2"></i>Privacy Settings</h5>
-              <div class="ps-4 mt-2">
-                {% if template_data.profile.visible_to_recruiters %}
-                  <p class="mb-2 text-success"><i class="bi bi-check-circle-fill me-1"></i> Your profile is visible to recruiters.</p>
-                  <a class="btn btn-sm btn-outline-primary rounded-pill px-3" href="{% url 'accounts.public_profile' template_data.viewed_user.username %}">
-                    Preview Public Profile
-                  </a>
-                {% else %}
-                  <p class="text-muted mb-0"><i class="bi bi-eye-slash-fill me-1"></i> Your profile is hidden from recruiters.</p>
-                {% endif %}
-              </div>
+            <a class="secondary-btn" href="{% url 'accounts.profile_edit' %}">Edit Profile</a>
+            {% endif %}
+          </div>
+
+          <hr />
+
+          {% if template_data.profile.account_type == "EMPLOYER" %}
+            <h5 class="surface-title">Company</h5>
+            {% if template_data.profile.company_name %}
+              <p class="mb-1"><b>{{ template_data.profile.company_name }}</b></p>
+            {% else %}
+              <p class="text-muted">No company name added yet.</p>
             {% endif %}
 
-          </div>
+            {% if template_data.profile.company_website %}
+              <p class="mb-1">
+                <a href="{{ template_data.profile.company_website }}" target="_blank" rel="noopener noreferrer">{{ template_data.profile.company_website }}</a>
+              </p>
+            {% endif %}
+
+            {% if template_data.profile.company_description %}
+              <p style="white-space: pre-wrap;">{{ template_data.profile.company_description }}</p>
+            {% else %}
+              <p class="text-muted">No company description added yet.</p>
+            {% endif %}
+
+            <hr />
+          {% else %}
+            <h5 class="surface-title">Skills</h5>
+            {% if template_data.profile.skills %}
+              <p>{{ template_data.profile.skills }}</p>
+            {% else %}
+              <p class="text-muted">No skills added yet.</p>
+            {% endif %}
+
+            <hr />
+
+            <h5 class="surface-title">Education</h5>
+            {% if template_data.profile.education %}
+              <p style="white-space: pre-wrap;">{{ template_data.profile.education }}</p>
+            {% else %}
+              <p class="text-muted">No education added yet.</p>
+            {% endif %}
+
+            <hr />
+
+            <h5 class="surface-title">Work Experience</h5>
+            {% if template_data.profile.work_experience %}
+              <p style="white-space: pre-wrap;">{{ template_data.profile.work_experience }}</p>
+            {% else %}
+              <p class="text-muted">No work experience added yet.</p>
+            {% endif %}
+
+            <hr />
+          {% endif %}
+
+          <h5 class="surface-title">Links</h5>
+          {% if template_data.profile.links.exists %}
+            <ul class="mb-0">
+              {% for link in template_data.profile.links.all %}
+                <li>
+                  {% if link.label %}<b>{{ link.label }}:</b> {% endif %}
+                  <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.url }}</a>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-muted">No links added yet.</p>
+          {% endif %}
+
+          {% if template_data.is_own_profile %}
+            <hr />
+            <h5 class="surface-title">Recruiter Privacy</h5>
+            {% if template_data.profile.visible_to_recruiters %}
+              <p class="mb-2">Recruiters can view your profile.</p>
+              <a class="secondary-btn" href="{% url 'accounts.public_profile' template_data.viewed_user.username %}">Preview public profile</a>
+            {% else %}
+              <p class="text-muted mb-0">Your profile is hidden from recruiters.</p>
+            {% endif %}
+          {% endif %}
         </div>
 
         {% if not template_data.is_own_profile %}
-          <div class="text-center">
-            <button onclick="history.back()" class="btn btn-link text-muted text-decoration-none">
-              <i class="bi bi-arrow-left me-1"></i> Return to Pipeline
-            </button>
-          </div>
+        <div class="text-center mt-3">
+          <button onclick="history.back()" class="secondary-btn border-0">Return to Pipeline</button>
+        </div>
         {% endif %}
-
       </div>
     </div>
   </div>
+<<<<<<< HEAD
+</section>
+{% endblock content %}
+=======
 </div>
 {% endblock content %}
+>>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2

@@ -1,10 +1,28 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block content %}
-<div class="p-3 mt-4">
+<section class="page-shell">
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-md-10 col-lg-8">
+<<<<<<< HEAD
+        <div class="surface-card">
+          <div class="d-flex justify-content-between align-items-start gap-3">
+            <div class="d-flex align-items-start gap-3">
+              <div class="flex-shrink-0">
+                {% if template_data.profile.profile_picture %}
+                  <img src="{{ template_data.profile.profile_picture.url }}" alt="Profile picture" class="rounded-circle border" style="width: 84px; height: 84px; object-fit: cover;">
+                {% else %}
+                  <img src="{% static 'img/default_avatar.png' %}" alt="Default profile picture" class="rounded-circle border" style="width: 84px; height: 84px; object-fit: cover;">
+                {% endif %}
+              </div>
+              <div>
+                <p class="page-kicker mb-2">Public candidate profile</p>
+                <h1 class="page-title page-title-sm mb-1">{{ template_data.profile.user.get_username }}</h1>
+                {% if template_data.profile.show_headline and template_data.profile.headline %}
+                  <p class="surface-copy mb-0">{{ template_data.profile.headline }}</p>
+                {% endif %}
+=======
         <div class="card shadow p-3 mb-4 rounded border-0">
           <div class="card-body">
 
@@ -42,6 +60,7 @@
                     <p class="text-secondary mb-0">{{ template_data.profile.headline }}</p>
                   {% endif %}
                 </div>
+>>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2
               </div>
               
               {% if template_data.is_owner %}
@@ -50,7 +69,63 @@
                 </a>
               {% endif %}
             </div>
+          </div>
 
+<<<<<<< HEAD
+          {% if template_data.is_owner and not template_data.profile.visible_to_recruiters %}
+            <div class="alert alert-warning mt-3 mb-0">
+              You are previewing your public profile while set to private. Employers cannot see this profile until visibility is turned on.
+            </div>
+          {% endif %}
+
+          <hr />
+
+          {% if template_data.profile.show_skills %}
+            <h5 class="surface-title">Skills</h5>
+            {% if template_data.profile.skills %}
+              <p>{{ template_data.profile.skills }}</p>
+            {% else %}
+              <p class="text-muted">No skills added yet.</p>
+            {% endif %}
+            <hr />
+          {% endif %}
+
+          {% if template_data.profile.show_education %}
+            <h5 class="surface-title">Education</h5>
+            {% if template_data.profile.education %}
+              <p style="white-space: pre-wrap;">{{ template_data.profile.education }}</p>
+            {% else %}
+              <p class="text-muted">No education added yet.</p>
+            {% endif %}
+            <hr />
+          {% endif %}
+
+          {% if template_data.profile.show_work_experience %}
+            <h5 class="surface-title">Work Experience</h5>
+            {% if template_data.profile.work_experience %}
+              <p style="white-space: pre-wrap;">{{ template_data.profile.work_experience }}</p>
+            {% else %}
+              <p class="text-muted">No work experience added yet.</p>
+            {% endif %}
+            <hr />
+          {% endif %}
+
+          {% if template_data.profile.show_links %}
+            <h5 class="surface-title">Links</h5>
+            {% if template_data.has_links %}
+              <ul class="mb-0">
+                {% for link in template_data.profile.links.all %}
+                  <li>
+                    {% if link.label %}<b>{{ link.label }}:</b> {% endif %}
+                    <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.url }}</a>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="text-muted">No links added yet.</p>
+            {% endif %}
+          {% endif %}
+=======
             {% if template_data.is_owner and not template_data.profile.visible_to_recruiters %}
               <div class="alert alert-warning mt-3 mb-0 py-2 small">
                 <i class="bi bi-exclamation-triangle-fill me-2"></i>You are previewing your public profile while set to private.
@@ -121,6 +196,7 @@
             </div>
 
           </div>
+>>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2
         </div>
         
         <div class="text-center">
@@ -132,5 +208,10 @@
       </div>
     </div>
   </div>
+<<<<<<< HEAD
+</section>
+{% endblock content %}
+=======
 </div>
 {% endblock content %}
+>>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2

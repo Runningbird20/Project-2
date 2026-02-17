@@ -1,18 +1,41 @@
 {% extends 'base.html' %}
 {% block content %}
 {% load static %}
-<div class="p-3">
+<section class="page-shell">
   <div class="container">
+<<<<<<< HEAD
+    <div class="page-intro text-center">
+      <p class="page-kicker">Who we are</p>
+      <h1 class="page-title">Built for better hiring outcomes</h1>
+      <p class="page-copy">PandaPulse brings candidates and employers together through a simple, transparent platform that keeps hiring focused on fit and speed.</p>
+    </div>
+    <div class="row g-4 align-items-center mt-1">
+      <div class="col-lg-7">
+        <div class="surface-card h-100">
+          <h3 class="surface-title">What PandaPulse delivers</h3>
+          <p class="surface-copy">Candidates can surface relevant roles quickly with clear details on skills, pay, location, and work setting.</p>
+          <p class="surface-copy">Employers can publish openings in minutes and connect with qualified talent through structured profiles.</p>
+          <p class="surface-copy mb-0">The goal is straightforward: reduce friction in hiring and help people find the right match sooner.</p>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="surface-card text-center">
+          <img src="{% static 'img/logo.png' %}?v=pandapulse-2" class="about-logo" alt="PandaPulse logo" />
+          <p class="surface-copy mb-0 mt-3">Focused on clean UX, transparent opportunities, and practical tools for both sides of the hiring process.</p>
+        </div>
+=======
     <div class="row mt-3">
       <div class="col-md-6 mx-auto mb-3">
         <h2>About</h2>
         <hr />
         <p>This is a placeholder</p>
+        <img src="{% static 'img/logo1.png' %}" class="home-logo-image" alt="about" />
       </div>
       <div class="col-md-6 mx-auto mb-3 text-center">
-        <img src="{% static 'img/logo.png' %}" class="home-logo-image" alt="about" />
+>>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2
       </div>
     </div>
   </div>
-</div>
+</section>
 {% endblock content %}
+

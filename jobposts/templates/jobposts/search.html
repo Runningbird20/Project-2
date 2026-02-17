@@ -1,12 +1,18 @@
 {% extends 'base.html' %}
 {% block content %}
-<section class="py-5" style="background: linear-gradient(180deg, rgba(0,0,0,0.04), rgba(0,0,0,0));">
+<section class="page-shell">
   <div class="container">
+    <div class="page-intro text-center">
+      <p class="page-kicker">Discover opportunities</p>
+      <h1 class="page-title">Search open roles</h1>
+      <p class="page-copy">Filter by title, skills, location, salary, and work setting to find roles that match your goals.</p>
+    </div>
+
     <div class="row g-4">
       <div class="col-lg-4">
-        <div class="bg-white shadow-sm rounded-4 p-4">
+        <div class="surface-card">
           <div class="text-uppercase text-muted small mb-2">Job search</div>
-          <h2 class="mb-3">Find the right role</h2>
+          <h2 class="surface-title mb-3">Find the right role</h2>
           <form method="get" class="vstack gap-3">
             <div>
               <label class="form-label">Title</label>
@@ -42,13 +48,11 @@
             </div>
             <div class="form-check">
               <input class="form-check-input" type="checkbox" id="visa_sponsorship" name="visa_sponsorship" value="true" {% if template_data.filters.visa_sponsorship %}checked{% endif %}>
-              <label class="form-check-label" for="visa_sponsorship">
-                Visa sponsorship available
-              </label>
+              <label class="form-check-label" for="visa_sponsorship">Visa sponsorship available</label>
             </div>
-            <div class="d-flex gap-2">
-              <button type="submit" class="btn btn-dark flex-grow-1">Search</button>
-              <a href="{% url 'jobposts.search' %}" class="btn btn-outline-secondary">Reset</a>
+            <div class="form-actions">
+              <button type="submit" class="primary-btn border-0">Search</button>
+              <a href="{% url 'jobposts.search' %}" class="secondary-btn">Reset</a>
             </div>
           </form>
         </div>
@@ -58,23 +62,23 @@
         <div class="d-flex align-items-center justify-content-between mb-3">
           <div>
             <div class="text-uppercase text-muted small">Results</div>
-            <h3 class="mb-0">{{ template_data.posts|length }} openings</h3>
+            <h3 class="surface-title mb-0">{{ template_data.posts|length }} openings</h3>
           </div>
           {% if template_data.can_post_job %}
-            <a class="btn btn-outline-dark" href="{% url 'jobposts.create' %}">Post a job</a>
+            <a class="secondary-btn" href="{% url 'jobposts.create' %}">Post a job</a>
           {% elif request.user.is_authenticated %}
-            <a class="btn btn-outline-warning" href="{% url 'accounts.profile_edit' %}?highlight=account_type">Become an Employer</a>
+            <a class="secondary-btn" href="{% url 'accounts.profile_edit' %}?highlight=account_type">Become an Employer</a>
           {% endif %}
         </div>
 
         {% if template_data.posts %}
           <div class="vstack gap-3">
             {% for post in template_data.posts %}
-              <div class="bg-white shadow-sm rounded-4 p-4 border">
+              <div class="surface-card py-4">
                 <div class="d-flex justify-content-between flex-wrap gap-2">
                   <div>
-                    <h4 class="mb-1">{{ post.title }}</h4>
-                    <div class="text-muted">{{ post.company }} · {{ post.location }}</div>
+                    <h4 class="surface-title mb-1">{{ post.title }}</h4>
+                    <div class="text-muted">{{ post.company }} - {{ post.location }}</div>
                   </div>
                   <div class="text-end">
                     <span class="badge bg-dark-subtle text-dark text-uppercase">{{ post.get_work_setting_display }}</span>
@@ -83,14 +87,50 @@
                     {% endif %}
                   </div>
                 </div>
-                <div class="mt-3">
-                  {% if post.salary_min or post.salary_max %}
-                    <div class="small text-muted">
-                      Salary:
-                      {% if post.salary_min %}${{ post.salary_min }}{% endif %}
-                      {% if post.salary_min and post.salary_max %} - {% endif %}
-                      {% if post.salary_max %}${{ post.salary_max }}{% endif %}
+
+                <div class="job-post-layout mt-2">
+                  <div class="job-post-main">
+                    {% if post.salary_min or post.salary_max %}
+                      <div class="small text-muted">
+                        Salary:
+                        {% if post.salary_min %}${{ post.salary_min }}{% endif %}
+                        {% if post.salary_min and post.salary_max %} - {% endif %}
+                        {% if post.salary_max %}${{ post.salary_max }}{% endif %}
+                      </div>
+                    {% endif %}
+                    {% if post.pay_range %}
+                      <div class="small text-muted">Pay Range {{ post.pay_range }}</div>
+                    {% endif %}
+                    {% if post.skills %}
+                      <div class="small text-muted">Skills: {{ post.skills }}</div>
+                    {% endif %}
+                    <p class="mt-3 mb-0">{{ post.description|truncatewords:40 }}</p>
+
+                    <div class="mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                      {% if template_data.can_post_job and post.owner_id == request.user.id %}
+                        <div class="d-flex gap-2 flex-wrap">
+                          <a class="secondary-btn" href="{% url 'jobposts.edit' post.id %}">Edit post</a>
+                          <a href="{% url 'apply:employer_pipeline' post.id %}" class="secondary-btn">View Applicants</a>
+                        </div>
+                      {% endif %}
                     </div>
+<<<<<<< HEAD
+                  </div>
+
+                  {% if post.office_location %}
+                  <aside class="job-post-map">
+                    <div class="ratio ratio-4x3 job-post-map-frame">
+                      <iframe title="Office location map" src="{{ post.office_location.osm_embed_url }}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    </div>
+                    <div class="small text-muted mt-2">
+                      {% if post.office_location.full_address %}
+                        {{ post.office_location.full_address }} -
+                      {% endif %}
+                      <a href="{% url 'map.job_location' post.id %}" class="link-secondary">Full map</a>
+                    </div>
+                  </aside>
+                  {% endif %}
+=======
                   {% endif %}
                   {% if post.pay_range %}
                     <div class="small text-muted">Pay Range {{ post.pay_range }}</div>
@@ -110,13 +150,30 @@
                       </div>                    
                     {% endif %}
                     
+                    <div clas="ms-audo">
                     {% if request.user.is_authenticated and not template_data.can_post_job %}
-                      <button type="button" class="btn btn-primary ms-auto" data-bs-toggle="modal" data-bs-target="#applyModal{{ post.id }}">
+                      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#applyModal{{ post.id }}">
                         Apply Now
                       </button>
                     {% endif %}
+
+                      {% if user.is_staff %}
+                        <a href="{% url 'jobposts.edit_post' post.id%}" class="btn btn-danger">
+                            Edit Post
+                        </a>
+                      {% endif %}
+                      </div>
                   </div>
+
+
+>>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2
                 </div>
+
+                {% if request.user.is_authenticated and not template_data.can_post_job %}
+                  <div class="mt-3 d-flex justify-content-end">
+                    <button type="button" class="primary-btn border-0" data-bs-toggle="modal" data-bs-target="#applyModal{{ post.id }}">Apply Now</button>
+                  </div>
+                {% endif %}
               </div>
 
               <div class="modal fade" id="applyModal{{ post.id }}" tabindex="-1" aria-labelledby="applyModalLabel{{ post.id }}" aria-hidden="true">
@@ -133,7 +190,7 @@
                           <label class="form-label fw-semibold">Add a personalized note</label>
                           <textarea name="note" class="form-control" rows="3" placeholder="Tell the employer why you're a great fit..."></textarea>
                         </div>
-                        
+
                         <div class="mb-3">
                           <label class="form-label fw-semibold">Resume Source</label>
                           <select name="resume_type" class="form-select" onchange="toggleResumeUpload(this, '{{ post.id }}')">
@@ -158,13 +215,13 @@
             {% endfor %}
           </div>
         {% else %}
-          <div class="bg-white shadow-sm rounded-4 p-5 text-center border">
-            <h4 class="mb-2">No matching jobs yet</h4>
+          <div class="surface-card p-5 text-center">
+            <h4 class="surface-title mb-2">No matching jobs yet</h4>
             <p class="text-muted mb-4">Try widening your filters or post a new role to get the search started.</p>
             {% if template_data.can_post_job %}
-              <a class="btn btn-dark" href="{% url 'jobposts.create' %}">Create a job post</a>
+              <a class="primary-btn border-0" href="{% url 'jobposts.create' %}">Create a job post</a>
             {% elif request.user.is_authenticated %}
-              <a class="btn btn-outline-warning" href="{% url 'accounts.profile_edit' %}?highlight=account_type">Become an Employer</a>
+              <a class="secondary-btn" href="{% url 'accounts.profile_edit' %}?highlight=account_type">Become an Employer</a>
             {% endif %}
           </div>
         {% endif %}

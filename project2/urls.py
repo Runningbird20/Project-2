@@ -26,6 +26,7 @@ urlpatterns = [
     path('apply/', include('apply.urls')),
     path('jobposts/', include('jobposts.urls')),
     path('messages/', include('messaging.urls')),
+    path('map/', include('map.urls')),
 ]
 
 if settings.DEBUG:

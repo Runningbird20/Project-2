@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import Application
 from jobposts.models import JobPost
-from django.http import JsonResponse, HttpResponseForbidden, HttpResponse
+from django.http import JsonResponse, HttpResponseForbidden, HttpResponse, Http404
 from django.views.decorators.http import require_POST
 import json
 import csv
@@ -85,10 +85,14 @@ def employer_pipeline(request, job_id):
         'offer': applications.filter(status='offer'),
         'rejected': applications.filter(status='rejected'),
     }
+    active_count = applications.exclude(status='rejected').count()
+    rejected_count = applications.filter(status='rejected').count()
     
     return render(request, 'apply/employer_pipeline.html', {
         'job': job,
-        'pipeline': pipeline
+        'pipeline': pipeline,
+        'active_count': active_count,
+        'rejected_count': rejected_count,
     })
 
 @login_required
@@ -114,7 +118,6 @@ def export_applicants_csv(request, job_id):
         ])
 
     return response
-    
 @login_required
 def offer_letter(request, application_id):
     application = get_object_or_404(

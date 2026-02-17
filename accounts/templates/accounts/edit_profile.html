@@ -1,10 +1,62 @@
-{# accounts/templates/accounts/edit_profile.html #}
 {% extends 'base.html' %}
 {% block content %}
-<div class="p-3 mt-4">
+<section class="page-shell">
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-md-10 col-lg-8">
+<<<<<<< HEAD
+        <div class="surface-card">
+          <p class="page-kicker mb-2">Account settings</p>
+          <h1 class="page-title page-title-sm">Edit Profile</h1>
+          <p class="surface-copy mb-0">Privacy options control what recruiters see on your public profile.</p>
+          <hr />
+
+          <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ template_data.form.non_field_errors }}
+
+            {{ template_data.form.profile_picture.errors }}
+            <div class="field-block">{{ template_data.form.profile_picture.label_tag }} {{ template_data.form.profile_picture }}</div>
+
+            {{ template_data.form.account_type.errors }}
+            <div id="account_type_section" class="p-2 rounded mb-3 {% if template_data.highlight_account_type %}border border-warning bg-warning-subtle{% endif %}">
+              <div class="field-block mb-0">{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</div>
+              {% if template_data.highlight_account_type %}
+                <p class="small mb-0 text-warning-emphasis">Change this to Employer to unlock candidate search.</p>
+              {% endif %}
+            </div>
+
+            <div id="applicant_fields">
+              {{ template_data.form.headline.errors }}
+              <div class="field-block">{{ template_data.form.headline.label_tag }} {{ template_data.form.headline }}</div>
+
+              {{ template_data.form.skills.errors }}
+              <div class="field-block">{{ template_data.form.skills.label_tag }} {{ template_data.form.skills }}</div>
+
+              {{ template_data.form.location.errors }}
+              <div class="field-block">{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</div>
+
+              {{ template_data.form.projects.errors }}
+              <div class="field-block">{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</div>
+
+              {{ template_data.form.education.errors }}
+              <div class="field-block">{{ template_data.form.education.label_tag }} {{ template_data.form.education }}</div>
+
+              {{ template_data.form.work_experience.errors }}
+              <div class="field-block">{{ template_data.form.work_experience.label_tag }} {{ template_data.form.work_experience }}</div>
+
+              <hr />
+              <h5 class="surface-title mt-2">Public visibility</h5>
+              {{ template_data.form.visible_to_recruiters.errors }}
+              <div class="form-check mb-2">
+                {{ template_data.form.visible_to_recruiters }}
+                <label class="form-check-label" for="{{ template_data.form.visible_to_recruiters.id_for_label }}">
+                  Make my profile visible to employers (public)
+                </label>
+              </div>
+              <div class="small text-muted">
+                If this is off, employers cannot view your public profile.
+=======
         <div class="card shadow p-3 mb-4 rounded border-0">
           <div class="card-body">
             <h2 class="fw-bold">Edit Profile</h2>
@@ -29,8 +81,34 @@
                   <i class="bi bi-info-circle-fill me-1"></i>
                   Switching roles will swap the available fields below and clear previous data upon saving.
                 </div>
+>>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2
               </div>
+            </div>
 
+<<<<<<< HEAD
+            <div id="employer_fields">
+              {{ template_data.form.company_name.errors }}
+              <div class="field-block">{{ template_data.form.company_name.label_tag }} {{ template_data.form.company_name }}</div>
+
+              {{ template_data.form.company_website.errors }}
+              <div class="field-block">{{ template_data.form.company_website.label_tag }} {{ template_data.form.company_website }}</div>
+
+              {{ template_data.form.company_description.errors }}
+              <div class="field-block">{{ template_data.form.company_description.label_tag }} {{ template_data.form.company_description }}</div>
+
+              {{ template_data.form.location.errors }}
+              <div class="field-block">{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</div>
+
+              {{ template_data.form.projects.errors }}
+              <div class="field-block">{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</div>
+            </div>
+
+            <div class="form-actions mt-3">
+              <button type="submit" class="primary-btn border-0">Save</button>
+              <a class="secondary-btn" href="{% url 'accounts.profile' %}">Cancel</a>
+            </div>
+          </form>
+=======
               <div id="applicant_fields" class="mb-4">
                 <h5 class="text-primary fw-bold mb-3"><i class="bi bi-person-lines-fill me-2"></i>Applicant Details</h5>
                 <div class="vstack gap-3">
@@ -148,9 +226,43 @@
               })();
             </script>
           </div>
+>>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2
         </div>
       </div>
     </div>
   </div>
+<<<<<<< HEAD
+</section>
+
+<script>
+  (function () {
+    const select = document.getElementById("id_account_type");
+    const applicant = document.getElementById("applicant_fields");
+    const employer = document.getElementById("employer_fields");
+    const accountTypeSection = document.getElementById("account_type_section");
+
+    function refresh() {
+      const isEmployer = select && select.value === "EMPLOYER";
+      if (employer) employer.style.display = isEmployer ? "block" : "none";
+      if (applicant) applicant.style.display = isEmployer ? "none" : "block";
+    }
+
+    if (select) {
+      select.addEventListener("change", refresh);
+      refresh();
+    }
+
+    const highlight = "{{ template_data.highlight_account_type|yesno:'1,0' }}";
+    if (highlight === "1") {
+      if (select) select.focus();
+      if (accountTypeSection) {
+        accountTypeSection.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+  })();
+</script>
+{% endblock content %}
+=======
 </div>
 {% endblock content %}
+>>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2

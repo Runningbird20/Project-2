@@ -225,7 +225,6 @@ def edit_user(request, user_id):
         form = ProfileEditForm(instance=profile)
 
     return render(request, "accounts/edit_user.html", {"template_data": {"title": "Edit User", "form": form, "user": profile}})
-
 @staff_member_required
 def remove_user(request, user_id):
     if request.method == "POST":
