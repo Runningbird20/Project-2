@@ -77,6 +77,10 @@
                        href="{% url 'accounts.public_profile' p.user.username %}">
                       View profile
                     </a>
+                    <a href="{% url 'messaging:chat_detail' p.user.id %}" class="btn btn-primary btn-sm">
+                      <i class="bi bi-envelope"></i> 
+                      Message Candidate
+                    </a>
                   </div>
                 </div>
 

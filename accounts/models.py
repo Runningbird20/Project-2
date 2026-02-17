@@ -11,6 +11,9 @@ class Profile(models.Model):
         EMPLOYER = "EMPLOYER", "Employer"
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
+    last_activity = models.DateTimeField(null=True, blank=True)
+    is_typing = models.BooleanField(default=False)
+    last_typing_update = models.DateTimeField(null=True, blank=True)
 
     account_type = models.CharField(
         max_length=20,

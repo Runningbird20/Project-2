@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0">Messages</h5>
+                    <span class="badge bg-primary rounded-pill">{{ messages.count }}</span>
+                </div>
+                <div class="list-group list-group-flush overflow-auto" style="max-height: 600px;">
+                    {% for msg in messages %}
+                        <a href="#" class="list-group-item list-group-item-action py-3 {% if not msg.is_read %}bg-light border-start border-primary border-4{% endif %}">
+                            <div class="d-flex justify-content-between mb-1">
+                                <strong class="text-dark">{{ msg.sender.get_full_name|default:msg.sender.username }}</strong>
+                                <small class="text-muted">{{ msg.timestamp|date:"M d" }}</small>
+                            </div>
+                            <div class="text-truncate small text-secondary">
+                                {{ msg.body }}
+                            </div>
+                        </a>
+                    {% empty %}
+                        <div class="p-4 text-center text-muted">
+                            <i class="bi bi-chat-left-dots display-4 d-block mb-2"></i>
+                            <p>No messages yet.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 h-100 min-vh-50">
+                {% if messages %}
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
+                                {{ messages.first.sender.username|first|upper }}
+                            </div>
+                            <div>
+                                <h5 class="mb-0 fw-bold">{{ messages.first.sender.get_full_name|default:messages.first.sender.username }}</h5>
+                                <small class="text-muted">Sent on {{ messages.first.timestamp|date:"F d, Y @ H:i" }}</small>
+                            </div>
+                        </div>
+                        
+                        <div class="message-content mb-5">
+                            <p class="text-dark" style="white-space: pre-wrap; line-height: 1.6;">
+                                {{ messages.first.body }}
+                            </p>
+                        </div>
+
+                        <div class="mt-auto">
+                            <form action="{% url 'messaging:send_message' messages.first.sender.id %}" method="POST">
+                                {% csrf_token %}
+                                <div class="input-group">
+                                    <textarea name="body" class="form-control" rows="2" placeholder="Write a reply..." required></textarea>
+                                    <button type="submit" class="btn btn-primary px-4">
+                                        <i class="bi bi-send-fill"></i>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="card-body d-flex align-items-center justify-content-center">
+                        <div class="text-center text-muted">
+                            <h5>Select a conversation to read</h5>
+                            <p>Your inbox is currently empty.</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
