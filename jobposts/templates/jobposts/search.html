@@ -50,6 +50,35 @@
               <input class="form-check-input" type="checkbox" id="visa_sponsorship" name="visa_sponsorship" value="true" {% if template_data.filters.visa_sponsorship %}checked{% endif %}>
               <label class="form-check-label" for="visa_sponsorship">Visa sponsorship available</label>
             </div>
+            {% if template_data.is_applicant %}
+            <hr class="my-2">
+            <div>
+              <div class="text-uppercase text-muted small mb-2">Commute preference</div>
+              <div class="form-check mb-2">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="use_home_radius"
+                  name="use_home_radius"
+                  value="true"
+                  {% if template_data.filters.use_home_radius %}checked{% endif %}
+                >
+                <label class="form-check-label" for="use_home_radius">
+                  Only show jobs near my home address
+                </label>
+              </div>
+              <div>
+                <label class="form-label" for="radius_miles">Miles from home</label>
+                <input type="number" min="1" step="1" id="radius_miles" name="radius_miles" class="form-control" value="{{ template_data.filters.radius_miles|default:'25' }}">
+              </div>
+              <div class="form-text">
+                Home address: {% if template_data.has_home_address %}{{ template_data.home_address }}{% else %}Not set{% endif %}.
+                {% if not template_data.has_home_address %}
+                  <a href="{% url 'accounts.profile_edit' %}" class="link-secondary">Add it in Profile.</a>
+                {% endif %}
+              </div>
+            </div>
+            {% endif %}
             <div class="form-actions">
               <button type="submit" class="primary-btn border-0">Search</button>
               <a href="{% url 'jobposts.search' %}" class="secondary-btn">Reset</a>
@@ -65,6 +94,12 @@
             <h3 class="surface-title mb-0">{{ template_data.posts|length }} openings</h3>
           </div>
         </div>
+        {% if template_data.radius_warning %}
+          <div class="alert alert-warning">{{ template_data.radius_warning }}</div>
+        {% endif %}
+        {% if template_data.radius_active %}
+          <div class="alert alert-info">Showing jobs within {{ template_data.filters.radius_miles }} miles of your home address (plus remote roles).</div>
+        {% endif %}
 
         {% if template_data.posts %}
           <div class="vstack gap-3">
@@ -79,6 +114,9 @@
                     <span class="badge bg-dark-subtle text-dark text-uppercase">{{ post.get_work_setting_display }}</span>
                     {% if post.visa_sponsorship %}
                       <span class="badge bg-success-subtle text-success text-uppercase">Visa</span>
+                    {% endif %}
+                    {% if post.distance_from_home_miles %}
+                      <span class="badge bg-primary-subtle text-primary text-uppercase">{{ post.distance_from_home_miles }} mi</span>
                     {% endif %}
                   </div>
                 </div>

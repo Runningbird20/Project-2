@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from datetime import timedelta
 from django.utils import timezone
+import re
 
 class Profile(models.Model):
 
@@ -51,6 +52,30 @@ class Profile(models.Model):
 
     def __str__(self):
         return f"{self.user.username} Profile"
+
+    @property
+    def location_city_state(self):
+        """
+        Return a privacy-safe location string (city/state) parsed from full address.
+        """
+        raw = (self.location or "").strip()
+        if not raw:
+            return ""
+
+        parts = [part.strip() for part in raw.split(",") if part.strip()]
+        if len(parts) < 2:
+            return raw
+
+        city = parts[-2]
+        region = parts[-1]
+
+        # Typical US form: "GA 30303" or "GA".
+        match = re.match(r"^([A-Za-z]{2})(?:\s+\d{5}(?:-\d{4})?)?$", region)
+        if match:
+            return f"{city}, {match.group(1).upper()}"
+
+        region_first_token = region.split()[0] if region.split() else region
+        return f"{city}, {region_first_token}"
 
 
 class ProfileLink(models.Model):
