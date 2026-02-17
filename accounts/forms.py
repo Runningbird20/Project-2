@@ -78,12 +78,11 @@ class SignupWithProfileForm(CustomUserCreationForm):
         return cleaned
 
 class ProfileEditForm(forms.ModelForm):
-<<<<<<< HEAD
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Backward-compatible: allow posts that omit account_type and keep current value.
         self.fields["account_type"].required = False
-=======
+
     link_0_label = forms.CharField(
         required=False, 
         label="Link 1 Label",
@@ -104,18 +103,12 @@ class ProfileEditForm(forms.ModelForm):
         label="Link 2 URL",
         widget=forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://myportfolio.com'})
     )
->>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2
 
     class Meta:
         model = Profile
         fields = [
-<<<<<<< HEAD
             "profile_picture",
             "account_type",
-=======
-            "account_type",
-            "profile_picture",
->>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2
             "headline",
             "skills",
             "location",
@@ -133,13 +126,8 @@ class ProfileEditForm(forms.ModelForm):
             "show_links",
         ]
         widgets = {
-<<<<<<< HEAD
             "profile_picture": forms.ClearableFileInput(attrs={"class": "form-control"}),
             "account_type": forms.Select(attrs={"class": "form-control"}),
-=======
-            "account_type": forms.Select(attrs={"class": "form-select fw-bold border-primary"}),
-            "profile_picture": forms.ClearableFileInput(attrs={"class": "form-control"}),
->>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2
             "headline": forms.TextInput(attrs={"class": "form-control"}),
             "skills": forms.TextInput(attrs={"class": "form-control"}),
             "location": forms.TextInput(attrs={"class": "form-control"}),
@@ -156,7 +144,6 @@ class ProfileEditForm(forms.ModelForm):
             "show_work_experience": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "show_links": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
-<<<<<<< HEAD
         labels = {
             "profile_picture": "Profile picture",
             "account_type": "Account type",
@@ -170,26 +157,14 @@ class ProfileEditForm(forms.ModelForm):
             "company_website": "Company Website",
             "company_description": "Company Description",
         }
-=======
->>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2
 
     def clean(self):
         cleaned = super().clean()
         acct = cleaned.get("account_type")
-<<<<<<< HEAD
 
         if not acct and self.instance and self.instance.pk:
             acct = self.instance.account_type
             cleaned["account_type"] = acct
         if acct == Profile.AccountType.EMPLOYER and not cleaned.get("company_name"):
             self.add_error("company_name", "Company name is required for employers.")
-
         return cleaned
-=======
-        
-        if acct == Profile.AccountType.EMPLOYER:
-            if not cleaned.get("company_name"):
-                self.add_error("company_name", "Company name is required for Employers.")
-        
-        return cleaned
->>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2

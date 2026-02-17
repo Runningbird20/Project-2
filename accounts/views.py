@@ -224,11 +224,7 @@ def edit_user(request, user_id):
     else:
         form = ProfileEditForm(instance=profile)
 
-<<<<<<< HEAD
-=======
     return render(request, "accounts/edit_user.html", {"template_data": {"title": "Edit User", "form": form, "user": profile}})
-
->>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2
 @staff_member_required
 def remove_user(request, user_id):
     if request.method == "POST":
@@ -278,12 +274,6 @@ def save_candidate_search(request):
         messages.success(request, 'Alert created successfully!')
     return redirect('jobposts.dashboard')
 
-<<<<<<< HEAD
-    template_data["candidates"] = qs
-    template_data["filters"] = {"skills": skills, "location": location, "projects": projects}
-
-    return render(request, "accounts/candidate_search.html", {"template_data": template_data})
-=======
 @login_required
 def delete_candidate_search(request, search_id):
     search = get_object_or_404(SavedCandidateSearch, id=search_id, employer=request.user)
@@ -292,4 +282,3 @@ def delete_candidate_search(request, search_id):
         search.delete()
         messages.warning(request, f'Alert "{name}" deleted.')
     return redirect('jobposts.dashboard')
->>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2

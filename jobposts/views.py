@@ -1,6 +1,7 @@
 from django.db import models
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -13,7 +14,7 @@ from .models import JobPost
 from django.views.decorators.http import require_POST
 from apply.models import Application
 
-from django.db.models import Count, Q
+from django.db.models import Count
 
 @login_required
 def dashboard(request):
@@ -233,22 +234,6 @@ def search(request):
     }
     return render(request, 'jobposts/search.html', {'template_data': template_data})
 
-@login_required
-<<<<<<< HEAD
-def employer_dashboard(request):
-    my_jobs = JobPost.objects.filter(owner=request.user).annotate(
-        total_apps=models.Count('applications'),
-        new_apps=models.Count('applications', filter=models.Q(applications__status='applied')),
-    ).order_by('-created_at')
-
-    overall_total = sum(job.total_apps for job in my_jobs)
-
-    return render(request, 'jobposts/dashboard.html', {
-        'jobs': my_jobs,
-        'overall_total': overall_total,
-    })
-
-
 def _save_office_location(post, map_form):
     if not getattr(map_form, 'has_location_data', False):
         OfficeLocation.objects.filter(job_post=post).delete()
@@ -278,7 +263,7 @@ def _save_office_location(post, map_form):
             'longitude': longitude,
         },
     )
-=======
+
 @require_POST
 def delete_job(request, job_id):
     job = get_object_or_404(JobPost, id=job_id, owner=request.user)
@@ -297,4 +282,3 @@ def job_detail(request, post_id):
         'job': job,
         'has_applied': has_applied
     })
->>>>>>> e2d3c8e3be22649f88d65caa4a6ede12be78e1c2
