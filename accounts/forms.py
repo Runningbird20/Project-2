@@ -41,7 +41,13 @@ class SignupWithProfileForm(CustomUserCreationForm):
     location = forms.CharField(
         max_length=120,
         required=False,
-        widget=forms.TextInput(attrs={"class": "form-control"}),
+        label="Address",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "123 Peachtree St NE, Atlanta, GA 30303",
+            }
+        ),
     )
     projects = forms.CharField(
         required=False,
@@ -130,7 +136,12 @@ class ProfileEditForm(forms.ModelForm):
             "account_type": forms.Select(attrs={"class": "form-control"}),
             "headline": forms.TextInput(attrs={"class": "form-control"}),
             "skills": forms.TextInput(attrs={"class": "form-control"}),
-            "location": forms.TextInput(attrs={"class": "form-control"}),
+            "location": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "123 Peachtree St NE, Atlanta, GA 30303",
+                }
+            ),
             "projects": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
             "education": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "work_experience": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
@@ -153,6 +164,7 @@ class ProfileEditForm(forms.ModelForm):
             "show_education": "Show education",
             "show_work_experience": "Show work experience",
             "show_links": "Show links",
+            "location": "Address",
             "company_name": "Company Name",
             "company_website": "Company Website",
             "company_description": "Company Description",
