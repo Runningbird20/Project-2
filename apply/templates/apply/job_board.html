@@ -47,7 +47,7 @@
                 <p class="text-muted mb-0">{{ job.company }}</p>
                 <p class="text-muted mb-0 small">{{ job.salary_range }}</p>
               </div>
-              <button class="primary-btn border-0" onclick="openApplyModal('{{ job.id }}')">Apply</button>
+              <button class="primary-btn border-0" id="applyButton-{{ job.id }}" onclick="openApplyModal('{{ job.id }}')">Apply</button>
             </div>
           </div>
           {% empty %}
@@ -64,13 +64,31 @@
 {% include "apply/apply_modal.html" %}
 {% endblock content %}
 
+{% block extra_scripts %}
 <script>
 function triggerFileUpload() {
   document.getElementById("resumeFile").click();
 }
 
 function handleFile(input) {
-  document.getElementById("fileName").innerText = input.files[0].name;
-  document.querySelector('input[value="uploaded"]').checked = true;
+  if (input.files && input.files[0]) {
+    document.getElementById("fileName").innerText = input.files[0].name;
+    const uploaded = document.querySelector('input[name="resume_choice"][value="uploaded"]');
+    if (uploaded) uploaded.checked = true;
+  }
 }
+
+document.addEventListener("DOMContentLoaded", function () {
+  window.dispatchEvent(new CustomEvent("panda:bubble", {
+    detail: { text: "Ready to apply?" }
+  }));
+
+  const firstApplyBtn = document.querySelector('button[id^="applyButton-"]');
+  if (firstApplyBtn && firstApplyBtn.id) {
+    window.dispatchEvent(new CustomEvent("panda:moveTo", {
+      detail: { selector: "#" + firstApplyBtn.id }
+    }));
+  }
+});
 </script>
+{% endblock %}
