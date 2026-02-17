@@ -519,7 +519,7 @@ main {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 200px;
   gap: 1rem;
-  align-items: start;
+  align-items: stretch;
 }
 
 .job-post-main {
@@ -528,6 +528,7 @@ main {
 
 .job-post-map {
   justify-self: end;
+  align-self: end;
   width: 100%;
   max-width: 200px;
 }
@@ -565,6 +566,42 @@ main {
   border-radius: 10px;
   border: 1px solid #c6cbd4;
   padding: 0.7rem;
+}
+
+.site-alert {
+  border-radius: 14px;
+  border: 1px solid #cfd3da;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.9rem 1rem;
+  color: #1c1f29;
+  box-shadow: 0 10px 24px rgba(18, 23, 36, 0.08);
+}
+
+.site-alert-success {
+  border-color: #9ed9b4;
+  background: rgba(237, 253, 242, 0.9);
+}
+
+.confetti-piece {
+  position: fixed;
+  top: -16px;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 2500;
+  animation-name: confetti-fall;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+
+@keyframes confetti-fall {
+  0% {
+    opacity: 0.95;
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 105vh, 0) rotate(520deg);
+  }
 }
 
 @keyframes reveal {
