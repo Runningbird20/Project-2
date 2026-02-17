@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import Application
 from jobposts.models import JobPost
-from django.http import JsonResponse, HttpResponseForbidden, HttpResponse
+from django.http import JsonResponse, HttpResponseForbidden, HttpResponse, Http404
 from django.views.decorators.http import require_POST
 import json
 import csv
@@ -22,9 +22,13 @@ def submit_application(request, job_id):
     resume_type = request.POST.get("resume_type")  # expects 'profile' or 'uploaded'
     resume_file = request.FILES.get("resume_file")
 
+<<<<<<< HEAD
     if Application.objects.filter(user=request.user, job=job).exists():
         messages.warning(request, f"You have already applied for {job.title}.")
         return redirect("jobposts.search")
+=======
+        return redirect('apply:application_submitted', job_id=job.id)
+>>>>>>> d10233fb639d0033b8165f6aa1e818283a5cfada
 
     # Safety: normalize resume_type
     if resume_type not in ("profile", "uploaded"):
@@ -44,6 +48,15 @@ def submit_application(request, job_id):
     request.session["panda_apply_success"] = True
 
     return redirect("jobposts.search")
+
+@login_required
+def application_submitted(request, job_id):
+    job = get_object_or_404(JobPost, id=job_id)
+    template_data = {
+        "title": "Application Submitted",
+        "job": job,
+    }
+    return render(request, "apply/application_submitted.html", {"template_data": template_data})
 
 @login_required
 def application_status(request):
@@ -93,10 +106,14 @@ def employer_pipeline(request, job_id):
         'offer': applications.filter(status='offer'),
         'rejected': applications.filter(status='rejected'),
     }
+    active_count = applications.exclude(status='rejected').count()
+    rejected_count = applications.filter(status='rejected').count()
     
     return render(request, 'apply/employer_pipeline.html', {
         'job': job,
-        'pipeline': pipeline
+        'pipeline': pipeline,
+        'active_count': active_count,
+        'rejected_count': rejected_count,
     })
 
 @login_required
@@ -122,7 +139,10 @@ def export_applicants_csv(request, job_id):
         ])
 
     return response
+<<<<<<< HEAD
 
+=======
+>>>>>>> d10233fb639d0033b8165f6aa1e818283a5cfada
 @login_required
 def offer_letter(request, application_id):
     application = get_object_or_404(

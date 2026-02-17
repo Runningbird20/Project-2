@@ -1,16 +1,21 @@
+from django.db import models
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
-from django.db import models
+
 from accounts.models import Profile
+from map.forms import OfficeLocationForm
+from map.models import OfficeLocation
+from map.services import OfficeLocationGeocodingError, geocode_office_address
 from .forms import JobPostForm
 from .models import JobPost
 from django.views.decorators.http import require_POST
 from apply.models import Application
+from django.contrib.admin.views.decorators import staff_member_required
 
-
-from django.db.models import Count, Q
+from django.db.models import Count
 
 @login_required
 def dashboard(request):
@@ -120,15 +125,22 @@ def create(request):
 
     if request.method == 'POST':
         form = JobPostForm(request.POST)
-        if form.is_valid():
+        map_form = OfficeLocationForm(request.POST, prefix='map')
+        if form.is_valid() and map_form.is_valid():
             post = form.save(commit=False)
             post.owner = request.user
             post.save()
-            return redirect('jobposts.search')
+            try:
+                _save_office_location(post, map_form)
+                return redirect('jobposts.search')
+            except OfficeLocationGeocodingError as exc:
+                map_form.add_error(None, str(exc))
     else:
         form = JobPostForm()
+        map_form = OfficeLocationForm(prefix='map')
 
     template_data['form'] = form
+    template_data['map_form'] = map_form
     template_data['submit_label'] = 'Create Job Post'
     return render(request, 'jobposts/create.html', {'template_data': template_data})
 
@@ -141,18 +153,26 @@ def edit(request, post_id):
     post = get_object_or_404(JobPost, pk=post_id, owner=request.user)
 
     template_data = {'title': 'Edit Job Post'}
+    office_location = getattr(post, 'office_location', None)
 
     if request.method == 'POST':
         form = JobPostForm(request.POST, instance=post)
-        if form.is_valid():
+        map_form = OfficeLocationForm(request.POST, instance=office_location, prefix='map')
+        if form.is_valid() and map_form.is_valid():
             updated_post = form.save(commit=False)
             updated_post.owner = request.user
             updated_post.save()
-            return redirect('jobposts.search')
+            try:
+                _save_office_location(updated_post, map_form)
+                return redirect('jobposts.search')
+            except OfficeLocationGeocodingError as exc:
+                map_form.add_error(None, str(exc))
     else:
         form = JobPostForm(instance=post)
+        map_form = OfficeLocationForm(instance=office_location, prefix='map')
 
     template_data['form'] = form
+    template_data['map_form'] = map_form
     template_data['submit_label'] = 'Save Changes'
     return render(request, 'jobposts/create.html', {'template_data': template_data})
 
@@ -164,11 +184,7 @@ def search(request):
             return redirect("accounts.candidate_search")
 
     template_data = {'title': 'Job Search'}
-    if request.user.is_authenticated:
-        prof = Profile.objects.filter(user=request.user).first()
-        if prof and prof.account_type == Profile.AccountType.EMPLOYER:
-            template_data["title"] = "Candidate Search"
-    posts = JobPost.objects.all().order_by('-created_at')
+    posts = JobPost.objects.select_related('office_location').all().order_by('-created_at')
     can_post_job = False
     if request.user.is_authenticated:
         can_post_job = _is_employer(request.user)
@@ -219,7 +235,36 @@ def search(request):
     }
     return render(request, 'jobposts/search.html', {'template_data': template_data})
 
-@login_required
+def _save_office_location(post, map_form):
+    if not getattr(map_form, 'has_location_data', False):
+        OfficeLocation.objects.filter(job_post=post).delete()
+        return
+
+    address_line_1 = map_form.cleaned_data.get('address_line_1', '')
+    address_line_2 = map_form.cleaned_data.get('address_line_2', '')
+    city = map_form.cleaned_data.get('city', '')
+    state = map_form.cleaned_data.get('state', '')
+    postal_code = map_form.cleaned_data.get('postal_code', '')
+    country = map_form.cleaned_data.get('country', '')
+
+    query_parts = [address_line_1, address_line_2, city, state, postal_code, country]
+    address_query = ', '.join([part for part in query_parts if part])
+    latitude, longitude = geocode_office_address(address_query)
+
+    OfficeLocation.objects.update_or_create(
+        job_post=post,
+        defaults={
+            'address_line_1': address_line_1,
+            'address_line_2': address_line_2,
+            'city': city,
+            'state': state,
+            'postal_code': postal_code,
+            'country': country,
+            'latitude': latitude,
+            'longitude': longitude,
+        },
+    )
+
 @require_POST
 def delete_job(request, job_id):
     job = get_object_or_404(JobPost, id=job_id, owner=request.user)
@@ -238,3 +283,33 @@ def job_detail(request, post_id):
         'job': job,
         'has_applied': has_applied
     })
+
+
+
+@staff_member_required
+def edit_post(request, post_id):
+    post = get_object_or_404(JobPost, pk=post_id)
+    template_data = {'title': 'Edit Job Post'}
+
+    if request.method == 'POST':
+        form = JobPostForm(request.POST, instance=post)
+        if form.is_valid():
+            updated_post = form.save(commit=False)
+            updated_post.save()
+            return redirect('jobposts.search')
+    else:
+        form = JobPostForm(instance=post)
+
+    template_data['form'] = form
+    template_data['submit_label'] = 'Save Changes'
+    template_data['post_id'] = post_id
+    return render(request, 'jobposts/edit_post.html', {'template_data': template_data})
+
+@staff_member_required
+def remove_post(request, post_id):
+    if request.method == "POST":
+        post = JobPost.objects.get(id=post_id)
+        post.delete()
+        return redirect('jobposts.search')
+    else:
+        return redirect('jobposts.search')

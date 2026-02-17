@@ -2,21 +2,37 @@
 {% load static %}
 
 {% block content %}
-<div class="page-container">
+<section class="page-shell">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-4">
+        <div class="surface-card h-100">
+          <p class="page-kicker mb-2">Application setup</p>
+          <h2 class="surface-title">Your Resume</h2>
 
-  <!-- LEFT: Resume Panel -->
-  <div class="resume-panel">
-    <h2>Your Resume</h2>
+          <label class="d-block mb-3">
+            <input type="radio" name="resume_choice" value="profile" checked>
+            <strong class="ms-1">Profile Resume</strong>
+            <div class="surface-card mt-2 py-3">
+              <p class="mb-1">{{ user.first_name }} {{ user.last_name }}</p>
+              <p class="mb-0 text-muted">{{ user.email }}</p>
+            </div>
+          </label>
 
-    <label>
-      <input type="radio" name="resume_choice" value="profile" checked>
-      <strong>Profile Resume</strong>
-      <div class="resume-preview">
-        <p>{{ user.first_name }} {{ user.last_name }}</p>
-        <p>{{ user.email }}</p>
+          <label class="d-block">
+            <input type="radio" name="resume_choice" value="uploaded">
+            <strong class="ms-1">Uploaded Resume</strong>
+            <div class="form-actions mt-2">
+              <button type="button" class="secondary-btn" onclick="triggerFileUpload()">Upload</button>
+              <span id="fileName" class="text-muted small">No file selected</span>
+            </div>
+          </label>
+
+          <input type="file" id="resumeFile" hidden onchange="handleFile(this)">
+        </div>
       </div>
-    </label>
 
+<<<<<<< HEAD
     <label>
       <input type="radio" name="resume_choice" value="uploaded">
       <strong>Uploaded Resume</strong>
@@ -45,11 +61,36 @@
         <button id="applyButton-{{ job.id }}" onclick="openApplyModal('{{ job.id }}')">
           Apply
         </button>
-      </div>
-    {% endfor %}
-  </div>
+=======
+      <div class="col-lg-8">
+        <div class="page-intro text-start mb-3">
+          <p class="page-kicker mb-2">Open Positions</p>
+          <h1 class="page-title page-title-sm mb-1">Apply to jobs</h1>
+        </div>
 
-</div>
+        <div class="vstack gap-3">
+          {% for job in jobs %}
+          <div class="surface-card">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+              <div>
+                <h3 class="surface-title mb-1">{{ job.title }}</h3>
+                <p class="text-muted mb-0">{{ job.company }}</p>
+                <p class="text-muted mb-0 small">{{ job.salary_range }}</p>
+              </div>
+              <button class="primary-btn border-0" onclick="openApplyModal('{{ job.id }}')">Apply</button>
+            </div>
+          </div>
+          {% empty %}
+          <div class="surface-card text-center py-5">
+            <p class="text-muted mb-0">No jobs available right now.</p>
+          </div>
+          {% endfor %}
+        </div>
+>>>>>>> d10233fb639d0033b8165f6aa1e818283a5cfada
+      </div>
+    </div>
+  </div>
+</section>
 
 {% include "apply/apply_modal.html" %}
 {% endblock content %}
@@ -67,6 +108,7 @@ function handleFile(input) {
     if (uploaded) uploaded.checked = true;
   }
 }
+<<<<<<< HEAD
 
 document.addEventListener("DOMContentLoaded", function () {
   // Bubble on page load
@@ -84,3 +126,6 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 {% endblock %}
+=======
+</script>
+>>>>>>> d10233fb639d0033b8165f6aa1e818283a5cfada

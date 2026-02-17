@@ -23,8 +23,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('home.urls')),
     path('accounts/', include('accounts.urls')),
-    path('apply/', include('apply.urls')),
+    path('apply/', include(('apply.urls', 'apply'), namespace='apply')),
     path('jobposts/', include('jobposts.urls')),
+    path('map/', include('map.urls')),
 ]
 
 if settings.DEBUG:
