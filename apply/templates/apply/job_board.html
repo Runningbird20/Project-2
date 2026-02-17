@@ -31,6 +31,15 @@
           <input type="file" id="resumeFile" hidden onchange="handleFile(this)">
         </div>
       </div>
+    <label>
+      <input type="radio" name="resume_choice" value="uploaded">
+      <strong>Uploaded Resume</strong>
+      <button type="button" id="uploadResumeBtn" onclick="triggerFileUpload()">Upload</button>
+      <p id="fileName">No file selected</p>
+    </label>
+
+    <input type="file" id="resumeFile" hidden onchange="handleFile(this)">
+  </div>
 
       <div class="col-lg-8">
         <div class="page-intro text-start mb-3">
@@ -47,7 +56,9 @@
                 <p class="text-muted mb-0">{{ job.company }}</p>
                 <p class="text-muted mb-0 small">{{ job.salary_range }}</p>
               </div>
-              <button class="primary-btn border-0" id="applyButton-{{ job.id }}" onclick="openApplyModal('{{ job.id }}')">Apply</button>
+              <button id="applyButton-{{ job.id }}" onclick="openApplyModal('{{ job.id }}')">
+                Apply
+              </button>
             </div>
           </div>
           {% empty %}
