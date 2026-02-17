@@ -7,18 +7,29 @@
     const bubble = mascot.querySelector(".panda-bubble");
     const confettiLayer = document.getElementById("panda-confetti");
   
+    // Config
     const config = {
       bubbleMs: 2800,
-      moveDurationPerPx: 1.15,
+      moveDurationPerPx: 1.15, // ms per pixel (tweak speed)
       minMoveMs: 380,
       maxMoveMs: 1600,
       edgePadding: 18,
+      storageKey: "panda:pos:v1",
     };
   
+    // State
     let bubbleTimer = null;
     let moving = false;
   
-    function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+    // Drag state
+    let dragging = false;
+    let dragPointerId = null;
+    let dragOffset = { x: 0, y: 0 };
+  
+    // Helpers
+    function clamp(n, min, max) {
+      return Math.max(min, Math.min(max, n));
+    }
   
     function setMode(mode) {
       mascot.classList.remove("idle", "moving", "celebrate");
@@ -34,47 +45,87 @@
       bubbleTimer = setTimeout(() => bubble.classList.remove("show"), ms);
     }
   
+    function getRect() {
+      return mascot.getBoundingClientRect();
+    }
+  
+    function setPos(x, y) {
+      const rect = getRect();
+      const clampedX = clamp(x, config.edgePadding, window.innerWidth - rect.width - config.edgePadding);
+      const clampedY = clamp(y, config.edgePadding, window.innerHeight - rect.height - config.edgePadding);
+  
+      mascot.style.left = `${clampedX}px`;
+      mascot.style.top = `${clampedY}px`;
+      mascot.style.right = "auto";
+      mascot.style.bottom = "auto";
+    }
+  
     function currentPos() {
-      const rect = mascot.getBoundingClientRect();
+      const rect = getRect();
       return { x: rect.left, y: rect.top };
     }
   
+    function savePos() {
+      const rect = getRect();
+      const payload = { x: rect.left, y: rect.top };
+      try {
+        localStorage.setItem(config.storageKey, JSON.stringify(payload));
+      } catch (e) {
+        // ignore
+      }
+    }
+  
+    function loadPos() {
+      try {
+        const raw = localStorage.getItem(config.storageKey);
+        if (!raw) return false;
+        const p = JSON.parse(raw);
+        if (typeof p?.x !== "number" || typeof p?.y !== "number") return false;
+        setPos(p.x, p.y);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+  
     function moveTo(x, y, opts = {}) {
-      const dur = clamp(opts.durationMs ?? config.minMoveMs, config.minMoveMs, config.maxMoveMs);
+      if (dragging) return; // don't fight the drag
+      const dur = clamp(opts.durationMs ?? 0, config.minMoveMs, config.maxMoveMs);
       moving = true;
       setMode("moving");
   
       mascot.style.transition = `left ${dur}ms ease-in-out, top ${dur}ms ease-in-out, right 0ms, bottom 0ms`;
-      mascot.style.left = `${x}px`;
-      mascot.style.top = `${y}px`;
-      mascot.style.right = "auto";
-      mascot.style.bottom = "auto";
+      setPos(x, y);
   
       window.setTimeout(() => {
         moving = false;
         setMode("idle");
         mascot.style.transition = "";
+        savePos(); // persist final position after programmatic moves too
       }, dur + 10);
     }
   
     function moveToElement(selector, opts = {}) {
+      if (dragging) return false;
       const el = document.querySelector(selector);
       if (!el) return false;
   
       const elRect = el.getBoundingClientRect();
-      const mRect = mascot.getBoundingClientRect();
+      const mRect = getRect();
   
+      // Place panda near the element (bottom-right-ish)
       const targetX = clamp(
-        elRect.right - (mRect.width / 2),
+        elRect.right - mRect.width / 2,
         config.edgePadding,
         window.innerWidth - mRect.width - config.edgePadding
       );
       const targetY = clamp(
-        elRect.bottom - (mRect.height / 2),
+        elRect.bottom - mRect.height / 2,
         config.edgePadding,
         window.innerHeight - mRect.height - config.edgePadding
       );
   
+      // Duration based on distance
       const cur = currentPos();
       const dx = targetX - cur.x;
       const dy = targetY - cur.y;
@@ -107,15 +158,17 @@
     }
   
     function celebrate(message) {
+      if (dragging) return;
       setMode("celebrate");
       confetti(34);
       if (message) showBubble(message, 3400);
       window.setTimeout(() => setMode("idle"), 1400);
     }
   
+    // Click interaction (only if NOT dragging)
     if (wrap) {
       wrap.addEventListener("click", () => {
-        if (moving) return;
+        if (moving || dragging) return;
         const lines = [
           "Need help? Check Job Search 👀",
           "Tip: keep your profile public for recruiters!",
@@ -126,8 +179,10 @@
       });
     }
   
+    // Always idle + blink
     mascot.classList.add("idle", "blink");
   
+    // --- Page-level behaviors via body attrs ---
     function runPageHooks() {
       const body = document.body;
       if (!body) return;
@@ -146,32 +201,105 @@
       }
     }
   
-    window.addEventListener("panda:bubble", (e) => showBubble(e?.detail?.text || ""));
+    // --- Global event API ---
+    window.addEventListener("panda:bubble", (e) => {
+      showBubble(e?.detail?.text || "");
+    });
+  
     window.addEventListener("panda:moveTo", (e) => {
       const sel = e?.detail?.selector;
       if (sel) moveToElement(sel);
     });
-    window.addEventListener("panda:celebrate", (e) => celebrate(e?.detail?.text || "Let’s gooo!"));
   
+    window.addEventListener("panda:celebrate", (e) => {
+      celebrate(e?.detail?.text || "Let’s gooo!");
+    });
+  
+    // Ensure fixed positioning can be transitioned using left/top
     function anchorLeftTopOnce() {
-      const rect = mascot.getBoundingClientRect();
+      const rect = getRect();
       mascot.style.left = `${rect.left}px`;
       mascot.style.top = `${rect.top}px`;
       mascot.style.right = "auto";
       mascot.style.bottom = "auto";
     }
   
+    // --- DRAGGING ---
+    function onPointerDown(e) {
+      if (!wrap) return;
+      if (moving) return;
+  
+      dragging = true;
+      dragPointerId = e.pointerId;
+  
+      // Capture pointer so we keep receiving move events
+      try {
+        wrap.setPointerCapture(dragPointerId);
+      } catch {}
+  
+      mascot.classList.add("dragging");
+      setMode(null); // stop animations while dragging
+  
+      const rect = getRect();
+      dragOffset.x = e.clientX - rect.left;
+      dragOffset.y = e.clientY - rect.top;
+  
+      // Turn off transitions so it follows the cursor exactly
+      mascot.style.transition = "none";
+  
+      // Hide bubble while dragging
+      if (bubble) bubble.classList.remove("show");
+    }
+  
+    function onPointerMove(e) {
+      if (!dragging) return;
+      if (dragPointerId !== null && e.pointerId !== dragPointerId) return;
+  
+      const x = e.clientX - dragOffset.x;
+      const y = e.clientY - dragOffset.y;
+      setPos(x, y);
+    }
+  
+    function endDrag(e) {
+      if (!dragging) return;
+      if (dragPointerId !== null && e.pointerId !== dragPointerId) return;
+  
+      dragging = false;
+      mascot.classList.remove("dragging");
+      dragPointerId = null;
+  
+      // Restore idle animation
+      setMode("idle");
+      mascot.style.transition = "";
+  
+      savePos();
+    }
+  
+    if (wrap) {
+      wrap.addEventListener("pointerdown", onPointerDown);
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("pointerup", endDrag);
+      window.addEventListener("pointercancel", endDrag);
+    }
+  
+    // Start
     window.setTimeout(() => {
       anchorLeftTopOnce();
+  
+      // Load saved position if present; otherwise keep default corner
+      loadPos();
+  
       runPageHooks();
     }, 80);
   
+    // Keep mascot in bounds on resize
     window.addEventListener("resize", () => {
-      const rect = mascot.getBoundingClientRect();
+      const rect = getRect();
       const x = clamp(rect.left, config.edgePadding, window.innerWidth - rect.width - config.edgePadding);
       const y = clamp(rect.top, config.edgePadding, window.innerHeight - rect.height - config.edgePadding);
       mascot.style.left = `${x}px`;
       mascot.style.top = `${y}px`;
+      savePos();
     });
   })();
   
