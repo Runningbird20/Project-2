@@ -17,3 +17,17 @@ def auto_archive_old_rejections():
         archived_by_applicant=True,
         archived_by_employer=True,
     )
+
+
+def enforce_employer_response_deadline():
+    cutoff = timezone.now() - timedelta(days=30)
+    overdue = Application.objects.filter(
+        status__in=["applied", "review", "interview", "offer"],
+    ).filter(
+        Q(responded_at__lte=cutoff) | Q(responded_at__isnull=True, applied_at__lte=cutoff)
+    )
+    overdue.update(
+        status="rejected",
+        rejected_at=timezone.now(),
+        auto_rejected_for_timeout=True,
+    )

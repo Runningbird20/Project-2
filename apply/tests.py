@@ -148,3 +148,76 @@ class ApplicationArchiveTests(TestCase):
         self.application.refresh_from_db()
         self.assertTrue(self.application.archived_by_applicant)
         self.assertTrue(self.application.archived_by_employer)
+
+
+class EmployerResponseDeadlineTests(TestCase):
+    def setUp(self):
+        self.applicant = User.objects.create_user(username="applicant4", password="pass12345")
+        self.employer = User.objects.create_user(username="employer4", password="pass12345")
+        self.job = JobPost.objects.create(
+            owner=self.employer,
+            title="DevOps Engineer",
+            company="Acme",
+            location="Atlanta",
+            pay_range="$100k-$140k",
+            skills="AWS, Terraform",
+            description="Maintain cloud infra",
+        )
+        self.application = Application.objects.create(
+            user=self.applicant,
+            job=self.job,
+            note="Ready to start",
+            resume_type="profile",
+            status="applied",
+        )
+
+    def test_overdue_unresponded_application_auto_rejects(self):
+        Application.objects.filter(id=self.application.id).update(
+            applied_at=timezone.now() - timedelta(days=31),
+            responded_at=None,
+        )
+
+        self.client.login(username="applicant4", password="pass12345")
+        self.client.get(reverse("apply:application_status"))
+        self.application.refresh_from_db()
+        self.assertEqual(self.application.status, "rejected")
+        self.assertTrue(self.application.auto_rejected_for_timeout)
+        self.assertIsNotNone(self.application.rejected_at)
+
+    def test_responded_application_does_not_auto_reject(self):
+        self.client.login(username="employer4", password="pass12345")
+        response = self.client.post(
+            reverse("apply:update_status", kwargs={"application_id": self.application.id}),
+            data='{"status":"review"}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+
+        Application.objects.filter(id=self.application.id).update(
+            applied_at=timezone.now() - timedelta(days=31),
+        )
+        self.client.get(reverse("apply:employer_pipeline", kwargs={"job_id": self.job.id}))
+        self.application.refresh_from_db()
+        self.assertEqual(self.application.status, "review")
+        self.assertFalse(self.application.auto_rejected_for_timeout)
+
+    def test_each_status_update_resets_30_day_deadline(self):
+        old_time = timezone.now() - timedelta(days=31)
+        Application.objects.filter(id=self.application.id).update(
+            status="review",
+            responded_at=old_time,
+            applied_at=old_time,
+        )
+
+        self.client.login(username="employer4", password="pass12345")
+        response = self.client.post(
+            reverse("apply:update_status", kwargs={"application_id": self.application.id}),
+            data='{"status":"interview"}',
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+
+        self.client.get(reverse("apply:employer_pipeline", kwargs={"job_id": self.job.id}))
+        self.application.refresh_from_db()
+        self.assertEqual(self.application.status, "interview")
+        self.assertFalse(self.application.auto_rejected_for_timeout)

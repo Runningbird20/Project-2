@@ -39,10 +39,20 @@
               <a href="mailto:{{ app.user.email }}" class="text-muted"><i class="bi bi-envelope"></i></a>
             </div>
             <div class="small text-muted mb-3">Drag to move applicant</div>
+            {% if app.status != 'rejected' and app.status != 'closed' %}
+            <div class="small mb-2 {% if app.response_due_within_7_days %}text-danger{% else %}text-muted{% endif %}">
+              Response required by {{ app.response_due_on|date:"M j, Y" }}.
+            </div>
+            {% endif %}
             {% if app.status == 'rejected' %}
             <div class="small text-muted mb-2">
               Auto-archives on {{ app.auto_archive_on|date:"M j, Y" }}.
             </div>
+            {% if app.auto_rejected_for_timeout %}
+            <div class="small text-danger mb-2">
+              Auto-rejected after no employer response for 30 days.
+            </div>
+            {% endif %}
             <form method="post" action="{% url 'apply:archive_rejected_applicant' app.id %}" class="mb-2">
               {% csrf_token %}
               <button type="submit" class="secondary-btn btn-compact border-0 w-100">Archive Rejected Applicant</button>
