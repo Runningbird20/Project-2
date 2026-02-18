@@ -93,6 +93,7 @@
             <div class="text-uppercase text-muted small">Results</div>
             <h3 class="surface-title mb-0">{{ template_data.posts|length }} openings</h3>
           </div>
+          <a class="secondary-btn btn-compact" href="{% url 'map.jobs_map' %}">View Map</a>
         </div>
         {% if template_data.radius_warning %}
           <div class="alert alert-warning">{{ template_data.radius_warning }}</div>
