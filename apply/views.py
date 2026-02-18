@@ -1,8 +1,12 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.conf import settings
+from django.core.mail import send_mail
 from .models import Application
 from jobposts.models import JobPost
+from jobposts.models import ApplicantJobMatch
+from jobposts.matching import sync_applicant_job_matches
 from django.http import JsonResponse, HttpResponseForbidden, HttpResponse, Http404
 from django.views.decorators.http import require_POST
 import json
@@ -14,6 +18,7 @@ from .services import (
     enforce_employer_response_deadline,
     calculate_application_streak,
 )
+from interviews.services import get_applicant_interview_context
 
 @login_required
 def submit_application(request, job_id):
@@ -34,13 +39,50 @@ def submit_application(request, job_id):
     if resume_type not in ("profile", "uploaded"):
         resume_type = "profile"
 
-    Application.objects.create(
+    application = Application.objects.create(
         user=request.user,
         job=job,
         note=note,
         resume_type=resume_type,
         resume_file=resume_file if resume_type == "uploaded" else None,
     )
+
+    if request.user.email:
+        try:
+            send_mail(
+                subject=f"Application submitted: {job.title}",
+                message=(
+                    f"Hi {request.user.username},\n\n"
+                    f"Your application for '{job.title}' at {job.company} was submitted successfully.\n\n"
+                    "You can track status updates in PandaPulse."
+                ),
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
+                recipient_list=[request.user.email],
+                fail_silently=False,
+            )
+        except Exception as exc:
+            if settings.DEBUG:
+                messages.warning(request, f"Application confirmation email could not be sent: {exc}")
+            else:
+                messages.warning(request, "Application confirmation email could not be sent.")
+
+    if job.owner and job.owner.email:
+        try:
+            send_mail(
+                subject=f"New application received: {job.title}",
+                message=(
+                    f"{application.user.username} submitted an application for '{job.title}'.\n\n"
+                    "Log in to PandaPulse to review the candidate."
+                ),
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
+                recipient_list=[job.owner.email],
+                fail_silently=False,
+            )
+        except Exception as exc:
+            if settings.DEBUG:
+                messages.warning(request, f"Employer notification email could not be sent: {exc}")
+            else:
+                messages.warning(request, "Employer notification email could not be sent.")
 
     messages.success(request, f"Application for {job.title} submitted successfully!")
 
@@ -63,6 +105,7 @@ def application_status(request):
     """View for applicants to see the status of their own applications (Read-Only)."""
     enforce_employer_response_deadline()
     auto_archive_old_rejections()
+    sync_applicant_job_matches(request.user)
     active_applications = Application.objects.filter(
         user=request.user,
         archived_by_applicant=False,
@@ -71,13 +114,65 @@ def application_status(request):
         user=request.user,
         archived_by_applicant=True,
     ).select_related("job")
+    all_applications = Application.objects.filter(user=request.user).select_related("job")
+
+    activity_events = []
+    for application in all_applications:
+        role_label = f"{application.job.title} at {application.job.company}"
+
+        if application.employer_viewed_at:
+            activity_events.append(
+                {
+                    "timestamp": application.employer_viewed_at,
+                    "event_type": "Viewed",
+                    "detail": f"Your application for {role_label} was viewed by the employer.",
+                }
+            )
+
+        if application.status in {"review", "interview", "offer", "closed"} and application.responded_at:
+            activity_events.append(
+                {
+                    "timestamp": application.responded_at,
+                    "event_type": "Shortlisted",
+                    "detail": f"You were shortlisted for {role_label}.",
+                }
+            )
+
+        if application.status != "applied":
+            status_time = application.rejected_at if application.status == "rejected" else application.responded_at
+            if status_time:
+                activity_events.append(
+                    {
+                        "timestamp": status_time,
+                        "event_type": "Status Update",
+                        "detail": (
+                            f"{role_label} changed to {application.get_status_display()}."
+                        ),
+                    }
+                )
+
+    activity_events.sort(key=lambda item: item["timestamp"], reverse=True)
+    activity_events = activity_events[:30]
+
+    matched_jobs = (
+        ApplicantJobMatch.objects.filter(applicant=request.user)
+        .select_related("job")
+        .order_by("-score", "-updated_at")
+    )
+    interview_context = get_applicant_interview_context(
+        request.user,
+        month_key=request.GET.get("interview_month"),
+    )
     return render(
         request,
         "apply/status.html",
         {
             "applications": active_applications,
             "archived_applications": archived_applications,
+            "matched_jobs": matched_jobs,
+            "activity_events": activity_events,
             "application_streak": calculate_application_streak(request.user),
+            **interview_context,
         },
     )
 
@@ -107,6 +202,26 @@ def update_status(request, application_id):
                 application.archived_by_employer = False
                 application.auto_rejected_for_timeout = False
             application.save()
+
+            if application.user.email:
+                try:
+                    send_mail(
+                        subject=f"Application status update: {application.job.title}",
+                        message=(
+                            f"Hi {application.user.username},\n\n"
+                            f"Your application for '{application.job.title}' at {application.job.company} "
+                            f"is now: {application.get_status_display()}.\n\n"
+                            "Log in to PandaPulse to view details."
+                        ),
+                        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
+                        recipient_list=[application.user.email],
+                        fail_silently=False,
+                    )
+                except Exception as exc:
+                    if settings.DEBUG:
+                        messages.warning(request, f"Application status update email could not be sent: {exc}")
+                    else:
+                        messages.warning(request, "Application status update email could not be sent.")
             
             messages.success(request, f"Status updated for {application.user.username}.")
             

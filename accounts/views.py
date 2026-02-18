@@ -18,9 +18,11 @@ from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from map.services import OfficeLocationGeocodingError, geocode_office_address
+from project2.skills import COMMON_SKILLS
 
 from .forms import CustomErrorList, ProfileEditForm, SignupWithProfileForm
 from .models import Profile, SavedCandidateSearch
+from jobposts.models import JobPost
 
 
 class Echo:
@@ -178,11 +180,13 @@ def signup(request):
     template_data = {"title": "Sign Up"}
     if request.method == "GET":
         template_data["form"] = SignupWithProfileForm()
+        template_data["skill_options"] = COMMON_SKILLS
         return render(request, "accounts/signup.html", {"template_data": template_data})
 
     form = SignupWithProfileForm(request.POST, request.FILES, error_class=CustomErrorList)
     if not form.is_valid():
         template_data["form"] = form
+        template_data["skill_options"] = COMMON_SKILLS
         return render(request, "accounts/signup.html", {"template_data": template_data})
 
     try:
@@ -221,7 +225,27 @@ def signup(request):
     except IntegrityError:
         form.add_error("username", "This username is already taken.")
         template_data["form"] = form
+        template_data["skill_options"] = COMMON_SKILLS
         return render(request, "accounts/signup.html", {"template_data": template_data})
+
+    if user.email:
+        try:
+            send_mail(
+                subject="Welcome to PandaPulse",
+                message=(
+                    f"Hi {user.username},\n\n"
+                    "Your PandaPulse account has been created successfully.\n\n"
+                    "You can now log in and start using the platform."
+                ),
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+        except Exception as exc:
+            if settings.DEBUG:
+                messages.warning(request, f"Account confirmation email could not be sent: {exc}")
+            else:
+                messages.warning(request, "Account confirmation email could not be sent.")
 
     messages.success(request, "Account created! Please log in.")
     return redirect("accounts.login")
@@ -278,7 +302,11 @@ def edit_profile(request, username=None):
     else:
         form = ProfileEditForm(instance=profile, user=request.user)
 
-    return render(request, "accounts/edit_profile.html", {"template_data": {"title": "Edit Profile", "form": form}})
+    return render(
+        request,
+        "accounts/edit_profile.html",
+        {"template_data": {"title": "Edit Profile", "form": form, "skill_options": COMMON_SKILLS}},
+    )
 
 
 @superuser_required
@@ -386,10 +414,37 @@ def candidate_search(request):
     if projects:
         qs = qs.filter(Q(projects__icontains=projects) | Q(headline__icontains=projects))
 
+    candidates = list(qs)
+
+    def _skill_set(raw_value):
+        if not raw_value:
+            return set()
+        return {token.strip().lower() for token in raw_value.split(",") if token.strip()}
+
+    employer_jobs = list(
+        JobPost.objects.filter(owner=request.user)
+        .only("title", "skills", "created_at")
+        .order_by("-created_at")
+    )
+    job_skill_sets = [(job, _skill_set(job.skills)) for job in employer_jobs]
+
+    for candidate in candidates:
+        best_job = None
+        best_score = 0
+        candidate_skills = _skill_set(candidate.skills)
+        for job, job_skills in job_skill_sets:
+            score = len(candidate_skills.intersection(job_skills))
+            if score > best_score:
+                best_job = job
+                best_score = score
+        candidate.has_skill_match = best_job is not None
+        candidate.matched_job_title = best_job.title if best_job else ""
+    candidates.sort(key=lambda c: (not c.has_skill_match, c.user.username.lower()))
+
     return render(
         request,
         "accounts/candidate_search.html",
-        {"template_data": {"title": "Candidate Search", "candidates": qs, "filters": {"skills": skills, "location": location, "projects": projects}}},
+        {"template_data": {"title": "Candidate Search", "candidates": candidates, "filters": {"skills": skills, "location": location, "projects": projects}}},
     )
 
 

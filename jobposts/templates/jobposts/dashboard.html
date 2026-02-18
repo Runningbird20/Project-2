@@ -44,7 +44,7 @@
     <div class="surface-card mt-4">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h3 class="surface-title mb-0">My Applications</h3>
-        <a href="{% url 'apply:application_status' %}" class="secondary-btn btn-compact">Open My Applications</a>
+        <a href="{% url 'apply:application_status' %}" class="secondary-btn btn-compact">Open Applicant Dashboard</a>
       </div>
       <div class="vstack gap-2">
         {% for app in recent_applications %}
@@ -73,7 +73,7 @@
     <div class="surface-card mt-4">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h3 class="surface-title mb-0">Archived Rejected Applications</h3>
-        <a href="{% url 'apply:application_status' %}" class="secondary-btn btn-compact">Open My Applications</a>
+        <a href="{% url 'apply:application_status' %}" class="secondary-btn btn-compact">Open Applicant Dashboard</a>
       </div>
       <div class="vstack gap-2">
         {% for app in archived_rejected_applications %}
@@ -96,89 +96,296 @@
       <div>
         <p class="page-kicker mb-2">Employer tools</p>
         <h1 class="page-title page-title-sm mb-1">Employer Dashboard</h1>
-        <p class="page-copy mb-0">Manage your listings, alerts, and applicants.</p>
+        <p class="page-copy mb-0">Manage listings, candidate matches, and hiring workflows.</p>
       </div>
       <div class="form-actions">
+        <a href="{% url 'messaging:inbox' %}" class="secondary-btn">Messages</a>
         <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn">Find Candidates</a>
         <a href="{% url 'jobposts.create' %}" class="primary-btn border-0">Post New Job</a>
       </div>
     </div>
 
-    <div class="row g-4 mb-4">
-      <div class="col-md-4"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Active Postings</div><h3 class="surface-title mb-0">{{ jobs.count }}</h3></div></div>
-      <div class="col-md-4"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Total Applicants</div><h3 class="surface-title mb-0">{{ overall_total|default:'0' }}</h3></div></div>
-      <div class="col-md-4"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Active Alerts</div><h3 class="surface-title mb-0">{{ saved_searches.count|default:'0' }}</h3></div></div>
-    </div>
-
-    {% if saved_searches %}
-    <div class="surface-card p-0 overflow-hidden mb-4">
-      <div class="px-4 py-3 border-bottom"><h3 class="surface-title mb-0">Saved Candidate Alerts</h3></div>
-      <div class="list-group list-group-flush">
-        {% for search in saved_searches %}
-        <div class="list-group-item py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <div>
-            <div class="fw-bold">{{ search.search_name }}</div>
-            <div class="small text-muted">Skills: {{ search.filters.skills|default:'Any' }}</div>
-          </div>
-          <div class="form-actions">
-            <a href="{% url 'accounts.candidate_search' %}?skills={{ search.filters.skills|urlencode }}&location={{ search.filters.location|urlencode }}&projects={{ search.filters.projects|urlencode }}" class="secondary-btn">View matches</a>
-            <form action="{% url 'accounts.delete_search' search.id %}" method="POST">{% csrf_token %}<button type="submit" class="danger-btn border-0">Delete</button></form>
+    <div class="row g-4 align-items-start">
+      <div class="col-lg-3">
+        <div class="surface-card applicant-nav-card p-3">
+          <div class="nav flex-column nav-pills gap-2" id="employer-dashboard-nav" role="tablist" aria-orientation="vertical">
+            <button class="secondary-btn border-0 text-start active" id="emp-listings-btn" data-bs-toggle="pill" data-bs-target="#emp-listings" type="button" role="tab" aria-controls="emp-listings" aria-selected="true">
+              My Job Listings
+            </button>
+            <button class="secondary-btn border-0 text-start" id="emp-matches-btn" data-bs-toggle="pill" data-bs-target="#emp-matches" type="button" role="tab" aria-controls="emp-matches" aria-selected="false">
+              Matched Candidates
+            </button>
+            <button class="secondary-btn border-0 text-start" id="emp-interviews-btn" data-bs-toggle="pill" data-bs-target="#emp-interviews" type="button" role="tab" aria-controls="emp-interviews" aria-selected="false">
+              My Interviews
+            </button>
+            <button class="secondary-btn border-0 text-start" id="emp-profile-btn" data-bs-toggle="pill" data-bs-target="#emp-profile" type="button" role="tab" aria-controls="emp-profile" aria-selected="false">
+              Profile
+            </button>
+            <button class="secondary-btn border-0 text-start" id="emp-archived-btn" data-bs-toggle="pill" data-bs-target="#emp-archived" type="button" role="tab" aria-controls="emp-archived" aria-selected="false">
+              Archived Applicants
+            </button>
+            <button class="secondary-btn border-0 text-start" id="emp-tools-btn" data-bs-toggle="pill" data-bs-target="#emp-tools" type="button" role="tab" aria-controls="emp-tools" aria-selected="false">
+              More Tools
+            </button>
           </div>
         </div>
-        {% endfor %}
       </div>
-    </div>
-    {% endif %}
 
-    <div class="surface-card p-0 overflow-hidden">
-      <div class="px-4 py-3 border-bottom"><h3 class="surface-title mb-0">Your Job Listings</h3></div>
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0 job-table">
-          <thead class="table-light"><tr><th class="ps-4 py-3">Job Details</th><th class="py-3">Posted On</th><th class="py-3 text-center">Total Apps</th><th class="py-3 text-center">New</th><th class="py-3 text-end pe-4">Manage</th></tr></thead>
-          <tbody>
-            {% for job in jobs %}
-            <tr>
-              <td class="ps-4 py-3">
-                <div class="fw-bold">{{ job.title }}</div>
-                <div class="small text-muted">{{ job.company }}</div>
-                <div class="mt-1 d-flex flex-wrap gap-1">
-                  <span class="badge bg-dark-subtle text-dark text-uppercase">{{ job.get_work_setting_display }}</span>
-                  <span class="badge bg-info-subtle text-info-emphasis text-uppercase">{{ job.get_company_size_display }}</span>
-                  {% if job.visa_sponsorship %}
-                    <span class="badge bg-success-subtle text-success text-uppercase">Visa</span>
+      <div class="col-lg-9">
+        <div class="tab-content vstack gap-4" id="employer-dashboard-content">
+          <div class="tab-pane fade show active" id="emp-listings" role="tabpanel" aria-labelledby="emp-listings-btn" tabindex="0">
+            <div class="row g-4 mb-4">
+              <div class="col-md-4"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Active Postings</div><h3 class="surface-title mb-0">{{ jobs.count }}</h3></div></div>
+              <div class="col-md-4"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Total Applicants</div><h3 class="surface-title mb-0">{{ overall_total|default:'0' }}</h3></div></div>
+              <div class="col-md-4"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Active Alerts</div><h3 class="surface-title mb-0">{{ saved_searches.count|default:'0' }}</h3></div></div>
+            </div>
+            <div class="surface-card p-0 overflow-hidden">
+              <div class="px-4 py-3 border-bottom"><h3 class="surface-title mb-0">My Job Listing</h3></div>
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 job-table">
+                  <thead class="table-light"><tr><th class="ps-4 py-3">Job Details</th><th class="py-3">Posted On</th><th class="py-3 text-center">Total Apps</th><th class="py-3 text-center">New</th><th class="py-3 text-end pe-4">Manage</th></tr></thead>
+                  <tbody>
+                    {% for job in jobs %}
+                    <tr>
+                      <td class="ps-4 py-3">
+                        <div class="fw-bold">{{ job.title }}</div>
+                        <div class="small text-muted">{{ job.company }}</div>
+                        <div class="mt-1 d-flex flex-wrap gap-1">
+                          <span class="badge bg-dark-subtle text-dark text-uppercase">{{ job.get_work_setting_display }}</span>
+                          <span class="badge bg-info-subtle text-info-emphasis text-uppercase">{{ job.get_company_size_display }}</span>
+                          {% if job.visa_sponsorship %}
+                            <span class="badge bg-success-subtle text-success text-uppercase">Visa</span>
+                          {% endif %}
+                        </div>
+                      </td>
+                      <td class="small text-muted">{{ job.created_at|date:'M d, Y' }}</td>
+                      <td class="text-center">{{ job.total_apps }}</td>
+                      <td class="text-center">{% if job.new_apps > 0 %}<span class="badge bg-success-subtle text-success">{{ job.new_apps }} New</span>{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                      <td class="text-end pe-4"><div class="form-actions justify-content-end"><a href="{% url 'apply:employer_pipeline' job.id %}" class="secondary-btn">Pipeline</a><a href="{% url 'jobposts.edit' job.id %}" class="secondary-btn">Edit</a><form action="{% url 'jobposts.delete' job.id %}" method="POST" onsubmit="return confirm('Delete this listing?');">{% csrf_token %}<button type="submit" class="danger-btn border-0">Delete</button></form></div></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="text-center py-5 text-muted">No active job posts yet.</td></tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-pane fade" id="emp-interviews" role="tabpanel" aria-labelledby="emp-interviews-btn" tabindex="0">
+            {% include "interviews/partials/interview_calendar.html" with interview_tab_target="emp-interviews" %}
+            <div class="surface-card mb-3">
+              <h3 class="surface-title mb-3">Propose Interview Slot</h3>
+              <form method="post" action="{% url 'interviews:propose' %}" class="row g-3">
+                {% csrf_token %}
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Applicant + Role</label>
+                  {{ interview_proposal_form.application }}
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-semibold">Start</label>
+                  {{ interview_proposal_form.start_at }}
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-semibold">Duration (mins)</label>
+                  {{ interview_proposal_form.duration_minutes }}
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Meeting Link</label>
+                  {{ interview_proposal_form.meeting_link }}
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Notes</label>
+                  {{ interview_proposal_form.notes }}
+                </div>
+                <div class="col-12">
+                  <button type="submit" class="primary-btn btn-compact border-0">Propose Slot</button>
+                </div>
+              </form>
+            </div>
+            <div class="surface-card mb-3">
+              <h3 class="surface-title mb-3">Open Slots</h3>
+              <div class="vstack gap-2">
+                {% for slot in open_interview_slots %}
+                <div class="border rounded-4 p-3">
+                  <div class="fw-semibold">{{ slot.applicant.username }} - {{ slot.application.job.title }}</div>
+                  <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
+                </div>
+                {% empty %}
+                <p class="text-muted mb-0">No open interview slots.</p>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="surface-card p-0 overflow-hidden">
+              <div class="px-4 py-3 border-bottom"><h3 class="surface-title mb-0">Scheduled Interviews</h3></div>
+              <div class="px-4 py-3 vstack gap-2">
+                {% for slot in scheduled_interviews %}
+                <div class="border rounded-4 p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                  <div>
+                    <div class="fw-semibold">{{ slot.applicant.username }} - {{ slot.application.job.title }}</div>
+                    <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
+                  </div>
+                  <div class="form-actions">
+                    <a class="secondary-btn btn-compact" href="{{ slot.google_calendar_url }}">Google Calendar</a>
+                    <a class="secondary-btn btn-compact" href="{% url 'interviews:download_ics' slot.id %}">Download ICS</a>
+                  </div>
+                </div>
+                {% empty %}
+                <p class="text-muted mb-0">No scheduled interviews yet.</p>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-pane fade" id="emp-matches" role="tabpanel" aria-labelledby="emp-matches-btn" tabindex="0">
+            <div class="surface-card">
+              <h3 class="surface-title mb-2">Matched Candidates</h3>
+              <div class="vstack gap-3">
+                {% for match in matched_candidates %}
+                  <div class="border rounded-4 p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                      <div class="fw-semibold">{{ match.candidate.user.get_full_name|default:match.candidate.user.username }}</div>
+                      {% if match.candidate.headline %}
+                        <div class="small text-muted">{{ match.candidate.headline }}</div>
+                      {% endif %}
+                      <div class="small text-success fw-semibold mt-1">
+                        <span class="me-1" aria-hidden="true">&#9679;</span>
+                        Matched {{ match.job.title }}
+                      </div>
+                    </div>
+                    <div class="form-actions">
+                      <a href="{% url 'accounts.public_profile' match.candidate.user.username %}" class="secondary-btn btn-compact">View Profile</a>
+                      <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn btn-compact">Open Search</a>
+                    </div>
+                  </div>
+                {% empty %}
+                  <p class="text-muted mb-0">No matched candidates yet.</p>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-pane fade" id="emp-profile" role="tabpanel" aria-labelledby="emp-profile-btn" tabindex="0">
+            <div class="surface-card">
+              <h3 class="surface-title mb-2">Profile</h3>
+              <div class="d-flex align-items-start gap-3 flex-wrap mb-3">
+                <div class="flex-shrink-0">
+                  <img src="{{ user.profile.profile_picture_or_default_url }}" alt="Profile picture" class="rounded-circle border" style="width:72px;height:72px;object-fit:cover;">
+                </div>
+                <div>
+                  <h4 class="surface-title mb-1">{{ user.get_full_name|default:user.username }}</h4>
+                  <p class="small text-muted mb-1">{{ user.email }}</p>
+                  {% if user.profile.company_name %}
+                    <p class="mb-0">{{ user.profile.company_name }}</p>
                   {% endif %}
                 </div>
-              </td>
-              <td class="small text-muted">{{ job.created_at|date:'M d, Y' }}</td>
-              <td class="text-center">{{ job.total_apps }}</td>
-              <td class="text-center">{% if job.new_apps > 0 %}<span class="badge bg-success-subtle text-success">{{ job.new_apps }} New</span>{% else %}<span class="text-muted">-</span>{% endif %}</td>
-              <td class="text-end pe-4"><div class="form-actions justify-content-end"><a href="{% url 'apply:employer_pipeline' job.id %}" class="secondary-btn">Pipeline</a><a href="{% url 'jobposts.edit' job.id %}" class="secondary-btn">Edit</a><form action="{% url 'jobposts.delete' job.id %}" method="POST" onsubmit="return confirm('Delete this listing?');">{% csrf_token %}<button type="submit" class="danger-btn border-0">Delete</button></form></div></td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="5" class="text-center py-5 text-muted">No active job posts yet.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
+              </div>
 
-    <div class="surface-card mt-4">
-      <h3 class="surface-title mb-3">Archived Rejected Applicants</h3>
-      <div class="vstack gap-2">
-        {% for app in archived_rejected_applicants %}
-        <div class="d-flex justify-content-between align-items-center border rounded p-2">
-          <div>
-            <div class="fw-semibold">{{ app.user.get_full_name|default:app.user.username }}</div>
-            <div class="small text-muted">{{ app.job.title }}</div>
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <h5 class="surface-title mb-1">Company Name</h5>
+                  <p class="text-muted mb-0">{{ user.profile.company_name|default:"No company name added yet." }}</p>
+                </div>
+                <div class="col-md-6">
+                  <h5 class="surface-title mb-1">Company Website</h5>
+                  {% if user.profile.company_website %}
+                    <p class="mb-0"><a href="{{ user.profile.company_website }}" target="_blank" rel="noopener noreferrer">{{ user.profile.company_website }}</a></p>
+                  {% else %}
+                    <p class="text-muted mb-0">No company website added yet.</p>
+                  {% endif %}
+                </div>
+                <div class="col-12">
+                  <h5 class="surface-title mb-1">Company Description</h5>
+                  <p class="text-muted mb-0">{{ user.profile.company_description|default:"No company description added yet." }}</p>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <a href="{% url 'accounts.profile' %}" class="secondary-btn btn-compact">View Full Profile</a>
+                <a href="{% url 'accounts.profile_edit' %}" class="primary-btn btn-compact border-0">Edit Profile</a>
+              </div>
+            </div>
           </div>
-          <a href="{% url 'accounts.profile_with_id' app.user.id %}" class="secondary-btn btn-compact">View Profile</a>
+
+          <div class="tab-pane fade" id="emp-archived" role="tabpanel" aria-labelledby="emp-archived-btn" tabindex="0">
+            <div class="surface-card">
+              <h3 class="surface-title mb-3">Archived Rejected Applicants</h3>
+              <div class="vstack gap-2">
+                {% for app in archived_rejected_applicants %}
+                <div class="d-flex justify-content-between align-items-center border rounded p-2">
+                  <div>
+                    <div class="fw-semibold">{{ app.user.get_full_name|default:app.user.username }}</div>
+                    <div class="small text-muted">{{ app.job.title }}</div>
+                  </div>
+                  <a href="{% url 'accounts.profile_with_id' app.user.id %}" class="secondary-btn btn-compact">View Profile</a>
+                </div>
+                {% empty %}
+                <p class="text-muted mb-0">No archived rejected applicants yet.</p>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-pane fade" id="emp-tools" role="tabpanel" aria-labelledby="emp-tools-btn" tabindex="0">
+            <div class="surface-card">
+              <h3 class="surface-title mb-2">More Tools</h3>
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <p class="text-muted mb-0">This section will include additional employer tools such as interview templates, outreach messages, and hiring analytics.</p>
+                <div class="form-check form-switch mb-0">
+                  <input class="form-check-input" type="checkbox" id="employerDarkModeToggle" data-darkmode-toggle>
+                  <label class="form-check-label" for="employerDarkModeToggle">Dark mode</label>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        {% empty %}
-        <p class="text-muted mb-0">No archived rejected applicants yet.</p>
-        {% endfor %}
       </div>
     </div>
     {% endif %}
   </div>
 </section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  (function () {
+    var SCROLL_KEY = "interview_calendar_scroll_y";
+
+    function activateTabFromQuery() {
+      var params = new URLSearchParams(window.location.search);
+      var tabId = params.get("tab");
+      if (!tabId) return;
+      var trigger = document.querySelector('[data-bs-target="#' + tabId + '"]');
+      if (!trigger || typeof bootstrap === "undefined" || !bootstrap.Tab) return;
+      bootstrap.Tab.getOrCreateInstance(trigger).show();
+    }
+
+    function bindInterviewMonthLinks() {
+      document.querySelectorAll(".interview-month-link").forEach(function (link) {
+        link.addEventListener("click", function () {
+          try {
+            sessionStorage.setItem(SCROLL_KEY, String(window.scrollY || window.pageYOffset || 0));
+          } catch (e) {}
+        });
+      });
+    }
+
+    function restoreScrollAfterMonthChange() {
+      try {
+        var raw = sessionStorage.getItem(SCROLL_KEY);
+        if (!raw) return;
+        sessionStorage.removeItem(SCROLL_KEY);
+        var y = parseInt(raw, 10);
+        if (Number.isNaN(y)) return;
+        window.scrollTo(0, y);
+      } catch (e) {}
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      activateTabFromQuery();
+      bindInterviewMonthLinks();
+      restoreScrollAfterMonthChange();
+    });
+  })();
+</script>
 {% endblock %}

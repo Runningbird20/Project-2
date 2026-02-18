@@ -45,7 +45,26 @@
                 <div class="field-block">{{ template_data.form.headline.label_tag }} {{ template_data.form.headline }}</div>
 
                 {{ template_data.form.skills.errors }}
-                <div class="field-block">{{ template_data.form.skills.label_tag }} {{ template_data.form.skills }}</div>
+                <div class="field-block">
+                  <label for="id_skills">{{ template_data.form.skills.label }}</label>
+                  <input type="hidden" id="id_skills" name="skills" value="{{ template_data.form.skills.value|default_if_none:'' }}">
+                  <div class="skill-picker" data-hidden-input-id="id_skills">
+                    <div class="skill-chip-list"></div>
+                    <div class="d-flex gap-2 flex-wrap mt-2">
+                      <select class="form-select skill-select" style="max-width: 260px;">
+                        <option value="">Select a skill</option>
+                        {% for skill in template_data.skill_options %}
+                        <option value="{{ skill }}">{{ skill }}</option>
+                        {% endfor %}
+                      </select>
+                      <button type="button" class="secondary-btn btn-compact border-0 skill-add-select">Add</button>
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap mt-2">
+                      <input type="text" class="form-control skill-custom-input" placeholder="Add custom skill" style="max-width: 260px;">
+                      <button type="button" class="secondary-btn btn-compact border-0 skill-add-custom">Add</button>
+                    </div>
+                  </div>
+                </div>
 
                 {{ template_data.form.location.errors }}
                 <div class="field-block">
@@ -96,6 +115,77 @@
                     select.addEventListener("change", refresh);
                     refresh();
                   }
+                })();
+
+                (function () {
+                  document.querySelectorAll('.skill-picker').forEach(function (picker) {
+                    const hiddenId = picker.dataset.hiddenInputId;
+                    const hiddenInput = document.getElementById(hiddenId);
+                    if (!hiddenInput) return;
+
+                    const chipList = picker.querySelector('.skill-chip-list');
+                    const select = picker.querySelector('.skill-select');
+                    const addSelectBtn = picker.querySelector('.skill-add-select');
+                    const customInput = picker.querySelector('.skill-custom-input');
+                    const addCustomBtn = picker.querySelector('.skill-add-custom');
+
+                    let skills = hiddenInput.value
+                      .split(',')
+                      .map(function (s) { return s.trim(); })
+                      .filter(Boolean);
+
+                    function normalizeUnique(nextSkills) {
+                      const seen = new Set();
+                      return nextSkills.filter(function (s) {
+                        const key = s.toLowerCase();
+                        if (seen.has(key)) return false;
+                        seen.add(key);
+                        return true;
+                      });
+                    }
+
+                    function sync() {
+                      skills = normalizeUnique(skills);
+                      hiddenInput.value = skills.join(', ');
+                      chipList.innerHTML = '';
+                      skills.forEach(function (skill, index) {
+                        const chip = document.createElement('span');
+                        chip.className = 'skill-chip';
+                        chip.innerHTML = skill + '<button type="button" class="skill-chip-remove" aria-label="Remove skill">&times;</button>';
+                        chip.querySelector('.skill-chip-remove').addEventListener('click', function () {
+                          skills.splice(index, 1);
+                          sync();
+                        });
+                        chipList.appendChild(chip);
+                      });
+                    }
+
+                    addSelectBtn.addEventListener('click', function () {
+                      const value = (select.value || '').trim();
+                      if (!value) return;
+                      skills.push(value);
+                      select.value = '';
+                      sync();
+                    });
+
+                    function addCustom() {
+                      const value = (customInput.value || '').trim();
+                      if (!value) return;
+                      skills.push(value);
+                      customInput.value = '';
+                      sync();
+                    }
+
+                    addCustomBtn.addEventListener('click', addCustom);
+                    customInput.addEventListener('keydown', function (event) {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        addCustom();
+                      }
+                    });
+
+                    sync();
+                  });
                 })();
               </script>
 

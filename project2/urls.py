@@ -25,8 +25,9 @@ urlpatterns = [
     path('accounts/', include('accounts.urls')),
     path('apply/', include(('apply.urls', 'apply'), namespace='apply')),
     path('jobposts/', include('jobposts.urls')),
+    path('messages/', include('messaging.urls')),
     path('map/', include('map.urls')),
-    path("pulses/", include("pulses.urls")),
+    path("interviews/", include(("interviews.urls", "interviews"), namespace="interviews")),
 ]
 
 if settings.DEBUG:

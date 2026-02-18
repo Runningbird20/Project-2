@@ -1,0 +1,102 @@
+<style>
+  .interview-calendar-shell {
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 1rem;
+    background: linear-gradient(180deg, rgba(148, 163, 184, 0.08), rgba(148, 163, 184, 0.03));
+    padding: 1rem;
+  }
+  .interview-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+  .interview-weekday {
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+    font-weight: 700;
+    color: #64748b;
+    text-align: center;
+    padding: 0.25rem 0;
+  }
+  .interview-day {
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 0.85rem;
+    min-height: 86px;
+    padding: 0.45rem;
+    background: rgba(148, 163, 184, 0.06);
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .interview-day:hover {
+    border-color: rgba(59, 130, 246, 0.55);
+    transform: translateY(-1px);
+  }
+  .interview-day.is-outside {
+    opacity: 0.45;
+  }
+  .interview-day-num {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+    margin-bottom: 0.3rem;
+  }
+  .dark-mode .interview-weekday,
+  .dark-mode .interview-day-num {
+    color: #e2e8f0;
+  }
+  .interview-chip {
+    border: 1px solid rgba(148, 163, 184, 0.34);
+    border-radius: 0.65rem;
+    background: rgba(15, 23, 42, 0.12);
+    padding: 0.24rem 0.35rem;
+    margin-bottom: 0.25rem;
+    color: #0f172a;
+    font-size: 0.68rem;
+    line-height: 1.2;
+  }
+  .interview-chip-time {
+    font-weight: 700;
+    color: #020617;
+    margin-bottom: 0.1rem;
+  }
+  .dark-mode .interview-chip {
+    color: #f1f5f9;
+    border-color: rgba(148, 163, 184, 0.5);
+    background: rgba(148, 163, 184, 0.16);
+  }
+  .dark-mode .interview-chip-time {
+    color: #ffffff;
+  }
+</style>
+
+<div class="surface-card mb-3 interview-calendar-shell">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <h4 class="surface-title mb-0">Interview Calendar - {{ interview_calendar.month_label }}</h4>
+    <div class="form-actions">
+      <a class="secondary-btn btn-compact interview-month-link" href="?interview_month={{ interview_calendar.prev_month }}&tab={{ interview_tab_target|default:'tab-interviews' }}">Prev</a>
+      <a class="secondary-btn btn-compact interview-month-link" href="?interview_month={{ interview_calendar.next_month }}&tab={{ interview_tab_target|default:'tab-interviews' }}">Next</a>
+    </div>
+  </div>
+
+  <div class="interview-calendar-grid">
+    <div class="interview-weekday">Sun</div>
+    <div class="interview-weekday">Mon</div>
+    <div class="interview-weekday">Tue</div>
+    <div class="interview-weekday">Wed</div>
+    <div class="interview-weekday">Thu</div>
+    <div class="interview-weekday">Fri</div>
+    <div class="interview-weekday">Sat</div>
+    {% for week in interview_calendar.weeks %}
+      {% for day in week %}
+      <div class="interview-day {% if not day.in_month %}is-outside{% endif %}">
+        <div class="interview-day-num">{{ day.date|date:"j" }}</div>
+        {% for item in day.items %}
+          <div class="interview-chip">
+            <div class="interview-chip-time">{{ item.start_at|date:"g:i A" }}</div>
+            <div class="text-truncate">{{ item.application.job.title }}</div>
+          </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    {% endfor %}
+  </div>
+</div>
