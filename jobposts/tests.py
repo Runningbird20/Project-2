@@ -1,4 +1,6 @@
 from django.test import TestCase
+from django.core import mail
+from django.test.utils import override_settings
 from django.contrib.auth.models import User
 from django.urls import reverse
 from unittest.mock import patch
@@ -6,7 +8,7 @@ from decimal import Decimal
 
 from accounts.models import Profile
 from map.models import OfficeLocation
-from .models import JobPost
+from .models import ApplicantJobMatch, JobPost
 
 
 class JobPostViewTests(TestCase):
@@ -351,3 +353,54 @@ class JobPostViewTests(TestCase):
         posts = list(response.context['template_data']['posts'])
         self.assertIn(visa_job, posts)
         self.assertNotIn(non_visa_job, posts)
+
+
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+class ApplicantMatchingTests(TestCase):
+    def setUp(self):
+        self.employer = User.objects.create_user(
+            username="employer_match",
+            email="employer_match@example.com",
+            password="pass12345",
+        )
+        Profile.objects.create(
+            user=self.employer,
+            account_type=Profile.AccountType.EMPLOYER,
+        )
+        self.applicant = User.objects.create_user(
+            username="applicant_match",
+            password="pass12345",
+        )
+        Profile.objects.create(
+            user=self.applicant,
+            account_type=Profile.AccountType.APPLICANT,
+            skills="Python, Django, AWS",
+        )
+        self.job = JobPost.objects.create(
+            owner=self.employer,
+            title="Backend Engineer",
+            company="Acme",
+            location="Atlanta, GA",
+            pay_range="$100k-$130k",
+            skills="Python, Django, SQL",
+            work_setting="hybrid",
+            description="Build APIs",
+        )
+
+    def test_dashboard_creates_skill_match_and_notifies_employer(self):
+        self.client.login(username="applicant_match", password="pass12345")
+        response = self.client.get(reverse("jobposts.dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(self.job, response.context["recommendations"])
+        match = ApplicantJobMatch.objects.get(applicant=self.applicant, job=self.job)
+        self.assertGreaterEqual(match.score, 1)
+        self.assertIn("python", match.matched_skills)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn(self.employer.email, mail.outbox[0].to)
+
+    def test_dashboard_does_not_send_duplicate_match_email(self):
+        self.client.login(username="applicant_match", password="pass12345")
+        self.client.get(reverse("jobposts.dashboard"))
+        self.client.get(reverse("jobposts.dashboard"))
+        self.assertEqual(len(mail.outbox), 1)

@@ -18,6 +18,7 @@ from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from map.services import OfficeLocationGeocodingError, geocode_office_address
+from project2.skills import COMMON_SKILLS
 
 from .forms import CustomErrorList, ProfileEditForm, SignupWithProfileForm
 from .models import Profile, SavedCandidateSearch
@@ -178,11 +179,13 @@ def signup(request):
     template_data = {"title": "Sign Up"}
     if request.method == "GET":
         template_data["form"] = SignupWithProfileForm()
+        template_data["skill_options"] = COMMON_SKILLS
         return render(request, "accounts/signup.html", {"template_data": template_data})
 
     form = SignupWithProfileForm(request.POST, request.FILES, error_class=CustomErrorList)
     if not form.is_valid():
         template_data["form"] = form
+        template_data["skill_options"] = COMMON_SKILLS
         return render(request, "accounts/signup.html", {"template_data": template_data})
 
     try:
@@ -221,6 +224,7 @@ def signup(request):
     except IntegrityError:
         form.add_error("username", "This username is already taken.")
         template_data["form"] = form
+        template_data["skill_options"] = COMMON_SKILLS
         return render(request, "accounts/signup.html", {"template_data": template_data})
 
     messages.success(request, "Account created! Please log in.")
@@ -278,7 +282,11 @@ def edit_profile(request, username=None):
     else:
         form = ProfileEditForm(instance=profile, user=request.user)
 
-    return render(request, "accounts/edit_profile.html", {"template_data": {"title": "Edit Profile", "form": form}})
+    return render(
+        request,
+        "accounts/edit_profile.html",
+        {"template_data": {"title": "Edit Profile", "form": form, "skill_options": COMMON_SKILLS}},
+    )
 
 
 @superuser_required

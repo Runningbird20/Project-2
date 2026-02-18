@@ -12,10 +12,12 @@ from map.forms import OfficeLocationForm
 from map.models import OfficeLocation
 from map.services import OfficeLocationGeocodingError, geocode_office_address
 from .forms import JobPostForm
-from .models import JobPost
+from .models import ApplicantJobMatch, JobPost
+from .matching import sync_applicant_job_matches
 from django.views.decorators.http import require_POST
 from apply.models import Application
 from apply.services import auto_archive_old_rejections, enforce_employer_response_deadline
+from project2.skills import COMMON_SKILLS
 from django.contrib.admin.views.decorators import staff_member_required
 
 from django.db.models import Count
@@ -91,53 +93,7 @@ def dashboard(request):
     return render(request, 'jobposts/dashboard.html', context)
 
 def get_job_recommendations(user_profile):
-    """
-    Ranks jobs based on location match AND overlap between user skills and job requirements.
-    """
-    user_skills = []
-    if user_profile.skills:
-        user_skills = [s.strip().lower() for s in user_profile.skills.split(',') if s.strip()]
-    
-    user_location = user_profile.location.strip().lower() if user_profile.location else ""
-
-    if not user_skills and not user_location:
-        return JobPost.objects.none()
-
-    query = Q()
-    
-    for skill in user_skills:
-        query |= Q(title__icontains=skill) | Q(description__icontains=skill) | Q(skills__icontains=skill)
-
-    if user_location:
-        query |= Q(location__icontains=user_location)
-
-    applied_job_ids = user_profile.user.application_set.values_list('job_id', flat=True)    
-    suggested_jobs = JobPost.objects.filter(query).exclude(id__in=applied_job_ids).distinct()
-
-    recommended_list = []
-    for job in suggested_jobs:
-        score = 0
-        job_title = job.title.lower()
-        job_desc = job.description.lower()
-        job_loc = job.location.lower()
-        job_skills = job.skills.lower() if job.skills else ""
-
-        for skill in user_skills:
-            if skill in job_title: score += 3  
-            if skill in job_skills: score += 2 
-            if skill in job_desc: score += 1   
-
-        if user_location and user_location in job_loc:
-            score += 5 
-
-        recommended_list.append({
-            'job': job,
-            'score': score
-        })
-
-    recommended_list.sort(key=lambda x: x['score'], reverse=True)
-    
-    return [item['job'] for item in recommended_list[:5]]
+    return sync_applicant_job_matches(user_profile.user)
 
 
 def _is_employer(user):
@@ -173,6 +129,7 @@ def create(request):
     template_data['form'] = form
     template_data['map_form'] = map_form
     template_data['submit_label'] = 'Create Job Post'
+    template_data['skill_options'] = COMMON_SKILLS
     return render(request, 'jobposts/create.html', {'template_data': template_data})
 
 
@@ -205,6 +162,7 @@ def edit(request, post_id):
     template_data['form'] = form
     template_data['map_form'] = map_form
     template_data['submit_label'] = 'Save Changes'
+    template_data['skill_options'] = COMMON_SKILLS
     return render(request, 'jobposts/create.html', {'template_data': template_data})
 
 
@@ -322,7 +280,21 @@ def search(request):
                     except OfficeLocationGeocodingError:
                         radius_warning = 'Could not map your home address right now. Showing all search results.'
 
-    template_data['posts'] = posts
+    posts_sequence = list(posts)
+    matched_posts = []
+    other_posts = posts_sequence
+    if is_applicant and request.user.is_authenticated:
+        sync_applicant_job_matches(request.user)
+        matched_job_ids = set(
+            ApplicantJobMatch.objects.filter(applicant=request.user).values_list("job_id", flat=True)
+        )
+        matched_posts = [post for post in posts_sequence if post.id in matched_job_ids]
+        other_posts = [post for post in posts_sequence if post.id not in matched_job_ids]
+
+    template_data['posts'] = posts_sequence
+    template_data['matched_posts'] = matched_posts
+    template_data['other_posts'] = other_posts
+    template_data['posts_count'] = len(posts_sequence)
     template_data['can_post_job'] = can_post_job
     template_data['filters'] = {
         'title': title,
@@ -411,6 +383,7 @@ def edit_post(request, post_id):
     template_data['form'] = form
     template_data['submit_label'] = 'Save Changes'
     template_data['post_id'] = post_id
+    template_data['skill_options'] = COMMON_SKILLS
     return render(request, 'jobposts/edit_post.html', {'template_data': template_data})
 
 @staff_member_required

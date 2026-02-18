@@ -346,6 +346,45 @@ main {
   min-width: 150px;
 }
 
+.skill-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  min-height: 2rem;
+}
+
+.skill-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.32rem 0.45rem 0.32rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid #a9b0bc;
+  background: #e2e5ea;
+  color: #223046;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.skill-chip-remove {
+  border: 0;
+  background: #d0d4db;
+  color: #4a5261;
+  line-height: 1;
+  font-size: 0.95rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 999px;
+  padding: 0;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.skill-chip-remove:hover,
+.skill-chip-remove:focus {
+  color: #1d2433;
+}
+
 .about-logo {
   max-width: 110px;
   height: auto;

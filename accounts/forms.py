@@ -5,6 +5,7 @@ from django.forms.utils import ErrorList
 from django.utils.safestring import mark_safe
 
 from .models import Profile
+from project2.skills import normalize_skills_csv
 
 class CustomErrorList(ErrorList):
     def __str__(self):
@@ -97,6 +98,9 @@ class SignupWithProfileForm(CustomUserCreationForm):
         if User.objects.filter(username__iexact=username).exists():
             raise forms.ValidationError("This username is already taken.")
         return username
+
+    def clean_skills(self):
+        return normalize_skills_csv(self.cleaned_data.get("skills", ""))
 
 class ProfileEditForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
@@ -210,3 +214,6 @@ class ProfileEditForm(forms.ModelForm):
         if acct == Profile.AccountType.EMPLOYER and not cleaned.get("company_name"):
             self.add_error("company_name", "Company name is required for employers.")
         return cleaned
+
+    def clean_skills(self):
+        return normalize_skills_csv(self.cleaned_data.get("skills", ""))
