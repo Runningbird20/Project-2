@@ -42,6 +42,35 @@
 
     <div class="surface-card mt-4">
       <div class="d-flex justify-content-between align-items-center mb-2">
+        <h3 class="surface-title mb-0">My Applications</h3>
+        <a href="{% url 'apply:application_status' %}" class="secondary-btn btn-compact">Open My Applications</a>
+      </div>
+      <div class="vstack gap-2">
+        {% for app in recent_applications %}
+        <div class="border rounded p-2">
+          <div class="fw-semibold">{{ app.job.title }}</div>
+          <div class="small text-muted mb-1">{{ app.job.company }}</div>
+          <div class="small {% if app.employer_viewed %}text-success{% else %}text-muted{% endif %}">
+            {% if app.employer_viewed %}
+              Viewed by employer{% if app.employer_viewed_at %} on {{ app.employer_viewed_at|date:"M j, Y g:i A" }}{% endif %}
+            {% else %}
+              Not viewed by employer yet
+            {% endif %}
+          </div>
+          {% if app.status != 'closed' and app.status != 'rejected' %}
+          <div class="small {% if app.response_due_within_7_days %}text-danger{% else %}text-muted{% endif %}">
+            Employer response due by {{ app.response_due_on|date:"M j, Y" }}.
+          </div>
+          {% endif %}
+        </div>
+        {% empty %}
+        <p class="text-muted mb-0">No applications yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="surface-card mt-4">
+      <div class="d-flex justify-content-between align-items-center mb-2">
         <h3 class="surface-title mb-0">Archived Rejected Applications</h3>
         <a href="{% url 'apply:application_status' %}" class="secondary-btn btn-compact">Open My Applications</a>
       </div>
