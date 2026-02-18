@@ -5,102 +5,229 @@
   <div class="container">
     <div class="page-intro text-center">
       <p class="page-kicker">Candidate tools</p>
-      <h1 class="page-title page-title-sm">My Application Tracker</h1>
+      <h1 class="page-title page-title-sm">Applicant Dashboard</h1>
       <p class="page-copy mb-0">Application streak: <strong>{{ application_streak|default:'0' }} day{% if application_streak != 1 %}s{% endif %}</strong></p>
     </div>
 
-    <div class="row g-4">
-      {% for application in applications %}
-      <div class="col-12">
-        <div class="surface-card">
-          <div class="row align-items-start g-3">
-            <div class="col-lg-3">
-              <h5 class="surface-title mb-1">{{ application.job.title }}</h5>
-              <p class="text-muted mb-0 small">{{ application.job.company }}</p>
-              <div class="mt-2">
-                <span class="badge bg-light text-dark border">ID: #{{ application.id }}</span>
-              </div>
-            </div>
+    <div class="row g-4 align-items-start">
+      <div class="col-lg-3">
+        <div class="surface-card applicant-nav-card p-3">
+          <div class="nav flex-column nav-pills gap-2" id="applicant-dashboard-nav" role="tablist" aria-orientation="vertical">
+            <button class="secondary-btn border-0 text-start active" id="tab-applications-btn" data-bs-toggle="pill" data-bs-target="#tab-applications" type="button" role="tab" aria-controls="tab-applications" aria-selected="true">
+              My Applications
+            </button>
+            <button class="secondary-btn border-0 text-start" id="tab-matched-jobs-btn" data-bs-toggle="pill" data-bs-target="#tab-matched-jobs" type="button" role="tab" aria-controls="tab-matched-jobs" aria-selected="false">
+              Matched Jobs
+            </button>
+            <button class="secondary-btn border-0 text-start" id="tab-interviews-btn" data-bs-toggle="pill" data-bs-target="#tab-interviews" type="button" role="tab" aria-controls="tab-interviews" aria-selected="false">
+              My Interviews
+            </button>
+            <button class="secondary-btn border-0 text-start" id="tab-profile-btn" data-bs-toggle="pill" data-bs-target="#tab-profile" type="button" role="tab" aria-controls="tab-profile" aria-selected="false">
+              Profile
+            </button>
+            <button class="secondary-btn border-0 text-start" id="tab-tools-btn" data-bs-toggle="pill" data-bs-target="#tab-tools" type="button" role="tab" aria-controls="tab-tools" aria-selected="false">
+              More Tools
+            </button>
+          </div>
+        </div>
+      </div>
 
-            <div class="col-lg-9">
-              <p class="small mb-1 {% if application.employer_viewed %}text-success{% else %}text-muted{% endif %}">
-                {% if application.employer_viewed %}
-                  Viewed by employer{% if application.employer_viewed_at %} on {{ application.employer_viewed_at|date:"M j, Y g:i A" }}{% endif %}
-                {% else %}
-                  Not viewed by employer yet
-                {% endif %}
-              </p>
-              {% if application.status != 'closed' and application.status != 'rejected' %}
-              <p class="small mb-1 {% if application.response_due_within_7_days %}text-danger{% else %}text-muted{% endif %}">
-                Employer response due by {{ application.response_due_on|date:"M j, Y" }}.
-              </p>
-              {% endif %}
-              {% if application.status == 'rejected' %}
-              <div class="alert alert-danger rounded-4 mb-0">
-                <strong>Update on your application.</strong>
-                {% if application.auto_rejected_for_timeout %}
-                  This application was automatically closed because the employer did not respond within 30 days.
-                {% else %}
-                  We moved forward with other candidates at {{ application.job.company }}.
-                {% endif %}
-                <div class="small mt-2">
-                  This application will auto-archive on {{ application.auto_archive_on|date:"M j, Y" }}.
-                </div>
-                <form method="post" action="{% url 'apply:archive_application' application.id %}" class="mt-2">
-                  {% csrf_token %}
-                  <button type="submit" class="secondary-btn btn-compact border-0">Archive now</button>
-                </form>
-              </div>
-              {% else %}
-              <div class="stepper-wrapper">
-                {% with "applied review interview offer closed" as status_order %}
-                  {% for key, label in application.STATUS_CHOICES %}
-                    {% if key != 'rejected' %}
-                    <div class="stepper-item {% if key == application.status %}active{% elif key in status_order and application.status in status_order %}{% if application.status == 'review' and key == 'applied' %}completed{% elif application.status == 'interview' and key == 'applied' or application.status == 'interview' and key == 'review' %}completed{% elif application.status == 'offer' and key != 'offer' and key != 'closed' %}completed{% elif application.status == 'closed' %}completed{% else %}pending{% endif %}{% else %}pending{% endif %}">
-                      <div class="step-counter"></div>
-                      <div class="step-name">{{ label }}</div>
+      <div class="col-lg-9">
+        <div class="tab-content vstack gap-4" id="applicant-dashboard-content">
+          <div class="tab-pane fade show active" id="tab-applications" role="tabpanel" aria-labelledby="tab-applications-btn" tabindex="0">
+            <div class="surface-card mb-4">
+              <h3 class="surface-title mb-3">My Applications</h3>
+              <div class="row g-4">
+                {% for application in applications %}
+                <div class="col-12">
+                  <div class="border rounded-4 p-3">
+                    <div class="row align-items-start g-3">
+                      <div class="col-lg-3">
+                        <h5 class="surface-title mb-1">{{ application.job.title }}</h5>
+                        <p class="text-muted mb-0 small">{{ application.job.company }}</p>
+                        <div class="mt-2">
+                          <span class="badge bg-light text-dark border">ID: #{{ application.id }}</span>
+                        </div>
+                      </div>
+
+                      <div class="col-lg-9">
+                        <p class="small mb-1 {% if application.employer_viewed %}text-success{% else %}text-muted{% endif %}">
+                          {% if application.employer_viewed %}
+                            Viewed by employer{% if application.employer_viewed_at %} on {{ application.employer_viewed_at|date:"M j, Y g:i A" }}{% endif %}
+                          {% else %}
+                            Not viewed by employer yet
+                          {% endif %}
+                        </p>
+                        {% if application.status != 'closed' and application.status != 'rejected' %}
+                        <p class="small mb-1 {% if application.response_due_within_7_days %}text-danger{% else %}text-muted{% endif %}">
+                          Employer response due by {{ application.response_due_on|date:"M j, Y" }}.
+                        </p>
+                        {% endif %}
+                        {% if application.status == 'rejected' %}
+                        <div class="alert alert-danger rounded-4 mb-0">
+                          <strong>Update on your application.</strong>
+                          {% if application.auto_rejected_for_timeout %}
+                            This application was automatically closed because the employer did not respond within 30 days.
+                          {% else %}
+                            We moved forward with other candidates at {{ application.job.company }}.
+                          {% endif %}
+                          <div class="small mt-2">
+                            This application will auto-archive on {{ application.auto_archive_on|date:"M j, Y" }}.
+                          </div>
+                          <form method="post" action="{% url 'apply:archive_application' application.id %}" class="mt-2">
+                            {% csrf_token %}
+                            <button type="submit" class="secondary-btn btn-compact border-0">Archive now</button>
+                          </form>
+                        </div>
+                        {% else %}
+                        <div class="stepper-wrapper">
+                          {% with "applied review interview offer closed" as status_order %}
+                            {% for key, label in application.STATUS_CHOICES %}
+                              {% if key != 'rejected' %}
+                              <div class="stepper-item {% if key == application.status %}active{% elif key in status_order and application.status in status_order %}{% if application.status == 'review' and key == 'applied' %}completed{% elif application.status == 'interview' and key == 'applied' or application.status == 'interview' and key == 'review' %}completed{% elif application.status == 'offer' and key != 'offer' and key != 'closed' %}completed{% elif application.status == 'closed' %}completed{% else %}pending{% endif %}{% else %}pending{% endif %}">
+                                <div class="step-counter"></div>
+                                <div class="step-name">{{ label }}</div>
+                              </div>
+                              {% endif %}
+                            {% endfor %}
+                          {% endwith %}
+                        </div>
+                        {% if application.status == 'offer' or application.status == 'closed' %}
+                        <div class="form-actions mt-3">
+                          <a class="primary-btn btn-compact" href="{% url 'apply:offer_letter' application.id %}">View Offer Letter</a>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                      </div>
                     </div>
-                    {% endif %}
-                  {% endfor %}
-                {% endwith %}
+                  </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center py-5">
+                  <p class="text-muted mb-0">No active applications found.</p>
+                </div>
+                {% endfor %}
               </div>
-              {% if application.status == 'offer' or application.status == 'closed' %}
-              <div class="form-actions mt-3">
-                <a class="primary-btn btn-compact" href="{% url 'apply:offer_letter' application.id %}">View Offer Letter</a>
-              </div>
-              {% endif %}
-              {% endif %}
             </div>
-          </div>
-        </div>
-      </div>
-      {% empty %}
-      <div class="col-12 text-center py-5">
-        <p class="text-muted">No active applications found.</p>
-      </div>
-      {% endfor %}
-    </div>
 
-    <div class="mt-5">
-      <h3 class="surface-title mb-3">Archived Applications</h3>
-      <div class="row g-3">
-        {% for application in archived_applications %}
-        <div class="col-12">
-          <div class="surface-card">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-              <div>
-                <h5 class="surface-title mb-1">{{ application.job.title }}</h5>
-                <p class="text-muted mb-0 small">{{ application.job.company }}</p>
+            <div class="surface-card">
+              <h3 class="surface-title mb-3">Archived Applications</h3>
+              <div class="row g-3">
+                {% for application in archived_applications %}
+                <div class="col-12">
+                  <div class="border rounded-4 p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                      <h5 class="surface-title mb-1">{{ application.job.title }}</h5>
+                      <p class="text-muted mb-0 small">{{ application.job.company }}</p>
+                    </div>
+                    <span class="badge bg-secondary-subtle text-secondary">Archived</span>
+                  </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                  <p class="text-muted mb-0">No archived applications yet.</p>
+                </div>
+                {% endfor %}
               </div>
-              <span class="badge bg-secondary-subtle text-secondary">Archived</span>
+            </div>
+          </div>
+
+          <div class="tab-pane fade" id="tab-matched-jobs" role="tabpanel" aria-labelledby="tab-matched-jobs-btn" tabindex="0">
+            <div class="surface-card">
+              <h3 class="surface-title mb-2">Matched Jobs</h3>
+              <div class="vstack gap-3">
+                {% for match in matched_jobs %}
+                  <div class="border rounded-4 p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                      <div class="fw-semibold">{{ match.job.title }}</div>
+                      <div class="small text-muted">{{ match.job.company }} - {{ match.job.location }}</div>
+                      {% if match.matched_skills %}
+                        <div class="small text-success mt-1">Matched skills: {{ match.matched_skills }}</div>
+                      {% endif %}
+                    </div>
+                    <div class="form-actions">
+                      <a class="secondary-btn btn-compact" href="{% url 'jobposts.detail' match.job.id %}">View Job</a>
+                    </div>
+                  </div>
+                {% empty %}
+                  <p class="text-muted mb-0">No matched jobs yet. Add more skills to your profile.</p>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-pane fade" id="tab-interviews" role="tabpanel" aria-labelledby="tab-interviews-btn" tabindex="0">
+            <div class="surface-card">
+              <h3 class="surface-title mb-2">My Interviews</h3>
+              <p class="text-muted mb-0">This section will list upcoming interviews, interview history, and interview details.</p>
+            </div>
+          </div>
+
+          <div class="tab-pane fade" id="tab-profile" role="tabpanel" aria-labelledby="tab-profile-btn" tabindex="0">
+            <div class="surface-card">
+              <h3 class="surface-title mb-3">Profile</h3>
+              <div class="d-flex align-items-start gap-3 flex-wrap mb-3">
+                <div class="flex-shrink-0">
+                  <img src="{{ user.profile.profile_picture_or_default_url }}" alt="Profile picture" class="rounded-circle border" style="width:72px;height:72px;object-fit:cover;">
+                </div>
+                <div>
+                  <h4 class="surface-title mb-1">{{ user.get_full_name|default:user.username }}</h4>
+                  <p class="small text-muted mb-1">{{ user.profile.location_city_state|default:user.profile.location }}</p>
+                  {% if user.email %}
+                    <p class="small text-muted mb-1">{{ user.email }}</p>
+                  {% endif %}
+                  {% if user.profile.headline %}
+                    <p class="mb-0">{{ user.profile.headline }}</p>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <h5 class="surface-title mb-1">Skills</h5>
+                  <p class="text-muted mb-0">{{ user.profile.skills|default:"No skills added yet." }}</p>
+                </div>
+                <div class="col-md-6">
+                  <h5 class="surface-title mb-1">Education</h5>
+                  <p class="text-muted mb-0">{{ user.profile.education|default:"No education added yet." }}</p>
+                </div>
+                <div class="col-md-6">
+                  <h5 class="surface-title mb-1">Projects</h5>
+                  <p class="text-muted mb-0">{{ user.profile.projects|default:"No projects added yet." }}</p>
+                </div>
+                <div class="col-md-6">
+                  <h5 class="surface-title mb-1">Work Experience</h5>
+                  <p class="text-muted mb-0">{{ user.profile.work_experience|default:"No work experience added yet." }}</p>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <h5 class="surface-title mb-1">Links</h5>
+                {% if user.profile.links.exists %}
+                  <ul class="mb-0">
+                    {% for link in user.profile.links.all %}
+                      <li>{% if link.label %}<b>{{ link.label }}:</b> {% endif %}<a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.url }}</a></li>
+                    {% endfor %}
+                  </ul>
+                {% else %}
+                  <p class="text-muted mb-0">No links added yet.</p>
+                {% endif %}
+              </div>
+
+              <div class="form-actions">
+                <a class="secondary-btn btn-compact" href="{% url 'accounts.profile' %}">Open Full Profile</a>
+                <a class="primary-btn btn-compact border-0" href="{% url 'accounts.profile_edit' %}">Edit Profile</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-pane fade" id="tab-tools" role="tabpanel" aria-labelledby="tab-tools-btn" tabindex="0">
+            <div class="surface-card">
+              <h3 class="surface-title mb-2">More Tools</h3>
+              <p class="text-muted mb-0">This section will include career tools such as saved searches, alerts, and resume insights.</p>
             </div>
           </div>
         </div>
-        {% empty %}
-        <div class="col-12">
-          <p class="text-muted mb-0">No archived applications yet.</p>
-        </div>
-        {% endfor %}
       </div>
     </div>
   </div>
