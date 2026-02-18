@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'jobposts',
     'map',
     'messaging',
+    'interviews',
 ]
 
 MIDDLEWARE = [

@@ -10,7 +10,7 @@
           <p class="page-copy mb-0">Add clear role requirements and candidate expectations to improve matching.</p>
         </div>
 
-        <form method="post" class="surface-card mt-3">
+        <form method="post" class="surface-card mt-3 create-job-form">
           {% csrf_token %}
           {% if template_data.form.non_field_errors %}
             <div class="alert alert-danger mb-3">

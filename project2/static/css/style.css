@@ -192,6 +192,18 @@ html.dark-mode .map-pin-card .small {
   color: #b8c4da !important;
 }
 
+html.dark-mode .create-job-form .form-text,
+html.dark-mode .create-job-form .text-muted,
+html.dark-mode .create-job-form .small.text-muted {
+  color: #d3def2 !important;
+}
+
+html.dark-mode .edit-profile-form .form-text,
+html.dark-mode .edit-profile-form .text-muted,
+html.dark-mode .edit-profile-form .small.text-muted {
+  color: #d3def2 !important;
+}
+
 .messaging-avatar {
   background: #5b6475;
   color: #fff;
@@ -794,6 +806,11 @@ html.dark-mode .form-label {
   border-color: #feb2b2 !important;
 }
 
+html.dark-mode .status-rejected {
+  background-color: #3a0f14 !important;
+  border-color: #7f1d1d !important;
+}
+
 .kanban-scroll::-webkit-scrollbar {
   width: 5px;
 }
@@ -866,6 +883,71 @@ html.dark-mode .form-label {
 .job-post-map-cta {
   margin-top: auto;
   padding-top: 0.5rem;
+}
+
+.job-detail-modal-header {
+  background: #1f2937;
+  color: #ffffff;
+}
+
+.job-detail-modal-footer {
+  background: #f8fafc;
+}
+
+html.dark-mode .job-detail-page .text-secondary {
+  color: #cfdaee !important;
+}
+
+html.dark-mode .job-detail-page .link-secondary {
+  color: #bcd3ff !important;
+}
+
+html.dark-mode .job-detail-modal .modal-content {
+  background: #121d2d;
+  border: 1px solid #3b4a62 !important;
+  color: #e6edf8;
+}
+
+html.dark-mode .job-detail-modal .modal-header {
+  border-bottom-color: #3b4a62;
+}
+
+html.dark-mode .job-detail-modal .modal-footer {
+  border-top-color: #3b4a62;
+}
+
+html.dark-mode .job-detail-modal-header {
+  background: #1d2d47;
+  color: #eef4ff;
+}
+
+html.dark-mode .job-detail-modal-footer {
+  background: #182538;
+}
+
+html.dark-mode .job-detail-page .message-recruiter-btn,
+html.dark-mode .job-detail-modal .apply-cancel-btn {
+  background: #9ec5ff;
+  color: #0b1526;
+  border-color: #9ec5ff;
+  outline: none;
+  box-shadow: none;
+}
+
+html.dark-mode .job-detail-page .message-recruiter-btn:hover,
+html.dark-mode .job-detail-page .message-recruiter-btn:focus,
+html.dark-mode .job-detail-modal .apply-cancel-btn:hover,
+html.dark-mode .job-detail-modal .apply-cancel-btn:focus {
+  background: #c5dcff;
+  color: #071020;
+  border-color: #c5dcff;
+  outline: none;
+  box-shadow: none;
+}
+
+html.dark-mode .job-detail-page .message-recruiter-btn:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 #applyModal {

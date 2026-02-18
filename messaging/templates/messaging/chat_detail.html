@@ -23,9 +23,16 @@
                                 {% endif %}
                             </div>
                         </div>
-                        <a href="{% url 'messaging:inbox' %}" class="secondary-btn btn-compact">
-                            All Chats
-                        </a>
+                        <div class="form-actions">
+                            <a href="{% url 'messaging:inbox' %}" class="secondary-btn btn-compact">
+                                All Chats
+                            </a>
+                            {% if can_post_job %}
+                                <a href="{% url 'jobposts.dashboard' %}" class="secondary-btn btn-compact">Back to Dashboard</a>
+                            {% else %}
+                                <a href="{% url 'apply:application_status' %}" class="secondary-btn btn-compact">Back to Dashboard</a>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
                 
