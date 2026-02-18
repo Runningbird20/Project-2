@@ -11,6 +11,13 @@
               <h4 class="surface-title mb-0">Messages</h4>
               <small class="text-muted">{{ chat_threads|length }} active conversations</small>
             </div>
+            <div class="form-actions">
+              {% if can_post_job %}
+                <a href="{% url 'jobposts.dashboard' %}" class="secondary-btn btn-compact">Back to Dashboard</a>
+              {% else %}
+                <a href="{% url 'apply:application_status' %}" class="secondary-btn btn-compact">Back to Dashboard</a>
+              {% endif %}
+            </div>
           </div>
 
           <div class="list-group list-group-flush overflow-auto messaging-scroll" style="max-height: 70vh;">

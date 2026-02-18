@@ -27,6 +27,7 @@ urlpatterns = [
     path('jobposts/', include('jobposts.urls')),
     path('messages/', include('messaging.urls')),
     path('map/', include('map.urls')),
+    path("interviews/", include(("interviews.urls", "interviews"), namespace="interviews")),
 ]
 
 if settings.DEBUG:

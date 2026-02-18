@@ -18,6 +18,7 @@ from .services import (
     enforce_employer_response_deadline,
     calculate_application_streak,
 )
+from interviews.services import get_applicant_interview_context
 
 @login_required
 def submit_application(request, job_id):
@@ -158,6 +159,10 @@ def application_status(request):
         .select_related("job")
         .order_by("-score", "-updated_at")
     )
+    interview_context = get_applicant_interview_context(
+        request.user,
+        month_key=request.GET.get("interview_month"),
+    )
     return render(
         request,
         "apply/status.html",
@@ -167,6 +172,7 @@ def application_status(request):
             "matched_jobs": matched_jobs,
             "activity_events": activity_events,
             "application_streak": calculate_application_streak(request.user),
+            **interview_context,
         },
     )
 

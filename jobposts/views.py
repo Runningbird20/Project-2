@@ -23,6 +23,7 @@ from project2.skills import COMMON_SKILLS
 from django.contrib.admin.views.decorators import staff_member_required
 
 from django.db.models import Count
+from interviews.services import get_employer_interview_context
 
 
 def _haversine_miles(lat1, lon1, lat2, lon2):
@@ -130,6 +131,12 @@ def dashboard(request):
                 archived_by_employer=True,
             ).select_related('job', 'user').order_by('-rejected_at', '-applied_at')[:5],
         })
+        context.update(
+            get_employer_interview_context(
+                request.user,
+                month_key=request.GET.get("interview_month"),
+            )
+        )
 
     return render(request, 'jobposts/dashboard.html', context)
 
