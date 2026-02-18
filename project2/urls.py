@@ -28,6 +28,7 @@ urlpatterns = [
     path('messages/', include('messaging.urls')),
     path('map/', include('map.urls')),
     path("interviews/", include(("interviews.urls", "interviews"), namespace="interviews")),
+    path("pulses/", include(("pulses.urls", "pulses"), namespace="pulses")),
 ]
 
 if settings.DEBUG:

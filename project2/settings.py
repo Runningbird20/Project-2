@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'map',
     'messaging',
     'interviews',
+    'pulses',
 ]
 
 MIDDLEWARE = [

@@ -1,11 +1,26 @@
 /* static/pulses/pulses.css */
 
+/* Keep vertical scrolling, hide visible scrollbar in Pulses feed */
+.pulses-shell {
+  --pulses-nav-offset: 84px;
+  --pulses-topbar-height: 72px;
+  -ms-overflow-style: none; /* IE/Edge legacy */
+  scrollbar-width: none; /* Firefox */
+}
+
+.pulses-shell::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none; /* Chrome/Safari/Edge */
+}
+
 .pulses-topbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    margin-bottom: 1rem;
+    min-height: var(--pulses-topbar-height);
+    margin-bottom: 0;
   }
   
   /* Reels-like scroll area */
@@ -16,6 +31,8 @@
   
   /* Each pulse is its own “section” */
   .pulse-item {
+    height: calc(100vh - var(--pulses-nav-offset) - var(--pulses-topbar-height));
+    min-height: calc(100vh - var(--pulses-nav-offset) - var(--pulses-topbar-height));
     scroll-margin-top: 90px; /* helps if you add snapping later */
   }
   
@@ -23,7 +40,10 @@
   .pulse-frame {
     position: relative;
     width: 100%;
-    max-width: 560px;          /* keep it from being huge on desktop */
+    max-width: min(
+      560px,
+      calc((100vh - var(--pulses-nav-offset) - var(--pulses-topbar-height) - 20px) * 9 / 16)
+    );                         /* keep full frame visible in viewport */
     margin: 0 auto;            /* ✅ centers the whole video frame */
     aspect-ratio: 9 / 16;      /* ✅ reels feel */
     border-radius: 18px;
@@ -57,10 +77,33 @@
     padding: 0 0.2rem;
   }
   
-  .pulse-user {
+.pulse-user {
     font-weight: 800;
     letter-spacing: 0.01em;
   }
+
+.pulse-contact-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(0, 0, 0, 0.38);
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.2;
+  max-width: 130px;
+}
+
+.pulse-contact-btn:hover,
+.pulse-contact-btn:focus {
+  background: rgba(0, 0, 0, 0.54);
+  color: #fff;
+}
   
   /* Optional: if you want less cropping, swap to contain
      (will show black bars but never cuts content) */
@@ -69,4 +112,11 @@
     object-fit: contain;
   }
   */
+
+@media (max-width: 768px) {
+  .pulses-shell {
+    --pulses-nav-offset: 72px;
+    --pulses-topbar-height: 66px;
+  }
+}
   

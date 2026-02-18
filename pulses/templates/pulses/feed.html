@@ -44,6 +44,15 @@
         <a class="pulse-action-btn text-decoration-none" href="{% url 'pulses:upload' %}" title="Upload">
           <i class="bi bi-plus-lg"></i>
         </a>
+        {% if pulse.user != request.user %}
+          <a class="pulse-contact-btn text-decoration-none" href="{% url 'messaging:chat_detail' pulse.user.id %}">
+            {% if pulse.user.profile.account_type == "EMPLOYER" %}
+              Contact Employer
+            {% else %}
+              Contact Candidate
+            {% endif %}
+          </a>
+        {% endif %}
       </div>
     </section>
   {% empty %}

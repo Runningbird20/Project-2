@@ -41,6 +41,7 @@
               <a class="nav-link site-link" href="{% url 'jobposts.search' %}">Open Positions</a>
             {% endif %}
             {% if user.is_authenticated %}
+              <a class="nav-link site-link" href="{% url 'pulses:feed' %}">Pulses</a>
               {% if can_post_job %}
                 <a class="nav-link site-link" href="{% url 'jobposts.dashboard' %}">Employer Dashboard</a>
               {% else %}

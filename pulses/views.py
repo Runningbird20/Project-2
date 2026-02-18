@@ -7,7 +7,7 @@ from .forms import PulseUploadForm
 
 @login_required
 def pulses_feed(request):
-    pulses = Pulse.objects.select_related("user").all()
+    pulses = Pulse.objects.select_related("user", "user__profile").all()
     template_data = {
         "title": "Pulses",
         "pulses": pulses,
