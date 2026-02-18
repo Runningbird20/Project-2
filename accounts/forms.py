@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
 from django.forms.utils import ErrorList
 from django.utils.safestring import mark_safe
@@ -86,6 +87,16 @@ class SignupWithProfileForm(CustomUserCreationForm):
         if acct == Profile.AccountType.EMPLOYER and not cleaned.get("company_name"):
             self.add_error("company_name", "Company name is required for employers.")
         return cleaned
+
+    def clean_username(self):
+        username = (self.cleaned_data.get("username") or "").strip()
+        if not username:
+            return username
+
+        User = get_user_model()
+        if User.objects.filter(username__iexact=username).exists():
+            raise forms.ValidationError("This username is already taken.")
+        return username
 
 class ProfileEditForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
