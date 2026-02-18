@@ -81,7 +81,8 @@
             <div class="col-md-6">
               <label class="form-label" for="{{ template_data.form.skills.id_for_label }}">Skills</label>
               {{ template_data.form.skills }}
-              <div class="form-text">Comma-separated skills for better search matching.</div>
+              <div class="form-text">Space-separated skills for better search matching.</div>
+              <div class="form-text">All skills must be one word.</div>
               {% if template_data.form.skills.errors %}
                 <div class="text-danger small mt-1">{{ template_data.form.skills.errors }}</div>
               {% endif %}
