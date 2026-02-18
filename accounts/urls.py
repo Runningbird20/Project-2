@@ -50,7 +50,11 @@ urlpatterns = [
     path('remove_user/<int:user_id>/', views.remove_user, name='accounts.remove_user'),
     path("candidates/", views.candidate_search, name="accounts.candidate_search"),
     path('export-usage/', views.export_usage_report, name='accounts.export_usage_report'),
+<<<<<<< HEAD
     path('send-test-email/', views.send_test_email, name='accounts.send_test_email'),
+=======
+    path('applicant-clusters-map/', views.applicant_clusters_map, name='accounts.applicant_clusters_map'),
+>>>>>>> d01baced0c73dcc3eed56bd8efb0232142b26b68
     path('save-search/', views.save_candidate_search, name='accounts.save_search'),
     path('delete-search/<int:search_id>/', views.delete_candidate_search, name='accounts.delete_search'),
 ]

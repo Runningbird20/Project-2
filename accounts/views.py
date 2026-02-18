@@ -1,11 +1,13 @@
 import csv
 import json
+from collections import Counter
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction
 from django.conf import settings
 from django.contrib.auth import login as auth_login, authenticate, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth import get_user_model
 from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse
 from django.db.models import Q, Count
@@ -16,6 +18,7 @@ from django.core.exceptions import ValidationError
 
 from .forms import SignupWithProfileForm, CustomErrorList, ProfileEditForm
 from .models import Profile, SavedCandidateSearch
+from map.services import OfficeLocationGeocodingError, geocode_office_address
 
 class Echo:
     """An object that implements write() to return the string its writer was given."""
@@ -27,6 +30,9 @@ def _is_employer(user):
         user=user,
         account_type=Profile.AccountType.EMPLOYER
     ).exists()
+
+
+superuser_required = user_passes_test(lambda u: u.is_authenticated and u.is_superuser)
 
 @staff_member_required
 def export_usage_report(request):
@@ -271,7 +277,7 @@ def edit_profile(request, username=None):
 
     return render(request, "accounts/edit_profile.html", {"template_data": {"title": "Edit Profile", "form": form}})
 
-@staff_member_required
+@superuser_required
 def manage_users(request):
     query = request.GET.get('search', '').strip()
     profiles = Profile.objects.all().select_related('user')
@@ -279,7 +285,7 @@ def manage_users(request):
         profiles = profiles.filter(Q(user__username__icontains=query) | Q(user__email__icontains=query))
     return render(request, "accounts/manage_users.html", {"template_data": {"title": "Manage Users", "users": profiles, "search_query": query}})
 
-@staff_member_required
+@superuser_required
 def edit_user(request, user_id):
     profile = get_object_or_404(Profile, id=user_id)
     if profile.user.is_superuser and not request.user.is_superuser:
@@ -312,7 +318,7 @@ def edit_user(request, user_id):
         form = ProfileEditForm(instance=profile, user=profile.user)
 
     return render(request, "accounts/edit_user.html", {"template_data": {"title": "Edit User", "form": form, "user": profile}})
-@staff_member_required
+@superuser_required
 def remove_user(request, user_id):
     if request.method == "POST":
         prof = get_object_or_404(Profile, id=user_id)
@@ -369,3 +375,43 @@ def delete_candidate_search(request, search_id):
         search.delete()
         messages.warning(request, f'Alert "{name}" deleted.')
     return redirect('jobposts.dashboard')
+
+
+@staff_member_required
+def applicant_clusters_map(request):
+    applicants = Profile.objects.filter(
+        account_type=Profile.AccountType.APPLICANT
+    ).select_related('user')
+
+    location_counts = Counter()
+    for profile in applicants:
+        city_state = profile.location_city_state
+        if city_state:
+            location_counts[city_state] += 1
+
+    clusters = []
+    for location_name, applicant_count in location_counts.most_common():
+        try:
+            latitude, longitude = geocode_office_address(location_name)
+        except OfficeLocationGeocodingError:
+            continue
+
+        clusters.append(
+            {
+                "location": location_name,
+                "count": applicant_count,
+                "latitude": float(latitude),
+                "longitude": float(longitude),
+            }
+        )
+
+    template_data = {
+        "title": "Applicant Clusters Map",
+        "total_applicants": applicants.count(),
+        "cluster_count": len(clusters),
+    }
+    return render(
+        request,
+        "accounts/applicant_clusters_map.html",
+        {"template_data": template_data, "clusters": clusters},
+    )
