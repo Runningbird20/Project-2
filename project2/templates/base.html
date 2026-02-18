@@ -31,6 +31,7 @@
             <a class="nav-link site-link" href="{% url 'jobposts.search' %}">
               {% if can_post_job %}Candidate Search{% else %}Open Positions{% endif %}
             </a>
+            <a class="nav-link site-link" href="{% url 'pulses:feed' %}">Pulses</a>
 
             {% if can_post_job %}
               <a class="nav-link site-link" href="{% url 'jobposts.create' %}">Post a Job</a>
