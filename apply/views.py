@@ -9,7 +9,11 @@ import json
 import csv
 from django.utils import timezone
 from accounts.models import Profile
-from .services import auto_archive_old_rejections, calculate_application_streak
+from .services import (
+    auto_archive_old_rejections,
+    enforce_employer_response_deadline,
+    calculate_application_streak,
+)
 
 @login_required
 def submit_application(request, job_id):
@@ -57,6 +61,7 @@ def application_submitted(request, job_id):
 @login_required
 def application_status(request):
     """View for applicants to see the status of their own applications (Read-Only)."""
+    enforce_employer_response_deadline()
     auto_archive_old_rejections()
     active_applications = Application.objects.filter(
         user=request.user,
@@ -92,12 +97,15 @@ def update_status(request, application_id):
         
         if new_status in valid_statuses:
             application.status = new_status
+            application.responded_at = timezone.now()
             if new_status == "rejected":
                 application.rejected_at = timezone.now()
+                application.auto_rejected_for_timeout = False
             else:
                 application.rejected_at = None
                 application.archived_by_applicant = False
                 application.archived_by_employer = False
+                application.auto_rejected_for_timeout = False
             application.save()
             
             messages.success(request, f"Status updated for {application.user.username}.")
@@ -114,6 +122,7 @@ def update_status(request, application_id):
 @login_required
 def employer_pipeline(request, job_id):
     """View for employers to manage applicants in a Kanban-style pipeline."""
+    enforce_employer_response_deadline()
     auto_archive_old_rejections()
     job = get_object_or_404(JobPost, id=job_id, owner=request.user)
     applications = Application.objects.filter(job=job).select_related('user')

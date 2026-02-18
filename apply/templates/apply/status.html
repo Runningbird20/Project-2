@@ -13,7 +13,7 @@
       {% for application in applications %}
       <div class="col-12">
         <div class="surface-card">
-          <div class="row align-items-center g-3">
+          <div class="row align-items-start g-3">
             <div class="col-lg-3">
               <h5 class="surface-title mb-1">{{ application.job.title }}</h5>
               <p class="text-muted mb-0 small">{{ application.job.company }}</p>
@@ -23,17 +23,26 @@
             </div>
 
             <div class="col-lg-9">
-              <p class="small mb-2 {% if application.employer_viewed %}text-success{% else %}text-muted{% endif %}">
+              <p class="small mb-1 {% if application.employer_viewed %}text-success{% else %}text-muted{% endif %}">
                 {% if application.employer_viewed %}
                   Viewed by employer{% if application.employer_viewed_at %} on {{ application.employer_viewed_at|date:"M j, Y g:i A" }}{% endif %}
                 {% else %}
                   Not viewed by employer yet
                 {% endif %}
               </p>
+              {% if application.status != 'closed' and application.status != 'rejected' %}
+              <p class="small mb-1 {% if application.response_due_within_7_days %}text-danger{% else %}text-muted{% endif %}">
+                Employer response due by {{ application.response_due_on|date:"M j, Y" }}.
+              </p>
+              {% endif %}
               {% if application.status == 'rejected' %}
               <div class="alert alert-danger rounded-4 mb-0">
                 <strong>Update on your application.</strong>
-                We moved forward with other candidates at {{ application.job.company }}.
+                {% if application.auto_rejected_for_timeout %}
+                  This application was automatically closed because the employer did not respond within 30 days.
+                {% else %}
+                  We moved forward with other candidates at {{ application.job.company }}.
+                {% endif %}
                 <div class="small mt-2">
                   This application will auto-archive on {{ application.auto_archive_on|date:"M j, Y" }}.
                 </div>

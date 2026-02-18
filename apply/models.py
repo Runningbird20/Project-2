@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from jobposts.models import JobPost
 from datetime import timedelta
+from django.utils import timezone
 
 class Apply(models.Model):
     company = models.CharField(max_length=100)
@@ -36,6 +37,8 @@ class Application(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="applied")
     employer_viewed = models.BooleanField(default=False)
     employer_viewed_at = models.DateTimeField(blank=True, null=True)
+    responded_at = models.DateTimeField(blank=True, null=True)
+    auto_rejected_for_timeout = models.BooleanField(default=False)
     rejected_at = models.DateTimeField(blank=True, null=True)
     archived_by_applicant = models.BooleanField(default=False)
     archived_by_employer = models.BooleanField(default=False)
@@ -52,3 +55,18 @@ class Application(models.Model):
         if not base_time:
             return None
         return base_time + timedelta(days=30)
+
+    @property
+    def response_due_on(self):
+        base_time = self.responded_at or self.applied_at
+        if not base_time:
+            return None
+        return base_time + timedelta(days=30)
+
+    @property
+    def response_due_within_7_days(self):
+        due_on = self.response_due_on
+        if not due_on:
+            return False
+        days_remaining = (due_on - timezone.now()).days
+        return 0 <= days_remaining <= 7
