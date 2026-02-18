@@ -115,7 +115,7 @@
         <div class="d-flex align-items-center justify-content-between mb-3">
           <div>
             <div class="text-uppercase text-muted small">Results</div>
-            <h3 class="surface-title mb-0">{{ template_data.posts|length }} openings</h3>
+            <h3 class="surface-title mb-0">{{ template_data.posts_count }} openings</h3>
           </div>
           <a class="secondary-btn btn-compact" href="{% url 'map.jobs_map' %}">View Map</a>
         </div>
@@ -128,7 +128,74 @@
 
         {% if template_data.posts %}
           <div class="vstack gap-3">
-            {% for post in template_data.posts %}
+            {% if template_data.is_applicant and template_data.matched_posts %}
+              <div class="text-uppercase small text-muted fw-semibold mb-1">Matched Jobs</div>
+              {% for post in template_data.matched_posts %}
+                <div class="surface-card py-4">
+                  <div class="d-flex justify-content-between flex-wrap gap-2">
+                    <div>
+                      <h4 class="surface-title mb-1">{{ post.title }}</h4>
+                      <div class="text-muted">{{ post.company }} - {{ post.location }}</div>
+                    </div>
+                    <div class="d-flex flex-column align-items-end justify-content-between gap-2">
+                      <div class="text-end">
+                        <span class="badge bg-dark-subtle text-dark text-uppercase">{{ post.get_work_setting_display }}</span>
+                        <span class="badge bg-info-subtle text-info-emphasis text-uppercase">{{ post.get_company_size_display }}</span>
+                        {% if post.visa_sponsorship %}
+                          <span class="badge bg-success-subtle text-success text-uppercase">Visa</span>
+                        {% endif %}
+                        {% if post.distance_from_home_miles %}
+                          <span class="badge bg-primary-subtle text-primary text-uppercase">{{ post.distance_from_home_miles }} mi</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="job-post-layout mt-3">
+                    <div class="job-post-main">
+                      {% if post.salary_min or post.salary_max %}
+                        <div class="small text-muted">
+                          Salary Range:
+                          {% if post.salary_min %}${{ post.salary_min }}{% endif %}
+                          {% if post.salary_min and post.salary_max %} - {% endif %}
+                          {% if post.salary_max %}${{ post.salary_max }}{% endif %}
+                        </div>
+                      {% endif %}
+                      {% if post.skills %}<div class="small text-muted">Skills: {{ post.skills }}</div>{% endif %}
+                      <p class="mt-3 mb-0">{{ post.description|truncatewords:40 }}</p>
+                    </div>
+
+                    {% if post.office_location %}
+                    <aside class="job-post-map">
+                      <div class="ratio ratio-4x3 job-post-map-frame">
+                        <iframe title="Office location map" src="{{ post.office_location.osm_embed_url }}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                      </div>
+                      <div class="small text-muted mt-2">
+                        {% if post.office_location.full_address %}{{ post.office_location.full_address }} - {% endif %}
+                        <a href="{% url 'map.job_location' post.id %}" class="link-secondary">Full map</a>
+                      </div>
+                      {% if request.user.is_authenticated and not template_data.can_post_job %}
+                        <div class="job-post-map-cta">
+                          <a class="primary-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}">Apply Now</a>
+                        </div>
+                      {% endif %}
+                    </aside>
+                    {% elif request.user.is_authenticated and not template_data.can_post_job %}
+                    <aside class="job-post-map">
+                      <div class="job-post-map-placeholder"></div>
+                      <div class="job-post-map-cta">
+                        <a class="primary-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}">Apply Now</a>
+                      </div>
+                    </aside>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+              <hr class="my-3">
+              <div class="text-uppercase small text-muted fw-semibold mb-1">Other Positions</div>
+            {% endif %}
+
+            {% for post in template_data.other_posts|default:template_data.posts %}
               <div class="surface-card py-4">
                 <div class="d-flex justify-content-between flex-wrap gap-2">
                   <div>

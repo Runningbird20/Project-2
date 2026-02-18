@@ -51,6 +51,12 @@
                 <div class="d-flex justify-content-between flex-wrap gap-2">
                   <div>
                     <h4 class="surface-title mb-1">{{ p.user.username }}</h4>
+                    {% if p.has_skill_match %}
+                      <div class="small text-success fw-semibold mb-1">
+                        <span class="me-1" aria-hidden="true">&#9679;</span>
+                        Matched: {{ p.matched_job_title }}
+                      </div>
+                    {% endif %}
                     {% if p.headline %}<div class="text-muted">{{ p.headline }}</div>{% endif %}
                     {% if p.location_city_state %}<div class="small text-muted">{{ p.location_city_state }}</div>{% endif %}
                     {% if p.skills %}<div class="small text-muted">{{ p.skills }}</div>{% endif %}

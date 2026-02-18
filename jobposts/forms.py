@@ -1,9 +1,13 @@
 from django import forms
 
 from .models import JobPost
+from project2.skills import normalize_skills_csv
 
 
 class JobPostForm(forms.ModelForm):
+    def clean_skills(self):
+        return normalize_skills_csv(self.cleaned_data.get("skills", ""))
+
     def clean(self):
         cleaned_data = super().clean()
         salary_min = cleaned_data.get('salary_min')
