@@ -192,6 +192,55 @@ html.dark-mode .map-pin-card .small {
   color: #b8c4da !important;
 }
 
+.messaging-avatar {
+  background: #5b6475;
+  color: #fff;
+}
+
+.messaging-thread-item {
+  background: transparent;
+}
+
+.messaging-thread-item strong {
+  color: #1c1f29;
+}
+
+html.dark-mode .messaging-thread-item {
+  background: #162133;
+  border-color: #2f3c53;
+}
+
+html.dark-mode .messaging-thread-item strong {
+  color: #e6edf8;
+}
+
+html.dark-mode .messaging-avatar {
+  background: #3f4f69;
+  color: #e6edf8;
+}
+
+html.dark-mode .messaging-chat-window {
+  background: #121d2d;
+}
+
+html.dark-mode .messaging-input-shell {
+  background: #1a273b;
+}
+
+html.dark-mode .messaging-send-btn {
+  color: #8eb9ff;
+}
+
+html.dark-mode .messaging-bubble-self {
+  background-color: #386fc9;
+  color: #f4f8ff;
+}
+
+html.dark-mode .messaging-bubble-other {
+  background-color: #21324b;
+  color: #d7e2f5;
+}
+
 main {
   min-height: calc(100vh - 190px);
 }

@@ -8,6 +8,9 @@
       <h1 class="page-title page-title-sm">Applicant Dashboard</h1>
       <p class="page-copy mb-0">Application streak: <strong>{{ application_streak|default:'0' }} day{% if application_streak != 1 %}s{% endif %}</strong></p>
     </div>
+    <div class="form-actions justify-content-center mb-4">
+      <a href="{% url 'messaging:inbox' %}" class="secondary-btn btn-compact">Messages</a>
+    </div>
 
     <div class="row g-4 align-items-start">
       <div class="col-lg-3">
