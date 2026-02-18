@@ -18,7 +18,21 @@
           {% endif %}
         </form>
         {% if user.is_staff %}
-          <a href="{% url 'accounts.export_usage_report' %}" class="secondary-btn">Export Usage Report</a>
+          <div class="form-actions">
+            <form method="post" action="{% url 'accounts.send_test_email' %}" class="d-flex gap-2 flex-wrap">
+              {% csrf_token %}
+              <input
+                type="email"
+                name="test_email_to"
+                class="form-control"
+                placeholder="test recipient email"
+                required
+                style="min-width: 240px;"
+              >
+              <button type="submit" class="secondary-btn border-0">Send Test Email</button>
+            </form>
+            <a href="{% url 'accounts.export_usage_report' %}" class="secondary-btn">Export Usage Report</a>
+          </div>
         {% endif %}
       </div>
     </div>

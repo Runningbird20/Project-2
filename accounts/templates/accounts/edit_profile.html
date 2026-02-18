@@ -14,6 +14,7 @@
             {% csrf_token %}
             {{ template_data.form.non_field_errors }}
 
+            <div class="field-block">{{ template_data.form.email.label_tag }} {{ template_data.form.email }}</div>
             <div class="field-block">{{ template_data.form.profile_picture.label_tag }} {{ template_data.form.profile_picture }}</div>
             <div class="field-block">{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</div>
 
@@ -37,6 +38,7 @@
                 <div class="col-md-6"><div class="form-check">{{ template_data.form.show_education }} {{ template_data.form.show_education.label_tag }}</div></div>
                 <div class="col-md-6"><div class="form-check">{{ template_data.form.show_work_experience }} {{ template_data.form.show_work_experience.label_tag }}</div></div>
                 <div class="col-md-6"><div class="form-check">{{ template_data.form.show_links }} {{ template_data.form.show_links.label_tag }}</div></div>
+                <div class="col-md-6"><div class="form-check">{{ template_data.form.hide_email_from_employers }} {{ template_data.form.hide_email_from_employers.label_tag }}</div></div>
               </div>
             </div>
 

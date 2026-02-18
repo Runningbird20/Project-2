@@ -13,6 +13,9 @@
             {% csrf_token %}
             {{ template_data.form.non_field_errors }}
 
+            {{ template_data.form.email.errors }}
+            <div class="field-block">{{ template_data.form.email.label_tag }} {{ template_data.form.email }}</div>
+
             {{ template_data.form.account_type.errors }}
             <div class="field-block">{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</div>
 

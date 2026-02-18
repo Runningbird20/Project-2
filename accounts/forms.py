@@ -19,6 +19,10 @@ class CustomUserCreationForm(UserCreationForm):
             self.fields[fieldname].widget.attrs.update({'class': 'form-control'})
 
 class SignupWithProfileForm(CustomUserCreationForm):
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={"class": "form-control", "autocomplete": "email"}),
+    )
     profile_picture = forms.ImageField(required=False)
 
     account_type = forms.ChoiceField(
@@ -85,9 +89,14 @@ class SignupWithProfileForm(CustomUserCreationForm):
 
 class ProfileEditForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
         # Backward-compatible: allow posts that omit account_type and keep current value.
         self.fields["account_type"].required = False
+        if user is None and self.instance and self.instance.pk:
+            user = self.instance.user
+        if user:
+            self.fields["email"].initial = user.email
 
     link_0_label = forms.CharField(
         required=False, 
@@ -108,6 +117,13 @@ class ProfileEditForm(forms.ModelForm):
         required=False, 
         label="Link 2 URL",
         widget=forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://myportfolio.com'})
+    )
+    email = forms.EmailField(
+        required=False,
+        label="Email",
+        widget=forms.EmailInput(
+            attrs={"class": "form-control", "autocomplete": "email"}
+        ),
     )
 
     class Meta:
@@ -130,6 +146,7 @@ class ProfileEditForm(forms.ModelForm):
             "show_education",
             "show_work_experience",
             "show_links",
+            "hide_email_from_employers",
         ]
         widgets = {
             "profile_picture": forms.ClearableFileInput(attrs={"class": "form-control"}),
@@ -154,6 +171,7 @@ class ProfileEditForm(forms.ModelForm):
             "show_education": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "show_work_experience": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "show_links": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "hide_email_from_employers": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
         labels = {
             "profile_picture": "Profile picture",
@@ -164,6 +182,7 @@ class ProfileEditForm(forms.ModelForm):
             "show_education": "Show education",
             "show_work_experience": "Show work experience",
             "show_links": "Show links",
+            "hide_email_from_employers": "Hide email from employers",
             "location": "Address",
             "company_name": "Company Name",
             "company_website": "Company Website",
