@@ -364,7 +364,7 @@ def delete_job(request, job_id):
     return redirect('jobposts.dashboard')
 
 def job_detail(request, post_id):
-    job = get_object_or_404(JobPost, pk=post_id)
+    job = get_object_or_404(JobPost.objects.select_related('office_location'), pk=post_id)
     has_applied = False
     
     if request.user.is_authenticated:
