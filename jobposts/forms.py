@@ -32,6 +32,7 @@ class JobPostForm(forms.ModelForm):
         fields = [
             'title',
             'company',
+            'company_size',
             'location',
             'salary_min',
             'salary_max',
@@ -43,6 +44,7 @@ class JobPostForm(forms.ModelForm):
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control form-control-lg', 'placeholder': 'e.g. Backend Engineer'}),
             'company': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Acme Inc'}),
+            'company_size': forms.Select(attrs={'class': 'form-select'}),
             'location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Remote or Atlanta, GA'}),
             'salary_min': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '70000', 'min': '0', 'step': '1'}),
             'salary_max': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '90000', 'min': '0', 'step': '1'}),

@@ -47,6 +47,7 @@ class JobPostViewTests(TestCase):
         payload = {
             'title': 'Backend Engineer',
             'company': 'Acme Inc',
+            'company_size': 'mid_size',
             'location': 'Remote',
             'salary_min': 70000,
             'salary_max': 90000,
@@ -64,6 +65,7 @@ class JobPostViewTests(TestCase):
         payload = {
             'title': 'Backend Engineer',
             'company': 'Acme Inc',
+            'company_size': 'mid_size',
             'location': 'Atlanta, GA',
             'salary_min': 70000,
             'salary_max': 90000,
@@ -88,6 +90,7 @@ class JobPostViewTests(TestCase):
         payload = {
             'title': 'Backend Engineer',
             'company': 'Acme Inc',
+            'company_size': 'mid_size',
             'location': 'Remote',
             'salary_min': 70000,
             'salary_max': 90000,
@@ -155,6 +158,7 @@ class JobPostViewTests(TestCase):
         payload = {
             'title': 'Updated Title',
             'company': 'Acme Inc',
+            'company_size': 'mid_size',
             'location': 'Remote',
             'salary_min': 70000,
             'salary_max': 90000,
@@ -191,6 +195,7 @@ class JobPostViewTests(TestCase):
         payload = {
             'title': 'Backend Engineer',
             'company': 'Acme Inc',
+            'company_size': 'mid_size',
             'location': 'Atlanta, GA',
             'salary_min': 70000,
             'salary_max': 90000,
@@ -288,3 +293,61 @@ class JobPostViewTests(TestCase):
             response,
             'Add your home address in your profile to use radius filtering.',
         )
+
+    def test_search_filters_by_company_size(self):
+        self.client.login(username='applicant', password='pass12345')
+        matching = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Mid-size Role',
+            company='Acme Inc',
+            location='Atlanta, GA',
+            pay_range='$80k-$100k',
+            company_size='mid_size',
+            work_setting='onsite',
+            description='Match me',
+        )
+        non_matching = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Startup Role',
+            company='Acme Inc',
+            location='Atlanta, GA',
+            pay_range='$80k-$100k',
+            company_size='startup',
+            work_setting='onsite',
+            description='Do not match',
+        )
+
+        response = self.client.get(reverse('jobposts.search'), {'company_size': 'mid_size'})
+        self.assertEqual(response.status_code, 200)
+        posts = list(response.context['template_data']['posts'])
+        self.assertIn(matching, posts)
+        self.assertNotIn(non_matching, posts)
+
+    def test_search_filters_only_visa_sponsored_jobs(self):
+        self.client.login(username='applicant', password='pass12345')
+        visa_job = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Visa Role',
+            company='Acme Inc',
+            location='Atlanta, GA',
+            pay_range='$80k-$100k',
+            visa_sponsorship=True,
+            work_setting='onsite',
+            description='Visa sponsored',
+        )
+        non_visa_job = JobPost.objects.create(
+            owner=self.employer_user,
+            title='No Visa Role',
+            company='Acme Inc',
+            location='Atlanta, GA',
+            pay_range='$80k-$100k',
+            visa_sponsorship=False,
+            work_setting='onsite',
+            description='No sponsorship',
+        )
+
+        response = self.client.get(reverse('jobposts.search'), {'visa_sponsorship': 'true'})
+        self.assertEqual(response.status_code, 200)
+        posts = list(response.context['template_data']['posts'])
+        self.assertIn(visa_job, posts)
+        self.assertNotIn(non_visa_job, posts)
