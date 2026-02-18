@@ -213,6 +213,7 @@ def search(request):
     salary_min = request.GET.get('salary_min', '').strip()
     salary_max = request.GET.get('salary_max', '').strip()
     work_setting = request.GET.get('work_setting', '').strip()
+    company_size = request.GET.get('company_size', '').strip()
     visa_sponsorship = request.GET.get('visa_sponsorship', '').strip()
     use_home_radius = False
     radius_miles = ''
@@ -232,7 +233,9 @@ def search(request):
         posts = posts.filter(location__icontains=location)
     if work_setting:
         posts = posts.filter(work_setting=work_setting)
-    if visa_sponsorship == 'true':
+    if company_size:
+        posts = posts.filter(company_size=company_size)
+    if visa_sponsorship.lower() in {'true', '1', 'on', 'yes'}:
         posts = posts.filter(visa_sponsorship=True)
     if salary_min:
         try:
@@ -315,7 +318,8 @@ def search(request):
         'salary_min': salary_min,
         'salary_max': salary_max,
         'work_setting': work_setting,
-        'visa_sponsorship': visa_sponsorship == 'true',
+        'company_size': company_size,
+        'visa_sponsorship': visa_sponsorship.lower() in {'true', '1', 'on', 'yes'},
         'use_home_radius': use_home_radius,
         'radius_miles': radius_miles,
     }

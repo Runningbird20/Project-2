@@ -88,7 +88,17 @@
           <tbody>
             {% for job in jobs %}
             <tr>
-              <td class="ps-4 py-3"><div class="fw-bold">{{ job.title }}</div><div class="small text-muted">{{ job.company }}</div></td>
+              <td class="ps-4 py-3">
+                <div class="fw-bold">{{ job.title }}</div>
+                <div class="small text-muted">{{ job.company }}</div>
+                <div class="mt-1 d-flex flex-wrap gap-1">
+                  <span class="badge bg-dark-subtle text-dark text-uppercase">{{ job.get_work_setting_display }}</span>
+                  <span class="badge bg-info-subtle text-info-emphasis text-uppercase">{{ job.get_company_size_display }}</span>
+                  {% if job.visa_sponsorship %}
+                    <span class="badge bg-success-subtle text-success text-uppercase">Visa</span>
+                  {% endif %}
+                </div>
+              </td>
               <td class="small text-muted">{{ job.created_at|date:'M d, Y' }}</td>
               <td class="text-center">{{ job.total_apps }}</td>
               <td class="text-center">{% if job.new_apps > 0 %}<span class="badge bg-success-subtle text-success">{{ job.new_apps }} New</span>{% else %}<span class="text-muted">-</span>{% endif %}</td>

@@ -28,7 +28,7 @@
         <div class="surface-card">
           <div class="text-uppercase text-muted small mb-2">Job search</div>
           <h2 class="surface-title mb-3">Find the right role</h2>
-          <form method="get" class="vstack gap-3">
+          <form method="get" class="vstack gap-3" id="job-search-filters">
             <div>
               <label class="form-label">Title</label>
               <input type="text" name="title" class="form-control" placeholder="e.g. Data Engineer" value="{{ template_data.filters.title }}">
@@ -59,6 +59,19 @@
                 <option value="remote" {% if template_data.filters.work_setting == 'remote' %}selected{% endif %}>Remote</option>
                 <option value="onsite" {% if template_data.filters.work_setting == 'onsite' %}selected{% endif %}>On-site</option>
                 <option value="hybrid" {% if template_data.filters.work_setting == 'hybrid' %}selected{% endif %}>Hybrid</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Company Size</label>
+              <select name="company_size" class="form-select">
+                <option value="" {% if not template_data.filters.company_size %}selected{% endif %}>Any</option>
+                <option value="small" {% if template_data.filters.company_size == 'small' %}selected{% endif %}>Small (1-50)</option>
+                <option value="mid_size" {% if template_data.filters.company_size == 'mid_size' %}selected{% endif %}>Mid-size (51-500)</option>
+                <option value="large" {% if template_data.filters.company_size == 'large' %}selected{% endif %}>Large (501-5,000)</option>
+                <option value="fortune_500" {% if template_data.filters.company_size == 'fortune_500' %}selected{% endif %}>Fortune 500</option>
+                <option value="startup" {% if template_data.filters.company_size == 'startup' %}selected{% endif %}>Startup</option>
+                <option value="enterprise" {% if template_data.filters.company_size == 'enterprise' %}selected{% endif %}>Enterprise</option>
+                <option value="other" {% if template_data.filters.company_size == 'other' %}selected{% endif %}>Other</option>
               </select>
             </div>
             <div class="form-check">
@@ -94,10 +107,6 @@
               </div>
             </div>
             {% endif %}
-            <div class="form-actions">
-              <button type="submit" class="primary-btn border-0">Search</button>
-              <a href="{% url 'jobposts.search' %}" class="secondary-btn">Reset</a>
-            </div>
           </form>
         </div>
       </div>
@@ -129,6 +138,7 @@
                   <div class="d-flex flex-column align-items-end justify-content-between gap-2">
                     <div class="text-end">
                       <span class="badge bg-dark-subtle text-dark text-uppercase">{{ post.get_work_setting_display }}</span>
+                      <span class="badge bg-info-subtle text-info-emphasis text-uppercase">{{ post.get_company_size_display }}</span>
                       {% if post.visa_sponsorship %}
                         <span class="badge bg-success-subtle text-success text-uppercase">Visa</span>
                       {% endif %}
@@ -232,5 +242,29 @@ function toggleResumeUpload(selectElement, postId) {
   const uploadDiv = document.getElementById('uploadField' + postId);
   uploadDiv.style.display = selectElement.value === 'uploaded' ? 'block' : 'none';
 }
+
+(function () {
+  const form = document.getElementById('job-search-filters');
+  if (!form) return;
+
+  let debounceTimer = null;
+
+  const submitSoon = function () {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(function () {
+      form.submit();
+    }, 350);
+  };
+
+  form.querySelectorAll('input[type="text"], input[type="number"]').forEach(function (el) {
+    el.addEventListener('input', submitSoon);
+  });
+
+  form.querySelectorAll('select, input[type="checkbox"]').forEach(function (el) {
+    el.addEventListener('change', function () {
+      form.submit();
+    });
+  });
+})();
 </script>
 {% endblock content %}

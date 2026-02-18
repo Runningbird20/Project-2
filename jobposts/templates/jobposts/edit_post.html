@@ -34,6 +34,13 @@
               {% endif %}
             </div>
             <div class="col-md-6">
+              <label class="form-label" for="{{ template_data.form.company_size.id_for_label }}">Company Size</label>
+              {{ template_data.form.company_size }}
+              {% if template_data.form.company_size.errors %}
+                <div class="text-danger small mt-1">{{ template_data.form.company_size.errors }}</div>
+              {% endif %}
+            </div>
+            <div class="col-md-6">
               <label class="form-label" for="{{ template_data.form.location.id_for_label }}">Location</label>
               {{ template_data.form.location }}
               {% if template_data.form.location.errors %}
