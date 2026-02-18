@@ -48,23 +48,26 @@
               {% endif %}
             </div>
             <div class="col-md-6">
-              <label class="form-label" for="{{ template_data.form.pay_range.id_for_label }}">Pay Range</label>
-              {{ template_data.form.pay_range }}
-              <div class="form-text">Share a range to set expectations.</div>
-              {% if template_data.form.pay_range.errors %}
-                <div class="text-danger small mt-1">{{ template_data.form.pay_range.errors }}</div>
-              {% endif %}
-            </div>
-            <div class="col-md-3">
-              <label class="form-label" for="{{ template_data.form.salary_min.id_for_label }}">Salary Min</label>
-              {{ template_data.form.salary_min }}
+              <label class="form-label">Salary Range</label>
+              <div class="row g-2">
+                <div class="col-6">
+                  <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    {{ template_data.form.salary_min }}
+                  </div>
+                  <div class="form-text">Minimum</div>
+                </div>
+                <div class="col-6">
+                  <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    {{ template_data.form.salary_max }}
+                  </div>
+                  <div class="form-text">Maximum</div>
+                </div>
+              </div>
               {% if template_data.form.salary_min.errors %}
                 <div class="text-danger small mt-1">{{ template_data.form.salary_min.errors }}</div>
               {% endif %}
-            </div>
-            <div class="col-md-3">
-              <label class="form-label" for="{{ template_data.form.salary_max.id_for_label }}">Salary Max</label>
-              {{ template_data.form.salary_max }}
               {% if template_data.form.salary_max.errors %}
                 <div class="text-danger small mt-1">{{ template_data.form.salary_max.errors }}</div>
               {% endif %}

@@ -19,6 +19,19 @@
           </div>
 
           <div class="mb-4">
+            <h5 class="surface-title">Salary Range</h5>
+            {% if job.salary_min or job.salary_max %}
+              <p class="text-secondary mb-0">
+                {% if job.salary_min %}${{ job.salary_min }}{% endif %}
+                {% if job.salary_min and job.salary_max %} - {% endif %}
+                {% if job.salary_max %}${{ job.salary_max }}{% endif %}
+              </p>
+            {% else %}
+              <p class="text-secondary mb-0">Not specified</p>
+            {% endif %}
+          </div>
+
+          <div class="mb-4">
             <h5 class="surface-title">Job Description</h5>
             <p class="text-secondary" style="white-space: pre-wrap;">{{ job.description }}</p>
           </div>
@@ -33,6 +46,18 @@
               {% endif %}
             </div>
           </div>
+          {% if job.office_location %}
+            <div class="mb-4">
+              <h5 class="surface-title">Office Location</h5>
+              <div class="ratio ratio-16x9 rounded overflow-hidden border">
+                <iframe title="Office location map" src="{{ job.office_location.osm_embed_url }}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+              </div>
+              <p class="small text-muted mt-2 mb-0">
+                {% if job.office_location.full_address %}{{ job.office_location.full_address }} - {% endif %}
+                <a href="{% url 'map.job_location' job.id %}" class="link-secondary">Open full map</a>
+              </p>
+            </div>
+          {% endif %}
 
           <hr class="my-4">
 

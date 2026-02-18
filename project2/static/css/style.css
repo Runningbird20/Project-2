@@ -522,15 +522,22 @@ main {
   align-items: stretch;
 }
 
+.job-post-layout-no-map {
+  grid-template-columns: 1fr;
+}
+
 .job-post-main {
   min-width: 0;
 }
 
 .job-post-map {
   justify-self: end;
-  align-self: end;
+  align-self: stretch;
   width: 100%;
   max-width: 200px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .job-post-map-frame {
@@ -541,6 +548,16 @@ main {
 
 .job-post-map-frame iframe {
   border: 0;
+}
+
+.job-post-map-placeholder {
+  width: 100%;
+  padding-top: 75%;
+}
+
+.job-post-map-cta {
+  margin-top: auto;
+  padding-top: 0.5rem;
 }
 
 #applyModal {

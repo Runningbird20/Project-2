@@ -8,16 +8,6 @@
       <p class="page-copy">Filter by title, skills, location, salary, and work setting to find roles that match your goals.</p>
     </div>
 
-    {% if messages %}
-      <div class="vstack gap-2 mb-4">
-        {% for message in messages %}
-          <div class="site-alert {% if 'success' in message.tags %}site-alert-success{% endif %}" role="status" data-app-success="{% if request.GET.application_submitted == '1' or 'success' in message.tags and 'submitted successfully' in message|lower %}true{% else %}false{% endif %}">
-            {{ message }}
-          </div>
-        {% endfor %}
-      </div>
-    {% endif %}
-
     <div class="row g-4">
       <div class="col-lg-4">
         <div class="surface-card">
@@ -60,6 +50,35 @@
               <input class="form-check-input" type="checkbox" id="visa_sponsorship" name="visa_sponsorship" value="true" {% if template_data.filters.visa_sponsorship %}checked{% endif %}>
               <label class="form-check-label" for="visa_sponsorship">Visa sponsorship available</label>
             </div>
+            {% if template_data.is_applicant %}
+            <hr class="my-2">
+            <div>
+              <div class="text-uppercase text-muted small mb-2">Commute preference</div>
+              <div class="form-check mb-2">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="use_home_radius"
+                  name="use_home_radius"
+                  value="true"
+                  {% if template_data.filters.use_home_radius %}checked{% endif %}
+                >
+                <label class="form-check-label" for="use_home_radius">
+                  Only show jobs near my home address
+                </label>
+              </div>
+              <div>
+                <label class="form-label" for="radius_miles">Miles from home</label>
+                <input type="number" min="1" step="1" id="radius_miles" name="radius_miles" class="form-control" value="{{ template_data.filters.radius_miles|default:'25' }}">
+              </div>
+              <div class="form-text">
+                Home address: {% if template_data.has_home_address %}{{ template_data.home_address }}{% else %}Not set{% endif %}.
+                {% if not template_data.has_home_address %}
+                  <a href="{% url 'accounts.profile_edit' %}" class="link-secondary">Add it in Profile.</a>
+                {% endif %}
+              </div>
+            </div>
+            {% endif %}
             <div class="form-actions">
               <button type="submit" class="primary-btn border-0">Search</button>
               <a href="{% url 'jobposts.search' %}" class="secondary-btn">Reset</a>
@@ -74,7 +93,14 @@
             <div class="text-uppercase text-muted small">Results</div>
             <h3 class="surface-title mb-0">{{ template_data.posts|length }} openings</h3>
           </div>
+          <a class="secondary-btn btn-compact" href="{% url 'map.jobs_map' %}">View Map</a>
         </div>
+        {% if template_data.radius_warning %}
+          <div class="alert alert-warning">{{ template_data.radius_warning }}</div>
+        {% endif %}
+        {% if template_data.radius_active %}
+          <div class="alert alert-info">Showing jobs within {{ template_data.filters.radius_miles }} miles of your home address (plus remote roles).</div>
+        {% endif %}
 
         {% if template_data.posts %}
           <div class="vstack gap-3">
@@ -85,11 +111,16 @@
                     <h4 class="surface-title mb-1">{{ post.title }}</h4>
                     <div class="text-muted">{{ post.company }} - {{ post.location }}</div>
                   </div>
-                  <div class="text-end">
-                    <span class="badge bg-dark-subtle text-dark text-uppercase">{{ post.get_work_setting_display }}</span>
-                    {% if post.visa_sponsorship %}
-                      <span class="badge bg-success-subtle text-success text-uppercase">Visa</span>
-                    {% endif %}
+                  <div class="d-flex flex-column align-items-end justify-content-between gap-2">
+                    <div class="text-end">
+                      <span class="badge bg-dark-subtle text-dark text-uppercase">{{ post.get_work_setting_display }}</span>
+                      {% if post.visa_sponsorship %}
+                        <span class="badge bg-success-subtle text-success text-uppercase">Visa</span>
+                      {% endif %}
+                      {% if post.distance_from_home_miles %}
+                        <span class="badge bg-primary-subtle text-primary text-uppercase">{{ post.distance_from_home_miles }} mi</span>
+                      {% endif %}
+                    </div>
                   </div>
                 </div>
 
@@ -97,19 +128,15 @@
                   <div class="job-post-main">
                     {% if post.salary_min or post.salary_max %}
                       <div class="small text-muted">
-                        Salary:
+                        Salary Range:
                         {% if post.salary_min %}${{ post.salary_min }}{% endif %}
                         {% if post.salary_min and post.salary_max %} - {% endif %}
                         {% if post.salary_max %}${{ post.salary_max }}{% endif %}
                       </div>
                     {% endif %}
-                    {% if post.pay_range %}<div class="small text-muted">Pay Range {{ post.pay_range }}</div>{% endif %}
                     {% if post.skills %}<div class="small text-muted">Skills: {{ post.skills }}</div>{% endif %}
                     <p class="mt-3 mb-0">{{ post.description|truncatewords:40 }}</p>
 
-                    <div class="mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                      <a class="secondary-btn" href="{% url 'jobposts.detail' post.id %}">View details</a>
-                    </div>
                   </div>
 
                   {% if post.office_location %}
@@ -120,6 +147,18 @@
                     <div class="small text-muted mt-2">
                       {% if post.office_location.full_address %}{{ post.office_location.full_address }} - {% endif %}
                       <a href="{% url 'map.job_location' post.id %}" class="link-secondary">Full map</a>
+                    </div>
+                    {% if request.user.is_authenticated and not template_data.can_post_job %}
+                      <div class="job-post-map-cta">
+                        <a class="primary-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}">Apply Now</a>
+                      </div>
+                    {% endif %}
+                  </aside>
+                  {% elif request.user.is_authenticated and not template_data.can_post_job %}
+                  <aside class="job-post-map">
+                    <div class="job-post-map-placeholder"></div>
+                    <div class="job-post-map-cta">
+                      <a class="primary-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}">Apply Now</a>
                     </div>
                   </aside>
                   {% endif %}
@@ -178,30 +217,5 @@ function toggleResumeUpload(selectElement, postId) {
   const uploadDiv = document.getElementById('uploadField' + postId);
   uploadDiv.style.display = selectElement.value === 'uploaded' ? 'block' : 'none';
 }
-
-function launchConfettiBurst() {
-  const colors = ['#1f9d55', '#1d2433', '#9fc3df', '#f7b500', '#ffffff'];
-  const pieces = 110;
-  for (let i = 0; i < pieces; i++) {
-    const piece = document.createElement('span');
-    piece.className = 'confetti-piece';
-    piece.style.left = `${Math.random() * 100}vw`;
-    piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-    piece.style.width = `${6 + Math.random() * 6}px`;
-    piece.style.height = `${8 + Math.random() * 10}px`;
-    piece.style.animationDelay = `${Math.random() * 0.25}s`;
-    piece.style.animationDuration = `${1.8 + Math.random() * 1.2}s`;
-    piece.style.transform = `rotate(${Math.random() * 360}deg)`;
-    document.body.appendChild(piece);
-    setTimeout(() => piece.remove(), 3200);
-  }
-}
-
-document.addEventListener('DOMContentLoaded', function () {
-  const hadSuccessfulApplication = document.querySelector('[data-app-success="true"]');
-  if (hadSuccessfulApplication) {
-    launchConfettiBurst();
-  }
-});
 </script>
 {% endblock content %}

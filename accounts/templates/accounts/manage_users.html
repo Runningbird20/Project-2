@@ -18,7 +18,10 @@
           {% endif %}
         </form>
         {% if user.is_staff %}
-          <a href="{% url 'accounts.export_usage_report' %}" class="secondary-btn">Export Usage Report</a>
+          <div class="form-actions">
+            <a href="{% url 'accounts.applicant_clusters_map' %}" class="secondary-btn">Applicant Clusters Map</a>
+            <a href="{% url 'accounts.export_usage_report' %}" class="secondary-btn">Export Usage Report</a>
+          </div>
         {% endif %}
       </div>
     </div>

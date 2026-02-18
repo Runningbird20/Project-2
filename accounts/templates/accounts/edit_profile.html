@@ -19,7 +19,10 @@
 
             <div id="applicant_fields">
               <div class="field-block">{{ template_data.form.headline.label_tag }} {{ template_data.form.headline }}</div>
-              <div class="field-block">{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</div>
+              <div class="field-block">
+                {{ template_data.form.location.label_tag }} {{ template_data.form.location }}
+                <div class="form-text">Only your city and state are shown to employers.</div>
+              </div>
               <div class="field-block">{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</div>
               <div class="field-block">{{ template_data.form.skills.label_tag }} {{ template_data.form.skills }}</div>
               <div class="field-block">{{ template_data.form.education.label_tag }} {{ template_data.form.education }}</div>
