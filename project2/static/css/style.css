@@ -204,6 +204,12 @@ html.dark-mode .edit-profile-form .small.text-muted {
   color: #d3def2 !important;
 }
 
+html.dark-mode .job-search-page .text-muted,
+html.dark-mode .job-search-page .small.text-muted,
+html.dark-mode .job-search-page .form-text {
+  color: #d3def2 !important;
+}
+
 .messaging-avatar {
   background: #5b6475;
   color: #fff;
