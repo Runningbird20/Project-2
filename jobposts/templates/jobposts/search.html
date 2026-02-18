@@ -228,29 +228,9 @@
 </section>
 
 <script>
-<<<<<<< HEAD
-  (function () {
-    const shouldCelebrate = Boolean(document.querySelector("[data-apply-success='1']"));
-    window.addEventListener("load", function () {
-      if (shouldCelebrate && typeof window.burstConfettiFromBottom === "function") {
-        window.burstConfettiFromBottom("Congrats! Your application was submitted.");
-      }
-    });
-  })();
-
-  function toggleResumeUpload(selectElement, postId) {
-    const uploadDiv = document.getElementById('uploadField' + postId);
-    if (selectElement.value === 'uploaded') {
-      uploadDiv.style.display = 'block';
-    } else {
-      uploadDiv.style.display = 'none';
-    }
-  }
-=======
 function toggleResumeUpload(selectElement, postId) {
   const uploadDiv = document.getElementById('uploadField' + postId);
   uploadDiv.style.display = selectElement.value === 'uploaded' ? 'block' : 'none';
 }
->>>>>>> 28a1ebaf94c90773bc6c6ac0febcc9b1515f3248
 </script>
 {% endblock content %}
