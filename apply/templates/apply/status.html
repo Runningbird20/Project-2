@@ -35,7 +35,7 @@
         </div>
       </div>
 
-      <div class="col-lg-9">
+      <div class="col-lg-6">
         <div class="tab-content vstack gap-4" id="applicant-dashboard-content">
           <div class="tab-pane fade show active" id="tab-applications" role="tabpanel" aria-labelledby="tab-applications-btn" tabindex="0">
             <div class="surface-card mb-4">
@@ -238,6 +238,25 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-3">
+        <div class="surface-card">
+          <h3 class="surface-title mb-3">Activity Feed</h3>
+          <div class="vstack gap-3">
+            {% for event in activity_events %}
+              <div class="border rounded-4 p-3">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                  <span class="badge bg-dark-subtle text-dark">{{ event.event_type }}</span>
+                  <span class="small text-muted">{{ event.timestamp|date:"M j, Y g:i A" }}</span>
+                </div>
+                <p class="small mb-0 mt-2">{{ event.detail }}</p>
+              </div>
+            {% empty %}
+              <p class="text-muted mb-0">No activity yet. Updates will appear here as employers interact with your applications.</p>
+            {% endfor %}
           </div>
         </div>
       </div>
