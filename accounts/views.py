@@ -7,6 +7,10 @@ from django.conf import settings
 from django.contrib.auth import login as auth_login, authenticate, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
+<<<<<<< HEAD
+from django.contrib.auth import get_user_model
+from django.http import Http404, HttpResponseForbidden
+=======
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth import get_user_model
 from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse
@@ -15,6 +19,7 @@ from django.contrib import messages
 from django.core.mail import send_mail
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+>>>>>>> 156b8247066672cbcf1b1750d04d2bbf53ebc42e
 
 from .forms import SignupWithProfileForm, CustomErrorList, ProfileEditForm
 from .models import Profile, SavedCandidateSearch
@@ -128,11 +133,13 @@ def send_test_email(request):
     messages.success(request, f"Test email queued (from: {sender}, to: {recipient}).")
     return redirect("accounts.manage_users")
 
+
 @login_required
 def logout(request):
     auth_logout(request)
     messages.info(request, "You have been logged out.")
     return redirect("home.index")
+
 
 def login(request):
     template_data = {"title": "Login"}
@@ -178,21 +185,31 @@ def forgot_username(request):
     )
     return redirect("accounts.login")
 
+
 def signup(request):
     template_data = {"title": "Sign Up"}
     if request.method == "GET":
         template_data["form"] = SignupWithProfileForm()
         return render(request, "accounts/signup.html", {"template_data": template_data})
 
+<<<<<<< HEAD
+    form = SignupWithProfileForm(request.POST, error_class=CustomErrorList)
+    template_data["form"] = form
+
+=======
     form = SignupWithProfileForm(request.POST, request.FILES, error_class=CustomErrorList)
+>>>>>>> 156b8247066672cbcf1b1750d04d2bbf53ebc42e
     if not form.is_valid():
         template_data["form"] = form
         return render(request, "accounts/signup.html", {"template_data": template_data})
 
     with transaction.atomic():
         user = form.save()
+<<<<<<< HEAD
+=======
         user.email = form.cleaned_data.get("email", "")
         user.save(update_fields=["email"])
+>>>>>>> 156b8247066672cbcf1b1750d04d2bbf53ebc42e
         profile, _ = Profile.objects.get_or_create(user=user)
         acct = form.cleaned_data.get("account_type", Profile.AccountType.APPLICANT)
         
@@ -205,15 +222,31 @@ def signup(request):
             profile.company_name = form.cleaned_data.get("company_name", "")
             profile.company_website = form.cleaned_data.get("company_website", "")
             profile.company_description = form.cleaned_data.get("company_description", "")
+<<<<<<< HEAD
+            profile.headline = ""
+            profile.skills = ""
+            profile.education = ""
+            profile.work_experience = ""
+=======
             profile.headline = profile.skills = profile.education = profile.work_experience = ""
+>>>>>>> 156b8247066672cbcf1b1750d04d2bbf53ebc42e
         else:
             profile.headline = form.cleaned_data.get("headline", "")
             profile.skills = form.cleaned_data.get("skills", "")
             profile.education = form.cleaned_data.get("education", "")
             profile.work_experience = form.cleaned_data.get("work_experience", "")
+<<<<<<< HEAD
+            profile.company_name = ""
+            profile.company_website = ""
+            profile.company_description = ""
+
+        profile.save()
+
+=======
             profile.company_name = profile.company_website = profile.company_description = ""
 
         profile.save()
+>>>>>>> 156b8247066672cbcf1b1750d04d2bbf53ebc42e
         for i in range(2):
             label = request.POST.get(f"link_label_{i}", "").strip()
             url = request.POST.get(f"link_url_{i}", "").strip()
@@ -222,7 +255,14 @@ def signup(request):
     messages.success(request, "Account created! Please log in.")
     return redirect("accounts.login")
 
+
 @login_required
+<<<<<<< HEAD
+def profile(request):
+    template_data = {"title": "My Profile"}
+    prof, _ = Profile.objects.get_or_create(user=request.user)
+    template_data["profile"] = prof
+=======
 def profile(request, user_id=None):
     User = get_user_model()
     user_to_view = get_object_or_404(User, id=user_id) if user_id else request.user
@@ -240,7 +280,9 @@ def profile(request, user_id=None):
         "is_own_profile": is_own,
         "has_links": prof.links.exists(),
     }
+>>>>>>> 156b8247066672cbcf1b1750d04d2bbf53ebc42e
     return render(request, "accounts/profile.html", {"template_data": template_data})
+
 
 @login_required
 def edit_profile(request, username=None):
@@ -277,6 +319,87 @@ def edit_profile(request, username=None):
 
     return render(request, "accounts/edit_profile.html", {"template_data": {"title": "Edit Profile", "form": form}})
 
+<<<<<<< HEAD
+    form = ProfileEditForm(request.POST, instance=profile)
+    template_data["form"] = form
+
+    if not form.is_valid():
+        return render(request, "accounts/edit_profile.html", {"template_data": template_data})
+
+    with transaction.atomic():
+        prof = form.save(commit=False)
+
+        if prof.account_type == Profile.AccountType.EMPLOYER:
+            prof.headline = ""
+            prof.skills = ""
+            prof.education = ""
+            prof.work_experience = ""
+        else:
+            prof.company_name = ""
+            prof.company_website = ""
+            prof.company_description = ""
+
+        prof.save()
+
+    return redirect("accounts.profile")
+
+
+@staff_member_required
+def manage_users(request):
+    template_data = {
+        "title": "Manage Users",
+        "users": Profile.objects.all(),
+    }
+    return render(request, 'accounts/manage_users.html', {'template_data': template_data})
+
+
+@staff_member_required
+def edit_user(request, user_id):
+    template_data = {"title": "Edit User"}
+    profile = get_object_or_404(Profile, id=user_id)
+    template_data["user"] = profile
+
+    if profile.user.is_superuser and not request.user.is_superuser:
+        return redirect("accounts.manage_users")
+
+    if request.method == "GET":
+        template_data["form"] = ProfileEditForm(instance=profile)
+        return render(request, "accounts/edit_user.html", {"template_data": template_data})
+
+    form = ProfileEditForm(request.POST, instance=profile)
+    template_data["form"] = form
+
+    if not form.is_valid():
+        return render(request, "accounts/edit_user.html", {"template_data": template_data})
+
+    with transaction.atomic():
+        prof = form.save(commit=False)
+
+        if prof.account_type == Profile.AccountType.EMPLOYER:
+            prof.headline = ""
+            prof.skills = ""
+            prof.education = ""
+            prof.work_experience = ""
+        else:
+            prof.company_name = ""
+            prof.company_website = ""
+            prof.company_description = ""
+
+        prof.save()
+
+    return redirect("accounts.manage_users")
+
+
+@staff_member_required
+def remove_user(request, user_id):
+    if request.method == "POST":
+        user = Profile.objects.get(id=user_id)
+        user.user.delete()
+        return redirect('accounts.manage_users')
+    return redirect('accounts.manage_users')
+
+
+=======
 @superuser_required
 def manage_users(request):
     query = request.GET.get('search', '').strip()
@@ -327,6 +450,7 @@ def remove_user(request, user_id):
         messages.warning(request, f"User {username} has been deleted.")
     return redirect("accounts.manage_users")
 
+>>>>>>> 156b8247066672cbcf1b1750d04d2bbf53ebc42e
 def public_profile(request, username):
     User = get_user_model()
     user = get_object_or_404(User, username=username)
@@ -410,8 +534,12 @@ def applicant_clusters_map(request):
         "total_applicants": applicants.count(),
         "cluster_count": len(clusters),
     }
+<<<<<<< HEAD
+    return render(request, "accounts/public_profile.html", {"template_data": template_data})
+=======
     return render(
         request,
         "accounts/applicant_clusters_map.html",
         {"template_data": template_data, "clusters": clusters},
     )
+>>>>>>> 156b8247066672cbcf1b1750d04d2bbf53ebc42e
