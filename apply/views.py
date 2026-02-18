@@ -5,6 +5,8 @@ from django.conf import settings
 from django.core.mail import send_mail
 from .models import Application
 from jobposts.models import JobPost
+from jobposts.models import ApplicantJobMatch
+from jobposts.matching import sync_applicant_job_matches
 from django.http import JsonResponse, HttpResponseForbidden, HttpResponse, Http404
 from django.views.decorators.http import require_POST
 import json
@@ -102,6 +104,7 @@ def application_status(request):
     """View for applicants to see the status of their own applications (Read-Only)."""
     enforce_employer_response_deadline()
     auto_archive_old_rejections()
+    sync_applicant_job_matches(request.user)
     active_applications = Application.objects.filter(
         user=request.user,
         archived_by_applicant=False,
@@ -110,12 +113,18 @@ def application_status(request):
         user=request.user,
         archived_by_applicant=True,
     ).select_related("job")
+    matched_jobs = (
+        ApplicantJobMatch.objects.filter(applicant=request.user)
+        .select_related("job")
+        .order_by("-score", "-updated_at")
+    )
     return render(
         request,
         "apply/status.html",
         {
             "applications": active_applications,
             "archived_applications": archived_applications,
+            "matched_jobs": matched_jobs,
             "application_streak": calculate_application_streak(request.user),
         },
     )

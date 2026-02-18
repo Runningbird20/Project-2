@@ -55,6 +55,12 @@ class Profile(models.Model):
         return f"{self.user.username} Profile"
 
     @property
+    def profile_picture_or_default_url(self):
+        if self.profile_picture:
+            return self.profile_picture.url
+        return f"{settings.MEDIA_URL}profile_pics/default-icon.png"
+
+    @property
     def location_city_state(self):
         """
         Return a privacy-safe location string (city/state) parsed from full address.
