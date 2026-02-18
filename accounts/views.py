@@ -229,17 +229,23 @@ def signup(request):
         return render(request, "accounts/signup.html", {"template_data": template_data})
 
     if user.email:
-        send_mail(
-            subject="Welcome to PandaPulse",
-            message=(
-                f"Hi {user.username},\n\n"
-                "Your PandaPulse account has been created successfully.\n\n"
-                "You can now log in and start using the platform."
-            ),
-            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
-            recipient_list=[user.email],
-            fail_silently=True,
-        )
+        try:
+            send_mail(
+                subject="Welcome to PandaPulse",
+                message=(
+                    f"Hi {user.username},\n\n"
+                    "Your PandaPulse account has been created successfully.\n\n"
+                    "You can now log in and start using the platform."
+                ),
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+        except Exception as exc:
+            if settings.DEBUG:
+                messages.warning(request, f"Account confirmation email could not be sent: {exc}")
+            else:
+                messages.warning(request, "Account confirmation email could not be sent.")
 
     messages.success(request, "Account created! Please log in.")
     return redirect("accounts.login")

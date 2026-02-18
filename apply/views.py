@@ -45,29 +45,41 @@ def submit_application(request, job_id):
     )
 
     if request.user.email:
-        send_mail(
-            subject=f"Application submitted: {job.title}",
-            message=(
-                f"Hi {request.user.username},\n\n"
-                f"Your application for '{job.title}' at {job.company} was submitted successfully.\n\n"
-                "You can track status updates in PandaPulse."
-            ),
-            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
-            recipient_list=[request.user.email],
-            fail_silently=True,
-        )
+        try:
+            send_mail(
+                subject=f"Application submitted: {job.title}",
+                message=(
+                    f"Hi {request.user.username},\n\n"
+                    f"Your application for '{job.title}' at {job.company} was submitted successfully.\n\n"
+                    "You can track status updates in PandaPulse."
+                ),
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
+                recipient_list=[request.user.email],
+                fail_silently=False,
+            )
+        except Exception as exc:
+            if settings.DEBUG:
+                messages.warning(request, f"Application confirmation email could not be sent: {exc}")
+            else:
+                messages.warning(request, "Application confirmation email could not be sent.")
 
     if job.owner and job.owner.email:
-        send_mail(
-            subject=f"New application received: {job.title}",
-            message=(
-                f"{application.user.username} submitted an application for '{job.title}'.\n\n"
-                "Log in to PandaPulse to review the candidate."
-            ),
-            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
-            recipient_list=[job.owner.email],
-            fail_silently=True,
-        )
+        try:
+            send_mail(
+                subject=f"New application received: {job.title}",
+                message=(
+                    f"{application.user.username} submitted an application for '{job.title}'.\n\n"
+                    "Log in to PandaPulse to review the candidate."
+                ),
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
+                recipient_list=[job.owner.email],
+                fail_silently=False,
+            )
+        except Exception as exc:
+            if settings.DEBUG:
+                messages.warning(request, f"Employer notification email could not be sent: {exc}")
+            else:
+                messages.warning(request, "Employer notification email could not be sent.")
 
     messages.success(request, f"Application for {job.title} submitted successfully!")
 
@@ -134,6 +146,26 @@ def update_status(request, application_id):
                 application.archived_by_employer = False
                 application.auto_rejected_for_timeout = False
             application.save()
+
+            if application.user.email:
+                try:
+                    send_mail(
+                        subject=f"Application status update: {application.job.title}",
+                        message=(
+                            f"Hi {application.user.username},\n\n"
+                            f"Your application for '{application.job.title}' at {application.job.company} "
+                            f"is now: {application.get_status_display()}.\n\n"
+                            "Log in to PandaPulse to view details."
+                        ),
+                        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
+                        recipient_list=[application.user.email],
+                        fail_silently=False,
+                    )
+                except Exception as exc:
+                    if settings.DEBUG:
+                        messages.warning(request, f"Application status update email could not be sent: {exc}")
+                    else:
+                        messages.warning(request, "Application status update email could not be sent.")
             
             messages.success(request, f"Status updated for {application.user.username}.")
             

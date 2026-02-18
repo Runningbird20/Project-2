@@ -1,5 +1,7 @@
 import math
 
+from django.conf import settings
+from django.core.mail import send_mail
 from django.db import models
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
@@ -119,6 +121,23 @@ def create(request):
             post.save()
             try:
                 _save_office_location(post, map_form)
+                if request.user.email:
+                    try:
+                        send_mail(
+                            subject=f"Job posted: {post.title}",
+                            message=(
+                                f"Hi {request.user.username},\n\n"
+                                f"Your job posting '{post.title}' at {post.company} is now live on PandaPulse."
+                            ),
+                            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
+                            recipient_list=[request.user.email],
+                            fail_silently=False,
+                        )
+                    except Exception as exc:
+                        if settings.DEBUG:
+                            messages.warning(request, f"Job posting confirmation email could not be sent: {exc}")
+                        else:
+                            messages.warning(request, "Job posting confirmation email could not be sent.")
                 return redirect('jobposts.search')
             except OfficeLocationGeocodingError as exc:
                 map_form.add_error(None, str(exc))
