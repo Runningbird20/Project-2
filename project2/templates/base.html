@@ -28,17 +28,12 @@
         <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
           <div class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
             <a class="nav-link site-link" href="{% url 'home.about' %}">About</a>
-            <a class="nav-link site-link" href="{% url 'jobposts.search' %}">
-              {% if can_post_job %}Candidate Search{% else %}Open Positions{% endif %}
-            </a>
-
-            {% if can_post_job %}
-              <a class="nav-link site-link" href="{% url 'jobposts.create' %}">Post a Job</a>
+            {% if not can_post_job %}
+              <a class="nav-link site-link" href="{% url 'jobposts.search' %}">Open Positions</a>
             {% endif %}
-
             {% if user.is_authenticated %}
               {% if can_post_job %}
-                <a class="nav-link site-link" href="{% url 'jobposts.dashboard' %}">Dashboard</a>
+                <a class="nav-link site-link" href="{% url 'jobposts.dashboard' %}">Employer Dashboard</a>
               {% else %}
                 <a class="nav-link site-link" href="{% url 'apply:application_status' %}">Applicant Dashboard</a>
               {% endif %}

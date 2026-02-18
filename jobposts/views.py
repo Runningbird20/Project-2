@@ -78,13 +78,52 @@ def dashboard(request):
         ).order_by('-created_at')
 
         overall_total = sum(job.total_apps for job in my_jobs)
-        
+        employer_jobs = list(my_jobs)
+
+        def _skill_set(raw_value):
+            if not raw_value:
+                return set()
+            return {token.strip().lower() for token in raw_value.split(",") if token.strip()}
+
+        applied_pairs = set(
+            Application.objects.filter(job__owner=request.user).values_list("user_id", "job_id")
+        )
+        job_skill_sets = [(job, _skill_set(job.skills)) for job in employer_jobs]
+        candidate_matches = []
+        applicant_profiles = Profile.objects.filter(
+            account_type=Profile.AccountType.APPLICANT,
+            visible_to_recruiters=True,
+        ).select_related("user").order_by("user__username")
+
+        for candidate in applicant_profiles:
+            candidate_skills = _skill_set(candidate.skills)
+            if not candidate_skills:
+                continue
+
+            best_job = None
+            best_score = 0
+            for job, job_skills in job_skill_sets:
+                if (candidate.user_id, job.id) in applied_pairs:
+                    continue
+                score = len(candidate_skills.intersection(job_skills))
+                if score > best_score:
+                    best_score = score
+                    best_job = job
+
+            if best_job:
+                candidate_matches.append({
+                    "candidate": candidate,
+                    "job": best_job,
+                    "score": best_score,
+                })
+    
         saved_searches = request.user.saved_searches.all()
     
         context.update({
             'jobs': my_jobs,
             'overall_total': overall_total,
             'saved_searches': saved_searches,
+            'matched_candidates': candidate_matches,
             'archived_rejected_applicants': Application.objects.filter(
                 job__owner=request.user,
                 status='rejected',
