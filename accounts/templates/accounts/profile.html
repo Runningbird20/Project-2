@@ -24,6 +24,11 @@
                 {% else %}
                   {% if template_data.profile.location_city_state %}<p class="small text-muted mb-1">{{ template_data.profile.location_city_state }}</p>{% endif %}
                 {% endif %}
+                {% if template_data.profile.account_type == "APPLICANT" and template_data.viewed_user.email %}
+                  {% if template_data.is_own_profile or not template_data.profile.hide_email_from_employers %}
+                    <p class="small text-muted mb-1">{{ template_data.viewed_user.email }}</p>
+                  {% endif %}
+                {% endif %}
                 {% if template_data.profile.account_type == "APPLICANT" and template_data.profile.headline %}
                   <p class="surface-copy mb-0">{{ template_data.profile.headline }}</p>
                 {% endif %}

@@ -3,6 +3,7 @@ import json
 from collections import Counter
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db import transaction
+from django.conf import settings
 from django.contrib.auth import login as auth_login, authenticate, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
@@ -11,6 +12,9 @@ from django.contrib.auth import get_user_model
 from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse
 from django.db.models import Q, Count
 from django.contrib import messages
+from django.core.mail import send_mail
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
 from .forms import SignupWithProfileForm, CustomErrorList, ProfileEditForm
 from .models import Profile, SavedCandidateSearch
@@ -81,6 +85,49 @@ def export_usage_report(request):
     response['Content-Disposition'] = 'attachment; filename="platform_usage_report.csv"'
     return response
 
+
+@staff_member_required
+def send_test_email(request):
+    if request.method != "POST":
+        return redirect("accounts.manage_users")
+
+    recipient = (request.POST.get("test_email_to") or "").strip()
+    if not recipient:
+        messages.error(request, "Provide a recipient email.")
+        return redirect("accounts.manage_users")
+
+    try:
+        validate_email(recipient)
+    except ValidationError:
+        messages.error(request, "Enter a valid recipient email.")
+        return redirect("accounts.manage_users")
+
+    try:
+        sender = (settings.EMAIL_HOST_USER or settings.DEFAULT_FROM_EMAIL or "no-reply@pandapulse.local").strip()
+        sent_count = send_mail(
+            subject="PandaPulse test email",
+            message=(
+                "This is a test email from PandaPulse.\n\n"
+                "If you received this message, SMTP delivery is working."
+            ),
+            from_email=sender,
+            recipient_list=[recipient],
+            fail_silently=False,
+        )
+    except Exception as exc:
+        messages.error(request, f"Test email failed: {exc}")
+        return redirect("accounts.manage_users")
+
+    if sent_count < 1:
+        messages.error(
+            request,
+            f"Test email was not accepted by the backend (from: {sender}, to: {recipient}).",
+        )
+        return redirect("accounts.manage_users")
+
+    messages.success(request, f"Test email queued (from: {sender}, to: {recipient}).")
+    return redirect("accounts.manage_users")
+
 @login_required
 def logout(request):
     auth_logout(request)
@@ -101,6 +148,36 @@ def login(request):
     messages.success(request, f"Welcome back, {user.username}!")
     return redirect("home.index")
 
+
+def forgot_username(request):
+    template_data = {"title": "Forgot Username"}
+    if request.method == "GET":
+        return render(request, "accounts/forgot_username.html", {"template_data": template_data})
+
+    email = request.POST.get("email", "").strip()
+    if email:
+        user_model = get_user_model()
+        matches = user_model.objects.filter(email__iexact=email).order_by("username")
+        if matches.exists():
+            usernames = ", ".join([u.username for u in matches])
+            send_mail(
+                subject="Your PandaPulse username reminder",
+                message=(
+                    "You requested your PandaPulse username.\n\n"
+                    f"Username(s) for this email: {usernames}\n\n"
+                    "If you did not request this, you can ignore this email."
+                ),
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
+                recipient_list=[email],
+                fail_silently=True,
+            )
+
+    messages.info(
+        request,
+        "If that email exists in our system, we sent your username reminder."
+    )
+    return redirect("accounts.login")
+
 def signup(request):
     template_data = {"title": "Sign Up"}
     if request.method == "GET":
@@ -114,6 +191,8 @@ def signup(request):
 
     with transaction.atomic():
         user = form.save()
+        user.email = form.cleaned_data.get("email", "")
+        user.save(update_fields=["email"])
         profile, _ = Profile.objects.get_or_create(user=user)
         acct = form.cleaned_data.get("account_type", Profile.AccountType.APPLICANT)
         
@@ -171,7 +250,7 @@ def edit_profile(request, username=None):
     profile, _ = Profile.objects.get_or_create(user=request.user)
     
     if request.method == "POST":
-        form = ProfileEditForm(request.POST, request.FILES, instance=profile)
+        form = ProfileEditForm(request.POST, request.FILES, instance=profile, user=request.user)
         if form.is_valid():
             with transaction.atomic():
                 prof = form.save(commit=False)
@@ -187,10 +266,14 @@ def edit_profile(request, username=None):
                     prof.company_description = ""
                 
                 prof.save()
+                submitted_email = (form.cleaned_data.get("email") or "").strip()
+                if submitted_email and submitted_email != request.user.email:
+                    request.user.email = submitted_email
+                    request.user.save(update_fields=["email"])
                 messages.success(request, "Profile updated successfully!")
                 return redirect("accounts.profile")
     else:
-        form = ProfileEditForm(instance=profile)
+        form = ProfileEditForm(instance=profile, user=request.user)
 
     return render(request, "accounts/edit_profile.html", {"template_data": {"title": "Edit Profile", "form": form}})
 
@@ -209,7 +292,7 @@ def edit_user(request, user_id):
         return redirect("accounts.manage_users")
 
     if request.method == "POST":
-        form = ProfileEditForm(request.POST, request.FILES, instance=profile)
+        form = ProfileEditForm(request.POST, request.FILES, instance=profile, user=profile.user)
         if form.is_valid():
             with transaction.atomic():
                 prof = form.save(commit=False)
@@ -225,10 +308,14 @@ def edit_user(request, user_id):
                     prof.company_description = ""
                 
                 prof.save()
+                submitted_email = (form.cleaned_data.get("email") or "").strip()
+                if submitted_email and submitted_email != profile.user.email:
+                    profile.user.email = submitted_email
+                    profile.user.save(update_fields=["email"])
                 messages.success(request, f"User {profile.user.username} updated.")
                 return redirect("accounts.manage_users")
     else:
-        form = ProfileEditForm(instance=profile)
+        form = ProfileEditForm(instance=profile, user=profile.user)
 
     return render(request, "accounts/edit_user.html", {"template_data": {"title": "Edit User", "form": form, "user": profile}})
 @superuser_required

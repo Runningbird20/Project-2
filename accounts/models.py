@@ -47,6 +47,7 @@ class Profile(models.Model):
     show_education = models.BooleanField(default=True)
     show_work_experience = models.BooleanField(default=True)
     show_links = models.BooleanField(default=True)
+    hide_email_from_employers = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
