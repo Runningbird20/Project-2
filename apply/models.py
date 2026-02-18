@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from jobposts.models import JobPost
+from datetime import timedelta
 
 class Apply(models.Model):
     company = models.CharField(max_length=100)
@@ -35,9 +36,19 @@ class Application(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="applied")
     employer_viewed = models.BooleanField(default=False)
     employer_viewed_at = models.DateTimeField(blank=True, null=True)
+    rejected_at = models.DateTimeField(blank=True, null=True)
+    archived_by_applicant = models.BooleanField(default=False)
+    archived_by_employer = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ("user", "job")
 
     def __str__(self):
         return f"{self.user.username} - {self.job.title}"
+
+    @property
+    def auto_archive_on(self):
+        base_time = self.rejected_at or self.applied_at
+        if not base_time:
+            return None
+        return base_time + timedelta(days=30)
