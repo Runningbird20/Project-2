@@ -53,6 +53,10 @@ html.dark-mode .stat-value {
   color: #edf2ff;
 }
 
+html.dark-mode .surface-copy {
+  color: #c7d3e8;
+}
+
 html.dark-mode .surface-card,
 html.dark-mode .site-footer,
 html.dark-mode .hero-stats > div,
@@ -80,9 +84,16 @@ html.dark-mode .secondary-btn {
 
 html.dark-mode .secondary-btn:hover,
 html.dark-mode .secondary-btn:focus {
-  background: #d6dff2;
+  background: #8eb9ff;
+  color: #0b1526;
+  border-color: #8eb9ff;
+}
+
+html.dark-mode .danger-btn:hover,
+html.dark-mode .danger-btn:focus {
+  background: #8eb9ff;
   color: #111827;
-  border-color: #d6dff2;
+  border-color: #8eb9ff;
 }
 
 html.dark-mode .nav-pills .secondary-btn {
@@ -117,9 +128,68 @@ html.dark-mode .table {
   color: #dce5f5;
 }
 
+html.dark-mode #emp-listings .table-responsive {
+  border-top: 1px solid #34435a;
+}
+
+html.dark-mode #emp-listings .table {
+  --bs-table-bg: #172234;
+  --bs-table-striped-bg: #1b2940;
+  --bs-table-hover-bg: #243a5b;
+  --bs-table-border-color: #34435a;
+  color: #e6edf8;
+}
+
+html.dark-mode #emp-listings .table td,
+html.dark-mode #emp-listings .table th {
+  border-color: #34435a;
+}
+
+html.dark-mode #emp-listings .job-table thead th {
+  color: #b9c7df;
+}
+
+html.dark-mode #emp-listings .job-table .fw-bold,
+html.dark-mode #emp-matches .fw-semibold,
+html.dark-mode #tab-matched-jobs .fw-semibold,
+html.dark-mode #tab-applications .surface-title {
+  color: #e6edf8;
+}
+
+html.dark-mode #emp-listings td.text-center,
+html.dark-mode #emp-listings .job-table tbody td {
+  color: #e6edf8;
+}
+
+html.dark-mode #emp-listings .badge.bg-dark-subtle {
+  background: #243a5b !important;
+  color: #dce5f5 !important;
+}
+
+html.dark-mode #emp-listings .badge.bg-info-subtle {
+  background: #2c4a76 !important;
+  color: #dce5f5 !important;
+}
+
+html.dark-mode #emp-listings .badge.bg-success-subtle {
+  background: #265247 !important;
+  color: #c8f5df !important;
+}
+
 html.dark-mode .badge.bg-light {
   background-color: #29364b !important;
   color: #dce5f5 !important;
+}
+
+html.dark-mode .map-pin-card {
+  background: rgba(19, 30, 46, 0.88) !important;
+  border-color: #3b4a62 !important;
+}
+
+html.dark-mode .map-pin-card .form-text,
+html.dark-mode .map-pin-card .text-muted,
+html.dark-mode .map-pin-card .small {
+  color: #b8c4da !important;
 }
 
 main {
@@ -177,6 +247,34 @@ main {
 .site-cta:focus {
   color: #fff;
   background: #1a2030;
+}
+
+html.dark-mode .site-cta {
+  border-color: #8eb9ff;
+  color: #8eb9ff;
+  background: rgba(142, 185, 255, 0.08);
+}
+
+html.dark-mode .site-cta:hover,
+html.dark-mode .site-cta:focus {
+  background: #8eb9ff;
+  color: #0b1526;
+}
+
+html.dark-mode .skill-add-select,
+html.dark-mode .skill-add-custom {
+  background: #8eb9ff;
+  color: #0b1526;
+  border-color: #8eb9ff;
+}
+
+html.dark-mode .skill-add-select:hover,
+html.dark-mode .skill-add-select:focus,
+html.dark-mode .skill-add-custom:hover,
+html.dark-mode .skill-add-custom:focus {
+  background: #b8d4ff;
+  color: #0b1526;
+  border-color: #b8d4ff;
 }
 
 .hero-shell {
@@ -375,6 +473,15 @@ main {
   font-size: clamp(1.65rem, 3.5vw, 2.25rem);
 }
 
+.create-job-heading {
+  color: #111827;
+  font-weight: 800;
+}
+
+html.dark-mode .create-job-heading {
+  color: #f3f7ff;
+}
+
 .page-kicker {
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -417,6 +524,11 @@ main {
   font-weight: 600;
   color: #252b3a;
   margin-bottom: 0.3rem;
+}
+
+html.dark-mode .field-block label,
+html.dark-mode .form-label {
+  color: #e6edf8;
 }
 
 .form-control,
