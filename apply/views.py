@@ -9,7 +9,11 @@ import json
 import csv
 from django.utils import timezone
 from accounts.models import Profile
-from .services import auto_archive_old_rejections, enforce_employer_response_deadline
+from .services import (
+    auto_archive_old_rejections,
+    enforce_employer_response_deadline,
+    calculate_application_streak,
+)
 
 @login_required
 def submit_application(request, job_id):
@@ -73,6 +77,7 @@ def application_status(request):
         {
             "applications": active_applications,
             "archived_applications": archived_applications,
+            "application_streak": calculate_application_streak(request.user),
         },
     )
 

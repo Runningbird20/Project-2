@@ -13,8 +13,9 @@
     </div>
 
     <div class="row g-4 mb-4">
-      <div class="col-md-6"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Applications Sent</div><h3 class="surface-title mb-0">{{ apps_sent_count|default:'0' }}</h3></div></div>
-      <div class="col-md-6"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Successful Outcomes</div><h3 class="surface-title mb-0">{{ success_count|default:'0' }}</h3></div></div>
+      <div class="col-md-4"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Applications Sent</div><h3 class="surface-title mb-0">{{ apps_sent_count|default:'0' }}</h3></div></div>
+      <div class="col-md-4"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Successful Outcomes</div><h3 class="surface-title mb-0">{{ success_count|default:'0' }}</h3></div></div>
+      <div class="col-md-4"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Application Streak</div><h3 class="surface-title mb-0">{{ application_streak|default:'0' }} day{% if application_streak != 1 %}s{% endif %}</h3></div></div>
     </div>
 
     <div class="surface-card p-0 overflow-hidden">

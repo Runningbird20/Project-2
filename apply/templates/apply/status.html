@@ -6,6 +6,7 @@
     <div class="page-intro text-center">
       <p class="page-kicker">Candidate tools</p>
       <h1 class="page-title page-title-sm">My Application Tracker</h1>
+      <p class="page-copy mb-0">Application streak: <strong>{{ application_streak|default:'0' }} day{% if application_streak != 1 %}s{% endif %}</strong></p>
     </div>
 
     <div class="row g-4">
