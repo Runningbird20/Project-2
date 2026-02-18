@@ -11,6 +11,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.core.validators import validate_email
+from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Count, Q
 from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse
@@ -184,38 +185,43 @@ def signup(request):
         template_data["form"] = form
         return render(request, "accounts/signup.html", {"template_data": template_data})
 
-    with transaction.atomic():
-        user = form.save()
-        user.email = form.cleaned_data.get("email", "")
-        user.save(update_fields=["email"])
+    try:
+        with transaction.atomic():
+            user = form.save()
+            user.email = form.cleaned_data.get("email", "")
+            user.save(update_fields=["email"])
 
-        profile, _ = Profile.objects.get_or_create(user=user)
-        acct = form.cleaned_data.get("account_type", Profile.AccountType.APPLICANT)
+            profile, _ = Profile.objects.get_or_create(user=user)
+            acct = form.cleaned_data.get("account_type", Profile.AccountType.APPLICANT)
 
-        profile.account_type = acct
-        profile.profile_picture = form.cleaned_data.get("profile_picture")
-        profile.location = form.cleaned_data.get("location", "")
-        profile.projects = form.cleaned_data.get("projects", "")
+            profile.account_type = acct
+            profile.profile_picture = form.cleaned_data.get("profile_picture")
+            profile.location = form.cleaned_data.get("location", "")
+            profile.projects = form.cleaned_data.get("projects", "")
 
-        if acct == Profile.AccountType.EMPLOYER:
-            profile.company_name = form.cleaned_data.get("company_name", "")
-            profile.company_website = form.cleaned_data.get("company_website", "")
-            profile.company_description = form.cleaned_data.get("company_description", "")
-            profile.headline = profile.skills = profile.education = profile.work_experience = ""
-        else:
-            profile.headline = form.cleaned_data.get("headline", "")
-            profile.skills = form.cleaned_data.get("skills", "")
-            profile.education = form.cleaned_data.get("education", "")
-            profile.work_experience = form.cleaned_data.get("work_experience", "")
-            profile.company_name = profile.company_website = profile.company_description = ""
+            if acct == Profile.AccountType.EMPLOYER:
+                profile.company_name = form.cleaned_data.get("company_name", "")
+                profile.company_website = form.cleaned_data.get("company_website", "")
+                profile.company_description = form.cleaned_data.get("company_description", "")
+                profile.headline = profile.skills = profile.education = profile.work_experience = ""
+            else:
+                profile.headline = form.cleaned_data.get("headline", "")
+                profile.skills = form.cleaned_data.get("skills", "")
+                profile.education = form.cleaned_data.get("education", "")
+                profile.work_experience = form.cleaned_data.get("work_experience", "")
+                profile.company_name = profile.company_website = profile.company_description = ""
 
-        profile.save()
+            profile.save()
 
-        for i in range(2):
-            label = request.POST.get(f"link_label_{i}", "").strip()
-            url = request.POST.get(f"link_url_{i}", "").strip()
-            if url:
-                profile.links.create(label=label, url=url)
+            for i in range(2):
+                label = request.POST.get(f"link_label_{i}", "").strip()
+                url = request.POST.get(f"link_url_{i}", "").strip()
+                if url:
+                    profile.links.create(label=label, url=url)
+    except IntegrityError:
+        form.add_error("username", "This username is already taken.")
+        template_data["form"] = form
+        return render(request, "accounts/signup.html", {"template_data": template_data})
 
     messages.success(request, "Account created! Please log in.")
     return redirect("accounts.login")

@@ -22,6 +22,13 @@
             </div>
 
             <div class="col-lg-9">
+              <p class="small mb-2 {% if application.employer_viewed %}text-success{% else %}text-muted{% endif %}">
+                {% if application.employer_viewed %}
+                  Viewed by employer{% if application.employer_viewed_at %} on {{ application.employer_viewed_at|date:"M j, Y g:i A" }}{% endif %}
+                {% else %}
+                  Not viewed by employer yet
+                {% endif %}
+              </p>
               {% if application.status == 'rejected' %}
               <div class="alert alert-danger rounded-4 mb-0">
                 <strong>Update on your application.</strong>

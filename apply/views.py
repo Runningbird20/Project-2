@@ -8,7 +8,6 @@ from django.views.decorators.http import require_POST
 import json
 import csv
 from django.utils import timezone
-from accounts.models import Profile
 
 @login_required
 def submit_application(request, job_id):
@@ -17,14 +16,6 @@ def submit_application(request, job_id):
         return redirect("jobposts.search")
 
     job = get_object_or_404(JobPost, id=job_id)
-    profile, _ = Profile.objects.get_or_create(user=request.user)
-    if not (profile.location or "").strip():
-        messages.warning(
-            request,
-            "Please add your address to your profile before applying."
-        )
-        return redirect("accounts.profile_edit")
-
     note = request.POST.get("note", "")
     resume_type = request.POST.get("resume_type")  # expects 'profile' or 'uploaded'
     resume_file = request.FILES.get("resume_file")
@@ -100,6 +91,12 @@ def update_status(request, application_id):
 def employer_pipeline(request, job_id):
     """View for employers to manage applicants in a Kanban-style pipeline."""
     job = get_object_or_404(JobPost, id=job_id, owner=request.user)
+    applications = Application.objects.filter(job=job).select_related('user')
+    now = timezone.now()
+    applications.filter(employer_viewed=False).update(
+        employer_viewed=True,
+        employer_viewed_at=now,
+    )
     applications = Application.objects.filter(job=job).select_related('user')
     
     pipeline = {

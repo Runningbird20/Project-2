@@ -33,6 +33,8 @@ class Application(models.Model):
     )
     applied_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="applied")
+    employer_viewed = models.BooleanField(default=False)
+    employer_viewed_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         unique_together = ("user", "job")
