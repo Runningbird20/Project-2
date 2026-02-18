@@ -15,7 +15,7 @@ from .forms import JobPostForm
 from .models import JobPost
 from django.views.decorators.http import require_POST
 from apply.models import Application
-from apply.services import auto_archive_old_rejections
+from apply.services import auto_archive_old_rejections, calculate_application_streak
 from django.contrib.admin.views.decorators import staff_member_required
 
 from django.db.models import Count
@@ -55,6 +55,7 @@ def dashboard(request):
             'skills': profile.skills,
             'apps_sent_count': apps_sent_count,
             'success_count': success_count,
+            'application_streak': calculate_application_streak(request.user),
             'archived_rejected_applications': apps.filter(
                 status='rejected',
                 archived_by_applicant=True,

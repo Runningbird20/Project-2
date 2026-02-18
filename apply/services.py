@@ -17,3 +17,24 @@ def auto_archive_old_rejections():
         archived_by_applicant=True,
         archived_by_employer=True,
     )
+
+
+def calculate_application_streak(user):
+    application_dates = {
+        app.applied_at.date()
+        for app in Application.objects.filter(user=user).only("applied_at")
+    }
+    if not application_dates:
+        return 0
+
+    today = timezone.localdate()
+    anchor = today if today in application_dates else today - timedelta(days=1)
+    if anchor not in application_dates:
+        return 0
+
+    streak = 0
+    day_cursor = anchor
+    while day_cursor in application_dates:
+        streak += 1
+        day_cursor -= timedelta(days=1)
+    return streak
