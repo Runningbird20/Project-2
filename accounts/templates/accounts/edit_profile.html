@@ -7,76 +7,50 @@
         <div class="surface-card">
           <p class="page-kicker mb-2">Account settings</p>
           <h1 class="page-title page-title-sm">Edit Profile</h1>
-          <p class="surface-copy mb-0">Privacy options control what recruiters see on your public profile.</p>
-          <hr />
+          <p class="surface-copy mb-0">Manage your account details and visibility.</p>
+          <hr>
 
-          <form method="POST" enctype="multipart/form-data">
+          <form method="POST" enctype="multipart/form-data" id="profileForm">
             {% csrf_token %}
             {{ template_data.form.non_field_errors }}
 
-            {{ template_data.form.profile_picture.errors }}
+            <div class="field-block">{{ template_data.form.email.label_tag }} {{ template_data.form.email }}</div>
             <div class="field-block">{{ template_data.form.profile_picture.label_tag }} {{ template_data.form.profile_picture }}</div>
-
-            {{ template_data.form.account_type.errors }}
-            <div id="account_type_section" class="p-2 rounded mb-3 {% if template_data.highlight_account_type %}border border-warning bg-warning-subtle{% endif %}">
-              <div class="field-block mb-0">{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</div>
-              {% if template_data.highlight_account_type %}
-                <p class="small mb-0 text-warning-emphasis">Change this to Employer to unlock candidate search.</p>
-              {% endif %}
-            </div>
+            <div class="field-block">{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</div>
 
             <div id="applicant_fields">
-              {{ template_data.form.headline.errors }}
               <div class="field-block">{{ template_data.form.headline.label_tag }} {{ template_data.form.headline }}</div>
-
-              {{ template_data.form.skills.errors }}
-              <div class="field-block">{{ template_data.form.skills.label_tag }} {{ template_data.form.skills }}</div>
-
-              {{ template_data.form.location.errors }}
-              <div class="field-block">{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</div>
-
-              {{ template_data.form.projects.errors }}
+              <div class="field-block">
+                {{ template_data.form.location.label_tag }} {{ template_data.form.location }}
+                <div class="form-text">Only your city and state are shown to employers.</div>
+              </div>
               <div class="field-block">{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</div>
-
-              {{ template_data.form.education.errors }}
+              <div class="field-block">{{ template_data.form.skills.label_tag }} {{ template_data.form.skills }}</div>
               <div class="field-block">{{ template_data.form.education.label_tag }} {{ template_data.form.education }}</div>
-
-              {{ template_data.form.work_experience.errors }}
               <div class="field-block">{{ template_data.form.work_experience.label_tag }} {{ template_data.form.work_experience }}</div>
 
-              <hr />
-              <h5 class="surface-title mt-2">Public visibility</h5>
-              {{ template_data.form.visible_to_recruiters.errors }}
-              <div class="form-check mb-2">
-                {{ template_data.form.visible_to_recruiters }}
-                <label class="form-check-label" for="{{ template_data.form.visible_to_recruiters.id_for_label }}">
-                  Make my profile visible to employers (public)
-                </label>
-              </div>
-              <div class="small text-muted">
-                If this is off, employers cannot view your public profile.
+              <hr>
+              <h5 class="surface-title">Public visibility</h5>
+              <div class="form-check mb-2">{{ template_data.form.visible_to_recruiters }} {{ template_data.form.visible_to_recruiters.label_tag }}</div>
+              <div class="row g-2">
+                <div class="col-md-6"><div class="form-check">{{ template_data.form.show_headline }} {{ template_data.form.show_headline.label_tag }}</div></div>
+                <div class="col-md-6"><div class="form-check">{{ template_data.form.show_skills }} {{ template_data.form.show_skills.label_tag }}</div></div>
+                <div class="col-md-6"><div class="form-check">{{ template_data.form.show_education }} {{ template_data.form.show_education.label_tag }}</div></div>
+                <div class="col-md-6"><div class="form-check">{{ template_data.form.show_work_experience }} {{ template_data.form.show_work_experience.label_tag }}</div></div>
+                <div class="col-md-6"><div class="form-check">{{ template_data.form.show_links }} {{ template_data.form.show_links.label_tag }}</div></div>
+                <div class="col-md-6"><div class="form-check">{{ template_data.form.hide_email_from_employers }} {{ template_data.form.hide_email_from_employers.label_tag }}</div></div>
               </div>
             </div>
 
             <div id="employer_fields">
-              {{ template_data.form.company_name.errors }}
               <div class="field-block">{{ template_data.form.company_name.label_tag }} {{ template_data.form.company_name }}</div>
-
-              {{ template_data.form.company_website.errors }}
               <div class="field-block">{{ template_data.form.company_website.label_tag }} {{ template_data.form.company_website }}</div>
-
-              {{ template_data.form.company_description.errors }}
               <div class="field-block">{{ template_data.form.company_description.label_tag }} {{ template_data.form.company_description }}</div>
-
-              {{ template_data.form.location.errors }}
               <div class="field-block">{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</div>
-
-              {{ template_data.form.projects.errors }}
-              <div class="field-block">{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</div>
             </div>
 
-            <div class="form-actions mt-3">
-              <button type="submit" class="primary-btn border-0">Save</button>
+            <div class="form-actions mt-4">
+              <button type="submit" class="primary-btn border-0">Save Changes</button>
               <a class="secondary-btn" href="{% url 'accounts.profile' %}">Cancel</a>
             </div>
           </form>
@@ -87,30 +61,20 @@
 </section>
 
 <script>
-  (function () {
-    const select = document.getElementById("id_account_type");
-    const applicant = document.getElementById("applicant_fields");
-    const employer = document.getElementById("employer_fields");
-    const accountTypeSection = document.getElementById("account_type_section");
+(function () {
+  const select = document.getElementById('id_account_type');
+  const applicant = document.getElementById('applicant_fields');
+  const employer = document.getElementById('employer_fields');
+  if (!select) return;
 
-    function refresh() {
-      const isEmployer = select && select.value === "EMPLOYER";
-      if (employer) employer.style.display = isEmployer ? "block" : "none";
-      if (applicant) applicant.style.display = isEmployer ? "none" : "block";
-    }
+  function refresh() {
+    const isEmployer = select.value === 'EMPLOYER';
+    applicant.style.display = isEmployer ? 'none' : 'block';
+    employer.style.display = isEmployer ? 'block' : 'none';
+  }
 
-    if (select) {
-      select.addEventListener("change", refresh);
-      refresh();
-    }
-
-    const highlight = "{{ template_data.highlight_account_type|yesno:'1,0' }}";
-    if (highlight === "1") {
-      if (select) select.focus();
-      if (accountTypeSection) {
-        accountTypeSection.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    }
-  })();
+  select.addEventListener('change', refresh);
+  refresh();
+})();
 </script>
 {% endblock content %}

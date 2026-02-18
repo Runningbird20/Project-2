@@ -13,29 +13,53 @@ from accounts.models import Profile
 @login_required
 def submit_application(request, job_id):
     """Handles the submission of a job application."""
-    if request.method == "POST":
-        job = get_object_or_404(JobPost, id=job_id)
-        
-        note = request.POST.get("note", "")
-        resume_type = request.POST.get("resume_type") 
-        resume_file = request.FILES.get("resume_file")
+    if request.method != "POST":
+        return redirect("jobposts.search")
 
-        if Application.objects.filter(user=request.user, job=job).exists():
-            messages.warning(request, f"You have already applied for {job.title}.")
-            return redirect('jobposts.search')
-
-        Application.objects.create(
-            user=request.user,
-            job=job,
-            note=note,
-            resume_type=resume_type,
-            resume_file=resume_file if resume_type == 'uploaded' else None
+    job = get_object_or_404(JobPost, id=job_id)
+    profile, _ = Profile.objects.get_or_create(user=request.user)
+    if not (profile.location or "").strip():
+        messages.warning(
+            request,
+            "Please add your address to your profile before applying."
         )
+        return redirect("accounts.profile_edit")
 
-        messages.success(request, f"Application for {job.title} submitted successfully!")
-        return redirect('jobposts.search')
+    note = request.POST.get("note", "")
+    resume_type = request.POST.get("resume_type")  # expects 'profile' or 'uploaded'
+    resume_file = request.FILES.get("resume_file")
 
-    return redirect('jobposts.search')
+    if Application.objects.filter(user=request.user, job=job).exists():
+        messages.warning(request, f"You have already applied for {job.title}.")
+        return redirect("jobposts.search")
+
+    # Safety: normalize resume_type
+    if resume_type not in ("profile", "uploaded"):
+        resume_type = "profile"
+
+    Application.objects.create(
+        user=request.user,
+        job=job,
+        note=note,
+        resume_type=resume_type,
+        resume_file=resume_file if resume_type == "uploaded" else None,
+    )
+
+    messages.success(request, f"Application for {job.title} submitted successfully!")
+
+    # ✅ This survives redirects and can be consumed by templates
+    request.session["panda_apply_success"] = True
+
+    return redirect("apply:application_submitted", job_id=job.id)
+
+@login_required
+def application_submitted(request, job_id):
+    job = get_object_or_404(JobPost, id=job_id)
+    template_data = {
+        "title": "Application Submitted",
+        "job": job,
+    }
+    return render(request, "apply/application_submitted.html", {"template_data": template_data})
 
 @login_required
 def application_status(request):
@@ -49,21 +73,26 @@ def update_status(request, application_id):
     try:
         data = json.loads(request.body)
         new_status = data.get("status")
+        
         application = get_object_or_404(Application, id=application_id)
 
         if application.job.owner != request.user:
-            return JsonResponse({"success": False}, status=403)
+            return JsonResponse({"success": False, "error": "Unauthorized"}, status=403)
 
-        if new_status in dict(Application.STATUS_CHOICES):
-            old_status = application.get_status_display()
+        valid_statuses = [choice[0] for choice in Application.STATUS_CHOICES]
+        
+        if new_status in valid_statuses:
             application.status = new_status
             application.save()
             
-            messages.success(request, f"Moved to {application.get_status_display()}.")
+            messages.success(request, f"Status updated for {application.user.username}.")
             
             return JsonResponse({"success": True})
         
-        return JsonResponse({"success": False}, status=400)
+        return JsonResponse({"success": False, "error": f"Invalid status: {new_status}"}, status=400)
+
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
     

@@ -1,6 +1,9 @@
+import math
+
 from django.db import models
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -10,8 +13,27 @@ from map.models import OfficeLocation
 from map.services import OfficeLocationGeocodingError, geocode_office_address
 from .forms import JobPostForm
 from .models import JobPost
+from django.views.decorators.http import require_POST
+from apply.models import Application
+from django.contrib.admin.views.decorators import staff_member_required
 
-from django.db.models import Count, Q
+from django.db.models import Count
+
+
+def _haversine_miles(lat1, lon1, lat2, lon2):
+    """Calculate great-circle distance in miles between two lat/lon points."""
+    earth_radius_miles = 3958.8
+    d_lat = math.radians(lat2 - lat1)
+    d_lon = math.radians(lon2 - lon1)
+    a = (
+        math.sin(d_lat / 2) ** 2
+        + math.cos(math.radians(lat1))
+        * math.cos(math.radians(lat2))
+        * math.sin(d_lon / 2) ** 2
+    )
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return earth_radius_miles * c
+
 
 @login_required
 def dashboard(request):
@@ -45,40 +67,66 @@ def dashboard(request):
 
         overall_total = sum(job.total_apps for job in my_jobs)
         
+        saved_searches = request.user.saved_searches.all()
+    
         context.update({
             'jobs': my_jobs,
-            'overall_total': overall_total
+            'overall_total': overall_total,
+            'saved_searches': saved_searches,
         })
 
     return render(request, 'jobposts/dashboard.html', context)
 
 def get_job_recommendations(user_profile):
     """
-    Ranks jobs based on the overlap between user skills and job requirements.
+    Ranks jobs based on location match AND overlap between user skills and job requirements.
     """
-    if not user_profile.skills:
+    user_skills = []
+    if user_profile.skills:
+        user_skills = [s.strip().lower() for s in user_profile.skills.split(',') if s.strip()]
+    
+    user_location = user_profile.location.strip().lower() if user_profile.location else ""
+
+    if not user_skills and not user_location:
         return JobPost.objects.none()
 
-    user_skills = [s.strip().lower() for s in user_profile.skills.split(',') if s.strip()]
-    
     query = Q()
+    
     for skill in user_skills:
-        query |= Q(title__icontains=skill) | Q(description__icontains=skill)
+        query |= Q(title__icontains=skill) | Q(description__icontains=skill) | Q(skills__icontains=skill)
+
+    if user_location:
+        query |= Q(location__icontains=user_location)
 
     applied_job_ids = user_profile.user.application_set.values_list('job_id', flat=True)    
     suggested_jobs = JobPost.objects.filter(query).exclude(id__in=applied_job_ids).distinct()
 
     recommended_list = []
     for job in suggested_jobs:
-        match_count = sum(1 for skill in user_skills if skill in job.description.lower() or skill in job.title.lower())
+        score = 0
+        job_title = job.title.lower()
+        job_desc = job.description.lower()
+        job_loc = job.location.lower()
+        job_skills = job.skills.lower() if job.skills else ""
+
+        for skill in user_skills:
+            if skill in job_title: score += 3  
+            if skill in job_skills: score += 2 
+            if skill in job_desc: score += 1   
+
+        if user_location and user_location in job_loc:
+            score += 5 
+
         recommended_list.append({
             'job': job,
-            'match_count': match_count
+            'score': score
         })
 
-    recommended_list.sort(key=lambda x: x['match_count'], reverse=True)
+    recommended_list.sort(key=lambda x: x['score'], reverse=True)
     
-    return [item['job'] for item in recommended_list[:5]] # Return top 5
+    return [item['job'] for item in recommended_list[:5]]
+
+
 def _is_employer(user):
     return Profile.objects.filter(
         user=user,
@@ -166,6 +214,13 @@ def search(request):
     salary_max = request.GET.get('salary_max', '').strip()
     work_setting = request.GET.get('work_setting', '').strip()
     visa_sponsorship = request.GET.get('visa_sponsorship', '').strip()
+    use_home_radius = False
+    radius_miles = ''
+    radius_warning = ''
+    radius_active = False
+    is_applicant = False
+    has_home_address = False
+    home_address = ''
 
     if title:
         posts = posts.filter(title__icontains=title)
@@ -192,6 +247,65 @@ def search(request):
         except ValueError:
             pass
 
+    if request.user.is_authenticated:
+        profile = Profile.objects.filter(user=request.user).first()
+        if profile and profile.account_type == Profile.AccountType.APPLICANT:
+            is_applicant = True
+            home_address = (profile.location or '').strip()
+            has_home_address = bool(home_address)
+
+            session_use_home_radius = request.session.get('job_search_use_home_radius', False)
+            session_radius_miles = request.session.get('job_search_radius_miles', '25')
+
+            use_home_radius = (
+                request.GET.get('use_home_radius') == 'true'
+                if 'use_home_radius' in request.GET
+                else bool(session_use_home_radius)
+            )
+            raw_radius = request.GET.get('radius_miles', str(session_radius_miles)).strip()
+            try:
+                radius_value = float(raw_radius)
+                if radius_value <= 0:
+                    raise ValueError
+                radius_miles = str(int(radius_value)) if radius_value.is_integer() else f'{radius_value:.1f}'
+            except (ValueError, TypeError):
+                radius_miles = '25'
+
+            request.session['job_search_use_home_radius'] = use_home_radius
+            request.session['job_search_radius_miles'] = radius_miles
+
+            if use_home_radius:
+                if not has_home_address:
+                    radius_warning = 'Add your home address in your profile to use radius filtering.'
+                else:
+                    try:
+                        home_lat, home_lon = geocode_office_address(home_address)
+                        home_lat = float(home_lat)
+                        home_lon = float(home_lon)
+                        filtered_posts = []
+                        for post in posts:
+                            if post.work_setting == 'remote':
+                                filtered_posts.append(post)
+                                continue
+
+                            office_location = getattr(post, 'office_location', None)
+                            if not office_location:
+                                continue
+
+                            distance_miles = _haversine_miles(
+                                home_lat,
+                                home_lon,
+                                float(office_location.latitude),
+                                float(office_location.longitude),
+                            )
+                            if distance_miles <= float(radius_miles):
+                                post.distance_from_home_miles = round(distance_miles, 1)
+                                filtered_posts.append(post)
+                        posts = filtered_posts
+                        radius_active = True
+                    except OfficeLocationGeocodingError:
+                        radius_warning = 'Could not map your home address right now. Showing all search results.'
+
     template_data['posts'] = posts
     template_data['can_post_job'] = can_post_job
     template_data['filters'] = {
@@ -202,23 +316,15 @@ def search(request):
         'salary_max': salary_max,
         'work_setting': work_setting,
         'visa_sponsorship': visa_sponsorship == 'true',
+        'use_home_radius': use_home_radius,
+        'radius_miles': radius_miles,
     }
+    template_data['is_applicant'] = is_applicant
+    template_data['has_home_address'] = has_home_address
+    template_data['home_address'] = home_address
+    template_data['radius_warning'] = radius_warning
+    template_data['radius_active'] = radius_active
     return render(request, 'jobposts/search.html', {'template_data': template_data})
-
-@login_required
-def employer_dashboard(request):
-    my_jobs = JobPost.objects.filter(owner=request.user).annotate(
-        total_apps=models.Count('applications'),
-        new_apps=models.Count('applications', filter=models.Q(applications__status='applied')),
-    ).order_by('-created_at')
-
-    overall_total = sum(job.total_apps for job in my_jobs)
-
-    return render(request, 'jobposts/dashboard.html', {
-        'jobs': my_jobs,
-        'overall_total': overall_total,
-    })
-
 
 def _save_office_location(post, map_form):
     if not getattr(map_form, 'has_location_data', False):
@@ -249,3 +355,52 @@ def _save_office_location(post, map_form):
             'longitude': longitude,
         },
     )
+
+@require_POST
+def delete_job(request, job_id):
+    job = get_object_or_404(JobPost, id=job_id, owner=request.user)
+    job.delete()
+    messages.success(request, "Job listing deleted successfully.")
+    return redirect('jobposts.dashboard')
+
+def job_detail(request, post_id):
+    job = get_object_or_404(JobPost.objects.select_related('office_location'), pk=post_id)
+    has_applied = False
+    
+    if request.user.is_authenticated:
+        has_applied = Application.objects.filter(user=request.user, job=job).exists()
+    
+    return render(request, 'jobposts/job_detail.html', {
+        'job': job,
+        'has_applied': has_applied
+    })
+
+
+
+@staff_member_required
+def edit_post(request, post_id):
+    post = get_object_or_404(JobPost, pk=post_id)
+    template_data = {'title': 'Edit Job Post'}
+
+    if request.method == 'POST':
+        form = JobPostForm(request.POST, instance=post)
+        if form.is_valid():
+            updated_post = form.save(commit=False)
+            updated_post.save()
+            return redirect('jobposts.search')
+    else:
+        form = JobPostForm(instance=post)
+
+    template_data['form'] = form
+    template_data['submit_label'] = 'Save Changes'
+    template_data['post_id'] = post_id
+    return render(request, 'jobposts/edit_post.html', {'template_data': template_data})
+
+@staff_member_required
+def remove_post(request, post_id):
+    if request.method == "POST":
+        post = JobPost.objects.get(id=post_id)
+        post.delete()
+        return redirect('jobposts.search')
+    else:
+        return redirect('jobposts.search')

@@ -122,7 +122,8 @@ main {
 }
 
 .primary-btn,
-.secondary-btn {
+.secondary-btn,
+.danger-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -132,6 +133,12 @@ main {
   padding: 0.85rem 1.55rem;
   min-width: 158px;
   transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease;
+}
+
+.btn-compact {
+  min-width: auto;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.86rem;
 }
 
 .primary-btn {
@@ -145,16 +152,30 @@ main {
   color: #252b3b;
 }
 
+.danger-btn {
+  border: 1.3px solid #8b2026;
+  color: #8b2026;
+  background: transparent;
+}
+
 .primary-btn:hover,
 .primary-btn:focus,
 .secondary-btn:hover,
-.secondary-btn:focus {
+.secondary-btn:focus,
+.danger-btn:hover,
+.danger-btn:focus {
   transform: translateY(-1px);
 }
 
 .secondary-btn:hover,
 .secondary-btn:focus {
   background: #252b3b;
+  color: #fff;
+}
+
+.danger-btn:hover,
+.danger-btn:focus {
+  background: #8b2026;
   color: #fff;
 }
 
@@ -320,7 +341,8 @@ main {
 }
 
 .form-actions .primary-btn,
-.form-actions .secondary-btn {
+.form-actions .secondary-btn,
+.form-actions .danger-btn {
   min-width: 150px;
 }
 
@@ -497,7 +519,11 @@ main {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 200px;
   gap: 1rem;
-  align-items: start;
+  align-items: stretch;
+}
+
+.job-post-layout-no-map {
+  grid-template-columns: 1fr;
 }
 
 .job-post-main {
@@ -506,8 +532,12 @@ main {
 
 .job-post-map {
   justify-self: end;
+  align-self: stretch;
   width: 100%;
   max-width: 200px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .job-post-map-frame {
@@ -518,6 +548,16 @@ main {
 
 .job-post-map-frame iframe {
   border: 0;
+}
+
+.job-post-map-placeholder {
+  width: 100%;
+  padding-top: 75%;
+}
+
+.job-post-map-cta {
+  margin-top: auto;
+  padding-top: 0.5rem;
 }
 
 #applyModal {
@@ -543,6 +583,42 @@ main {
   border-radius: 10px;
   border: 1px solid #c6cbd4;
   padding: 0.7rem;
+}
+
+.site-alert {
+  border-radius: 14px;
+  border: 1px solid #cfd3da;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.9rem 1rem;
+  color: #1c1f29;
+  box-shadow: 0 10px 24px rgba(18, 23, 36, 0.08);
+}
+
+.site-alert-success {
+  border-color: #9ed9b4;
+  background: rgba(237, 253, 242, 0.9);
+}
+
+.confetti-piece {
+  position: fixed;
+  top: -16px;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 2500;
+  animation-name: confetti-fall;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}
+
+@keyframes confetti-fall {
+  0% {
+    opacity: 0.95;
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 105vh, 0) rotate(520deg);
+  }
 }
 
 @keyframes reveal {
@@ -634,7 +710,8 @@ main {
   }
 
   .form-actions .primary-btn,
-  .form-actions .secondary-btn {
+  .form-actions .secondary-btn,
+  .form-actions .danger-btn {
     min-width: auto;
     width: 100%;
   }

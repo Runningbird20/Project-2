@@ -17,12 +17,9 @@
         <h1 class="page-title page-title-sm mb-1">Pipeline: {{ job.title }}</h1>
         <p class="page-copy mb-0">{{ job.company }}</p>
       </div>
-
       <div class="d-flex align-items-center gap-2 flex-wrap">
         <a href="{% url 'apply:export_applicants_csv' job.id %}" class="secondary-btn">Export CSV</a>
-        <span class="badge bg-primary rounded-pill px-3 py-2">
-          {{ active_count }} Active
-        </span>
+        <span class="badge bg-primary rounded-pill px-3 py-2">{{ active_count }} Active</span>
         <span class="badge bg-danger rounded-pill px-3 py-2">{{ rejected_count }} Rejected</span>
       </div>
     </div>
@@ -34,7 +31,6 @@
           <span>{{ status_key }}</span>
           <span class="badge bg-white text-dark border">{{ apps|length }}</span>
         </h6>
-
         <div class="kanban-scroll vstack gap-3 drop-zone" data-status="{{ status_key }}">
           {% for app in apps %}
           <div class="surface-card p-3 applicant-card" draggable="true" data-app-id="{{ app.id }}" data-current-status="{{ app.status }}">
@@ -43,12 +39,9 @@
               <a href="mailto:{{ app.user.email }}" class="text-muted"><i class="bi bi-envelope"></i></a>
             </div>
             <div class="small text-muted mb-3">Drag to move applicant</div>
-
             <div class="d-grid gap-2">
-              {% if app.resume_file %}
-              <a href="{{ app.resume_file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">View Resume</a>
-              {% endif %}
-              <a href="{% url 'accounts.profile_with_id' app.user.id %}" class="btn btn-sm btn-outline-secondary">View Applicant Profile</a>
+              {% if app.resume_file %}<a href="{{ app.resume_file.url }}" target="_blank" class="secondary-btn btn-compact">View Resume</a>{% endif %}
+              <a href="{% url 'accounts.profile_with_id' app.user.id %}" class="secondary-btn btn-compact">View Applicant Profile</a>
             </div>
           </div>
           {% empty %}
@@ -63,17 +56,15 @@
 
 <div class="modal fade" id="rejectionModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow">
-      <div class="modal-header bg-danger text-white">
+    <div class="modal-content border-0 shadow rounded-4">
+      <div class="modal-header border-0">
         <h5 class="modal-title fw-bold">Confirm Rejection</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body p-4">
-        <p class="mb-0">Are you sure you want to reject this applicant?</p>
-      </div>
-      <div class="modal-footer border-0">
-        <button type="button" class="btn btn-light rounded-pill px-4" id="cancelRejection">Cancel</button>
-        <button type="button" class="btn btn-danger rounded-pill px-4" id="confirmRejection">Yes, Reject Applicant</button>
+      <div class="modal-body pt-0 pb-3 px-4"><p class="mb-0 text-muted">Are you sure you want to reject this applicant?</p></div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="secondary-btn btn-compact border-0" id="cancelRejection">Cancel</button>
+        <button type="button" class="danger-btn btn-compact border-0" id="confirmRejection">Yes, Reject Applicant</button>
       </div>
     </div>
   </div>
@@ -84,45 +75,34 @@ let pendingUpdate = null;
 let draggedCard = null;
 const rejectionModal = new bootstrap.Modal(document.getElementById('rejectionModal'));
 
-window.onload = function() {
+document.addEventListener('DOMContentLoaded', function () {
   const urlParams = new URLSearchParams(window.location.search);
   const undoAppId = urlParams.get('undo_app');
   const oldStatus = urlParams.get('old_status');
-
   if (undoAppId && oldStatus) {
     showUndoToast(undoAppId, oldStatus);
     window.history.replaceState({}, document.title, window.location.pathname);
   }
-};
+});
 
 function executeStatusUpdate(appId, newStatus, previousStatus, isUndo) {
   fetch(`/apply/update-status/${appId}/`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": "{{ csrf_token }}"
-    },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
     body: JSON.stringify({ status: newStatus })
-  }).then(res => {
-    if (res.ok) {
-      if (isUndo) {
-        window.location.reload();
-      } else {
-        const currentUrl = window.location.pathname;
-        window.location.href = `${currentUrl}?undo_app=${appId}&old_status=${previousStatus}`;
-      }
-    } else {
-      alert("Error updating status.");
-    }
+  }).then((res) => {
+    if (!res.ok) { alert('Error updating status.'); return; }
+    const currentUrl = window.location.pathname;
+    window.location.href = isUndo ? currentUrl : `${currentUrl}?undo_app=${appId}&old_status=${previousStatus}`;
   });
 }
 
 function showUndoToast(appId, oldStatus) {
   const toast = document.createElement('div');
-  toast.className = "fixed-bottom m-4 p-3 bg-dark text-white rounded-3 shadow-lg d-flex justify-content-between align-items-center";
-  toast.style.zIndex = "1050";
-  toast.style.width = "300px";
-  toast.innerHTML = `<span>Status updated!</span><button class="btn btn-sm btn-warning fw-bold" onclick="undoChange('${appId}', '${oldStatus}')">UNDO</button>`;
+  toast.className = 'fixed-bottom m-4 p-3 bg-dark text-white rounded-3 shadow-lg d-flex justify-content-between align-items-center';
+  toast.style.zIndex = '1050';
+  toast.style.width = '300px';
+  toast.innerHTML = `<span>Status updated!</span><button class="secondary-btn btn-compact border-0" onclick="undoChange('${appId}', '${oldStatus}')">UNDO</button>`;
   document.body.appendChild(toast);
   setTimeout(() => { if (toast) toast.remove(); }, 6000);
 }
@@ -159,15 +139,8 @@ document.querySelectorAll('.applicant-card').forEach((card) => {
 });
 
 document.querySelectorAll('.drop-zone').forEach((zone) => {
-  zone.addEventListener('dragover', (event) => {
-    event.preventDefault();
-    zone.classList.add('drag-over');
-  });
-
-  zone.addEventListener('dragleave', () => {
-    zone.classList.remove('drag-over');
-  });
-
+  zone.addEventListener('dragover', (event) => { event.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
   zone.addEventListener('drop', (event) => {
     event.preventDefault();
     zone.classList.remove('drag-over');
@@ -178,13 +151,7 @@ document.querySelectorAll('.drop-zone').forEach((zone) => {
     const newStatus = zone.dataset.status;
 
     if (!newStatus || newStatus === previousStatus) return;
-
-    if (newStatus === 'rejected') {
-      pendingUpdate = { appId, previousStatus };
-      rejectionModal.show();
-      return;
-    }
-
+    if (newStatus === 'rejected') { pendingUpdate = { appId, previousStatus }; rejectionModal.show(); return; }
     executeStatusUpdate(appId, newStatus, previousStatus, false);
   });
 });
