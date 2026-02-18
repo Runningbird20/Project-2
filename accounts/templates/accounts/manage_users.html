@@ -19,7 +19,6 @@
         </form>
         {% if user.is_staff %}
           <div class="form-actions">
-<<<<<<< HEAD
             <form method="post" action="{% url 'accounts.send_test_email' %}" class="d-flex gap-2 flex-wrap">
               {% csrf_token %}
               <input
@@ -32,9 +31,7 @@
               >
               <button type="submit" class="secondary-btn border-0">Send Test Email</button>
             </form>
-=======
             <a href="{% url 'accounts.applicant_clusters_map' %}" class="secondary-btn">Applicant Clusters Map</a>
->>>>>>> d01baced0c73dcc3eed56bd8efb0232142b26b68
             <a href="{% url 'accounts.export_usage_report' %}" class="secondary-btn">Export Usage Report</a>
           </div>
         {% endif %}
