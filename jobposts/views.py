@@ -15,6 +15,7 @@ from .forms import JobPostForm
 from .models import JobPost
 from django.views.decorators.http import require_POST
 from apply.models import Application
+from apply.services import auto_archive_old_rejections
 from django.contrib.admin.views.decorators import staff_member_required
 
 from django.db.models import Count
@@ -37,6 +38,7 @@ def _haversine_miles(lat1, lon1, lat2, lon2):
 
 @login_required
 def dashboard(request):
+    auto_archive_old_rejections()
     profile = request.user.profile
     context = {}
     
@@ -53,6 +55,10 @@ def dashboard(request):
             'skills': profile.skills,
             'apps_sent_count': apps_sent_count,
             'success_count': success_count,
+            'archived_rejected_applications': apps.filter(
+                status='rejected',
+                archived_by_applicant=True,
+            ).select_related('job').order_by('-rejected_at', '-applied_at')[:5],
         })
 
     # --- EMPLOYER LOGIC ---
@@ -73,6 +79,11 @@ def dashboard(request):
             'jobs': my_jobs,
             'overall_total': overall_total,
             'saved_searches': saved_searches,
+            'archived_rejected_applicants': Application.objects.filter(
+                job__owner=request.user,
+                status='rejected',
+                archived_by_employer=True,
+            ).select_related('job', 'user').order_by('-rejected_at', '-applied_at')[:5],
         })
 
     return render(request, 'jobposts/dashboard.html', context)

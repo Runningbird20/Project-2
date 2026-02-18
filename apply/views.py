@@ -8,6 +8,8 @@ from django.views.decorators.http import require_POST
 import json
 import csv
 from django.utils import timezone
+from accounts.models import Profile
+from .services import auto_archive_old_rejections
 
 @login_required
 def submit_application(request, job_id):
@@ -55,8 +57,23 @@ def application_submitted(request, job_id):
 @login_required
 def application_status(request):
     """View for applicants to see the status of their own applications (Read-Only)."""
-    applications = Application.objects.filter(user=request.user).select_related("job")
-    return render(request, "apply/status.html", {"applications": applications})
+    auto_archive_old_rejections()
+    active_applications = Application.objects.filter(
+        user=request.user,
+        archived_by_applicant=False,
+    ).select_related("job")
+    archived_applications = Application.objects.filter(
+        user=request.user,
+        archived_by_applicant=True,
+    ).select_related("job")
+    return render(
+        request,
+        "apply/status.html",
+        {
+            "applications": active_applications,
+            "archived_applications": archived_applications,
+        },
+    )
 
 @login_required
 @require_POST
@@ -74,6 +91,12 @@ def update_status(request, application_id):
         
         if new_status in valid_statuses:
             application.status = new_status
+            if new_status == "rejected":
+                application.rejected_at = timezone.now()
+            else:
+                application.rejected_at = None
+                application.archived_by_applicant = False
+                application.archived_by_employer = False
             application.save()
             
             messages.success(request, f"Status updated for {application.user.username}.")
@@ -90,6 +113,7 @@ def update_status(request, application_id):
 @login_required
 def employer_pipeline(request, job_id):
     """View for employers to manage applicants in a Kanban-style pipeline."""
+    auto_archive_old_rejections()
     job = get_object_or_404(JobPost, id=job_id, owner=request.user)
     applications = Application.objects.filter(job=job).select_related('user')
     now = timezone.now()
@@ -104,17 +128,55 @@ def employer_pipeline(request, job_id):
         'review': applications.filter(status='review'),
         'interview': applications.filter(status='interview'),
         'offer': applications.filter(status='offer'),
-        'rejected': applications.filter(status='rejected'),
+        'rejected': applications.filter(status='rejected', archived_by_employer=False),
     }
     active_count = applications.exclude(status='rejected').count()
-    rejected_count = applications.filter(status='rejected').count()
+    rejected_count = applications.filter(status='rejected', archived_by_employer=False).count()
+    archived_rejected = applications.filter(
+        status='rejected',
+        archived_by_employer=True,
+    ).order_by('-rejected_at', '-applied_at')
     
     return render(request, 'apply/employer_pipeline.html', {
         'job': job,
         'pipeline': pipeline,
         'active_count': active_count,
         'rejected_count': rejected_count,
+        'archived_rejected': archived_rejected,
     })
+
+
+@login_required
+@require_POST
+def archive_application(request, application_id):
+    application = get_object_or_404(Application, id=application_id, user=request.user)
+    if application.status != "rejected":
+        messages.warning(request, "Only rejected applications can be archived.")
+        return redirect("apply:application_status")
+
+    application.archived_by_applicant = True
+    application.save(update_fields=["archived_by_applicant"])
+    messages.success(request, "Application archived.")
+    return redirect("apply:application_status")
+
+
+@login_required
+@require_POST
+def archive_rejected_applicant(request, application_id):
+    application = get_object_or_404(
+        Application.objects.select_related("job"),
+        id=application_id,
+    )
+    if application.job.owner != request.user:
+        return HttpResponseForbidden("Unauthorized")
+    if application.status != "rejected":
+        messages.warning(request, "Only rejected applicants can be archived.")
+        return redirect("apply:employer_pipeline", job_id=application.job.id)
+
+    application.archived_by_employer = True
+    application.save(update_fields=["archived_by_employer"])
+    messages.success(request, "Rejected applicant archived.")
+    return redirect("apply:employer_pipeline", job_id=application.job.id)
 
 @login_required
 def export_applicants_csv(request, job_id):
