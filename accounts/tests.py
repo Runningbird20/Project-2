@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from unittest.mock import patch
 
 from .models import Profile
 
@@ -86,3 +87,42 @@ class ProfilePrivacyAuthorizationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Atlanta, GA")
         self.assertNotContains(response, "123 Peachtree St NE")
+
+
+class ApplicantClustersMapAccessTests(TestCase):
+    def setUp(self):
+        self.user_model = get_user_model()
+        self.staff = self.user_model.objects.create_user(
+            username="staff",
+            password="test-password-123",
+            is_staff=True,
+        )
+        self.non_staff = self.user_model.objects.create_user(
+            username="notstaff",
+            password="test-password-123",
+        )
+        self.applicant = self.user_model.objects.create_user(
+            username="applicant",
+            password="test-password-123",
+        )
+        Profile.objects.update_or_create(
+            user=self.applicant,
+            defaults={
+                "account_type": Profile.AccountType.APPLICANT,
+                "location": "123 Peachtree St NE, Atlanta, GA 30303",
+            },
+        )
+
+    def test_non_staff_cannot_access_applicant_clusters_map(self):
+        self.client.login(username="notstaff", password="test-password-123")
+        response = self.client.get(reverse("accounts.applicant_clusters_map"))
+        self.assertEqual(response.status_code, 302)
+
+    @patch("accounts.views.geocode_office_address", return_value=("33.748997", "-84.387985"))
+    def test_staff_can_view_applicant_clusters_map(self, _mock_geocode):
+        self.client.login(username="staff", password="test-password-123")
+        response = self.client.get(reverse("accounts.applicant_clusters_map"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Applicant Location Clusters")
+        self.assertContains(response, "Atlanta, GA")

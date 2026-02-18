@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-shell">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+      <div>
+        <p class="page-kicker mb-2">Admin</p>
+        <h1 class="page-title page-title-sm mb-1">Applicant Location Clusters</h1>
+        <p class="page-copy mb-0">
+          {{ template_data.total_applicants }} applicants total.
+          {{ template_data.cluster_count }} mapped city/state clusters.
+        </p>
+      </div>
+      <div class="form-actions">
+        <a href="{% url 'accounts.manage_users' %}" class="secondary-btn">Back to Manage Users</a>
+      </div>
+    </div>
+
+    {% if clusters %}
+      <div class="row g-3">
+        <div class="col-lg-8">
+          <div class="surface-card p-2">
+            <div id="applicantClustersMap" style="height: 70vh; min-height: 420px; border-radius: 12px;"></div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="surface-card h-100">
+            <div class="text-uppercase text-muted small mb-2">Top Clusters</div>
+            <div class="vstack gap-2">
+              {% for cluster in clusters %}
+                <div class="border rounded p-2">
+                  <div class="fw-semibold">{{ cluster.location }}</div>
+                  <div class="small text-muted">{{ cluster.count }} applicant{{ cluster.count|pluralize }}</div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {{ clusters|json_script:"applicant-clusters-data" }}
+    {% else %}
+      <div class="surface-card">
+        <p class="text-muted mb-0">No applicant location clusters could be mapped yet.</p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock content %}
+
+{% block extra_scripts %}
+{% if clusters %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+(function () {
+  const dataElement = document.getElementById('applicant-clusters-data');
+  if (!dataElement) return;
+
+  const clusters = JSON.parse(dataElement.textContent);
+  if (!clusters.length) return;
+
+  const map = L.map('applicantClustersMap');
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  const bounds = [];
+  clusters.forEach((cluster) => {
+    const radius = Math.min(28, 8 + cluster.count * 2);
+    const marker = L.circleMarker([cluster.latitude, cluster.longitude], {
+      radius: radius,
+      color: '#1d2433',
+      weight: 1.2,
+      fillColor: '#1d2433',
+      fillOpacity: 0.25
+    }).addTo(map);
+    marker.bindPopup(
+      '<strong>' + cluster.location + '</strong><br>' +
+      cluster.count + ' applicant' + (cluster.count === 1 ? '' : 's')
+    );
+    bounds.push([cluster.latitude, cluster.longitude]);
+  });
+
+  map.fitBounds(bounds, { padding: [28, 28] });
+})();
+</script>
+{% endif %}
+{% endblock extra_scripts %}
