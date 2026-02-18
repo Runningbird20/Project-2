@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-shell">
+  <div class="container">
+    {% if user.profile.account_type == 'APPLICANT' %}
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+      <div>
+        <p class="page-kicker mb-2">Candidate dashboard</p>
+        <h1 class="page-title page-title-sm mb-1">My Career Dashboard</h1>
+        <p class="page-copy mb-0">Discover roles tailored to your skills and track your applications.</p>
+      </div>
+      <a href="{% url 'jobposts.search' %}" class="primary-btn border-0">Browse Jobs</a>
+    </div>
+
+    <div class="row g-4 mb-4">
+      <div class="col-md-6"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Applications Sent</div><h3 class="surface-title mb-0">{{ apps_sent_count|default:'0' }}</h3></div></div>
+      <div class="col-md-6"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Successful Outcomes</div><h3 class="surface-title mb-0">{{ success_count|default:'0' }}</h3></div></div>
+    </div>
+
+    <div class="surface-card p-0 overflow-hidden">
+      <div class="px-4 py-3 border-bottom d-flex justify-content-between align-items-center">
+        <h3 class="surface-title mb-0">Recommended For You</h3>
+        <span class="badge bg-dark-subtle text-dark">Based on your skills</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 job-table">
+          <thead class="table-light"><tr><th class="ps-4 py-3">Opportunity</th><th class="py-3">Location</th><th class="py-3 text-end pe-4">Action</th></tr></thead>
+          <tbody>
+            {% for job in recommendations %}
+            <tr>
+              <td class="ps-4 py-3"><div class="fw-bold">{{ job.title }}</div><div class="small text-muted">{{ job.company }}</div></td>
+              <td class="small text-muted">{{ job.location }}</td>
+              <td class="text-end pe-4"><a href="{% url 'jobposts.detail' job.id %}" class="secondary-btn">View details</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-center py-5 text-muted">No recommendations yet. Add more skills to your profile.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if user.profile.account_type == 'EMPLOYER' %}
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+      <div>
+        <p class="page-kicker mb-2">Employer tools</p>
+        <h1 class="page-title page-title-sm mb-1">Employer Dashboard</h1>
+        <p class="page-copy mb-0">Manage your listings, alerts, and applicants.</p>
+      </div>
+      <div class="form-actions">
+        <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn">Find Candidates</a>
+        <a href="{% url 'jobposts.create' %}" class="primary-btn border-0">Post New Job</a>
+      </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+      <div class="col-md-4"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Active Postings</div><h3 class="surface-title mb-0">{{ jobs.count }}</h3></div></div>
+      <div class="col-md-4"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Total Applicants</div><h3 class="surface-title mb-0">{{ overall_total|default:'0' }}</h3></div></div>
+      <div class="col-md-4"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Active Alerts</div><h3 class="surface-title mb-0">{{ saved_searches.count|default:'0' }}</h3></div></div>
+    </div>
+
+    {% if saved_searches %}
+    <div class="surface-card p-0 overflow-hidden mb-4">
+      <div class="px-4 py-3 border-bottom"><h3 class="surface-title mb-0">Saved Candidate Alerts</h3></div>
+      <div class="list-group list-group-flush">
+        {% for search in saved_searches %}
+        <div class="list-group-item py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div>
+            <div class="fw-bold">{{ search.search_name }}</div>
+            <div class="small text-muted">Skills: {{ search.filters.skills|default:'Any' }}</div>
+          </div>
+          <div class="form-actions">
+            <a href="{% url 'accounts.candidate_search' %}?skills={{ search.filters.skills|urlencode }}&location={{ search.filters.location|urlencode }}&projects={{ search.filters.projects|urlencode }}" class="secondary-btn">View matches</a>
+            <form action="{% url 'accounts.delete_search' search.id %}" method="POST">{% csrf_token %}<button type="submit" class="danger-btn border-0">Delete</button></form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="surface-card p-0 overflow-hidden">
+      <div class="px-4 py-3 border-bottom"><h3 class="surface-title mb-0">Your Job Listings</h3></div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 job-table">
+          <thead class="table-light"><tr><th class="ps-4 py-3">Job Details</th><th class="py-3">Posted On</th><th class="py-3 text-center">Total Apps</th><th class="py-3 text-center">New</th><th class="py-3 text-end pe-4">Manage</th></tr></thead>
+          <tbody>
+            {% for job in jobs %}
+            <tr>
+              <td class="ps-4 py-3"><div class="fw-bold">{{ job.title }}</div><div class="small text-muted">{{ job.company }}</div></td>
+              <td class="small text-muted">{{ job.created_at|date:'M d, Y' }}</td>
+              <td class="text-center">{{ job.total_apps }}</td>
+              <td class="text-center">{% if job.new_apps > 0 %}<span class="badge bg-success-subtle text-success">{{ job.new_apps }} New</span>{% else %}<span class="text-muted">-</span>{% endif %}</td>
+              <td class="text-end pe-4"><div class="form-actions justify-content-end"><a href="{% url 'apply:employer_pipeline' job.id %}" class="secondary-btn">Pipeline</a><a href="{% url 'jobposts.edit' job.id %}" class="secondary-btn">Edit</a><form action="{% url 'jobposts.delete' job.id %}" method="POST" onsubmit="return confirm('Delete this listing?');">{% csrf_token %}<button type="submit" class="danger-btn border-0">Delete</button></form></div></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center py-5 text-muted">No active job posts yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

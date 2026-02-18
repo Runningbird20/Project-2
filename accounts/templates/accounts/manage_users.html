@@ -1,74 +1,88 @@
 {% extends 'base.html' %}
 {% block content %}
-
-<div class="p-3">
-    <div class="container">
-        <div class="row mt-3">
-            <div class="col mx-auto mb-3">
-                <h2>Users</h2>
-                <hr />
-                <div class="card mb-4">
-
-                    <div class="card-body">
-
-                        <table class="table table-bordred table-striped text-center mt-3">
-                            <thead>
-                                <tr>
-                                    <th scope="col">User ID</th>
-                                    <th scope="col">Username</th>
-                                    <th scope="col">Type</th>
-                                    <th scope="col">Delete</th>
-                                </tr>
-                            </thead>
-
-                            {% for u in template_data.users %}
-                            <tbody>
-                                <tr>
-                                    <td>{{ u.id }}</td>
-                                    <td>{{ u.user }}</td>
-                                    
-                                   <td>
-                                        {% if u.user.is_superuser %}
-                                                Superuser
-                                        {% else %}
-                                            {% if u.user.is_staff %}
-                                                Staff
-                                            {% else %}
-                                                {{ u.account_type }}
-                                            {% endif %}
-                                        {% endif %}
-
-                                    </td>
-
-                                    <td>
-                                        
-                                        {% if user.is_superuser %}
-                                            <a href="{% url 'accounts.edit_user' u.id %}" class="btn btn-danger mb-2">
-                                                Edit User
-                                            </a>
-                                        {% else %}
-                                            {% if u.user.is_staff %}
-                                                <button class="btn btn-outline-dark mb-2">
-                                                    Cannot Edit Superuser
-                                                </button> 
-                                            {% else %}
-                                            <a href="{% url 'accounts.edit_user' u.id %}" class="btn btn-danger mb-2">
-                                                Edit User
-                                            </a>
-                                            {% endif %}
-                                        {% endif %}
-                                    </td>
-                                     
-                                </tr>
-                            </tbody>
-                            {% endfor %}
-                        </table>
-                    </div>
-                </div>
-
-            </div>
-        </div>
+<section class="page-shell">
+  <div class="container">
+    <div class="page-intro text-start mb-3">
+      <p class="page-kicker">Admin</p>
+      <h1 class="page-title page-title-sm">Manage Users</h1>
+      <p class="page-copy mb-0">Review account roles and open user management actions.</p>
     </div>
-</div>
 
+    <div class="surface-card mb-3">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <form method="GET" action="{% url 'accounts.manage_users' %}" class="d-flex gap-2 flex-wrap">
+          <input type="text" name="search" class="form-control" placeholder="Search by username or email..." value="{{ template_data.search_query }}">
+          <button type="submit" class="primary-btn border-0">Search</button>
+          {% if template_data.search_query %}
+            <a href="{% url 'accounts.manage_users' %}" class="secondary-btn">Clear</a>
+          {% endif %}
+        </form>
+        {% if user.is_staff %}
+          <div class="form-actions">
+<<<<<<< HEAD
+            <form method="post" action="{% url 'accounts.send_test_email' %}" class="d-flex gap-2 flex-wrap">
+              {% csrf_token %}
+              <input
+                type="email"
+                name="test_email_to"
+                class="form-control"
+                placeholder="test recipient email"
+                required
+                style="min-width: 240px;"
+              >
+              <button type="submit" class="secondary-btn border-0">Send Test Email</button>
+            </form>
+=======
+            <a href="{% url 'accounts.applicant_clusters_map' %}" class="secondary-btn">Applicant Clusters Map</a>
+>>>>>>> d01baced0c73dcc3eed56bd8efb0232142b26b68
+            <a href="{% url 'accounts.export_usage_report' %}" class="secondary-btn">Export Usage Report</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="surface-card p-0 overflow-hidden">
+      <div class="table-responsive">
+        <table class="table align-middle text-center job-table mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>User ID</th>
+              <th>Username</th>
+              <th>Type</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in template_data.users %}
+            <tr>
+              <td>{{ u.id }}</td>
+              <td>{{ u.user.username }}</td>
+              <td>
+                {% if u.user.is_superuser %}
+                  <span class="badge bg-dark">Superuser</span>
+                {% elif u.user.is_staff %}
+                  <span class="badge bg-info text-dark">Staff</span>
+                {% else %}
+                  <span class="badge bg-secondary">{{ u.get_account_type_display }}</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if user.is_superuser or not u.user.is_staff %}
+                  <a href="{% url 'accounts.edit_user' u.id %}" class="secondary-btn">Edit User</a>
+                {% else %}
+                  <button class="secondary-btn" disabled>Cannot Edit Staff</button>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="py-4 text-muted">No users found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
 {% endblock content %}

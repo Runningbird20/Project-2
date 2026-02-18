@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-shell">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-4">
+        <div class="surface-card">
+          <div class="text-uppercase text-muted small mb-2">Candidate search</div>
+          <h2 class="surface-title mb-3">Find talent</h2>
+
+          <form method="get" id="searchForm" class="vstack gap-3">
+            <div>
+              <label class="form-label">Skills</label>
+              <input type="text" name="skills" class="form-control" placeholder="e.g. Python, Django" value="{{ template_data.filters.skills }}">
+              <div class="form-text">Comma-separated skills.</div>
+            </div>
+            <div>
+              <label class="form-label">Location</label>
+              <input type="text" name="location" class="form-control" placeholder="e.g. Atlanta, GA" value="{{ template_data.filters.location }}">
+            </div>
+            <div>
+              <label class="form-label">Projects</label>
+              <input type="text" name="projects" class="form-control" placeholder="e.g. robotics, GPU" value="{{ template_data.filters.projects }}">
+            </div>
+
+            <div class="vstack gap-2">
+              <div class="form-actions">
+                <button type="submit" class="primary-btn border-0">Search</button>
+                <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn">Reset</a>
+              </div>
+              <button type="button" id="saveAlertTrigger" class="secondary-btn w-100" data-bs-toggle="modal" data-bs-target="#saveSearchModal">
+                Save as Alert
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="col-lg-8">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div>
+            <div class="text-uppercase text-muted small">Results</div>
+            <h3 class="surface-title mb-0">{{ template_data.candidates|length }} candidates</h3>
+          </div>
+        </div>
+
+        {% if template_data.candidates %}
+          <div class="vstack gap-3">
+            {% for p in template_data.candidates %}
+              <div class="surface-card">
+                <div class="d-flex justify-content-between flex-wrap gap-2">
+                  <div>
+                    <h4 class="surface-title mb-1">{{ p.user.username }}</h4>
+                    {% if p.headline %}<div class="text-muted">{{ p.headline }}</div>{% endif %}
+                    {% if p.location_city_state %}<div class="small text-muted">{{ p.location_city_state }}</div>{% endif %}
+                    {% if p.skills %}<div class="small text-muted">{{ p.skills }}</div>{% endif %}
+                  </div>
+                  <div class="text-end">
+                    <a class="secondary-btn" href="{% url 'accounts.public_profile' p.user.username %}">View profile</a>
+                  </div>
+                </div>
+                {% if p.projects %}
+                  <p class="mt-3 mb-0 text-muted small">{{ p.projects|truncatewords:40 }}</p>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="surface-card p-5 text-center">
+            <h4 class="surface-title mb-2">No matching candidates</h4>
+            <p class="text-muted mb-0">Try widening your filters.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="modal fade" id="saveSearchModal" tabindex="-1" aria-labelledby="saveSearchModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg rounded-4">
+      <form action="{% url 'accounts.save_search' %}" method="post">
+        {% csrf_token %}
+        <div class="modal-header border-0 pb-0">
+          <h5 class="fw-bold mb-0" id="saveSearchModalLabel">Create Candidate Alert</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body py-4">
+          <p class="text-muted small mb-4">We will notify you on your dashboard when new candidates match these criteria.</p>
+
+          <input type="hidden" name="skills" id="modalHiddenSkills">
+          <input type="hidden" name="location" id="modalHiddenLocation">
+          <input type="hidden" name="projects" id="modalHiddenProjects">
+
+          <div class="mb-3">
+            <label class="form-label fw-bold small">Alert Name</label>
+            <input type="text" name="search_name" class="form-control" placeholder="e.g. Python Engineers in Atlanta" required>
+          </div>
+
+          <div class="p-3 bg-light rounded-3">
+            <div class="small text-muted mb-1">Current Filters:</div>
+            <div id="modalFilterPreview" class="fw-bold small">All Candidates</div>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="secondary-btn btn-compact border-0" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="primary-btn btn-compact border-0">Save Alert</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const skillsIn = document.querySelector('input[name="skills"]');
+  const locIn = document.querySelector('input[name="location"]');
+  const projIn = document.querySelector('input[name="projects"]');
+  const saveBtn = document.getElementById('saveAlertTrigger');
+
+  const modalSkills = document.getElementById('modalHiddenSkills');
+  const modalLoc = document.getElementById('modalHiddenLocation');
+  const modalProj = document.getElementById('modalHiddenProjects');
+  const previewDiv = document.getElementById('modalFilterPreview');
+
+  function syncAndToggle() {
+    const s = skillsIn.value.trim();
+    const l = locIn.value.trim();
+    const p = projIn.value.trim();
+
+    modalSkills.value = s;
+    modalLoc.value = l;
+    modalProj.value = p;
+
+    const preview = [];
+    if (s) preview.push(`Skills: ${s}`);
+    if (l) preview.push(`Location: ${l}`);
+    if (p) preview.push(`Projects: ${p}`);
+    previewDiv.innerHTML = preview.length ? preview.join('<br>') : 'All Candidates';
+
+    const hasValue = s !== '' || l !== '' || p !== '';
+    saveBtn.disabled = !hasValue;
+  }
+
+  [skillsIn, locIn, projIn].forEach((el) => el.addEventListener('input', syncAndToggle));
+  syncAndToggle();
+});
+</script>
+{% endblock content %}

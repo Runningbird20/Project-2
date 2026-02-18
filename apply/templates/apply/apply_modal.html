@@ -1,0 +1,29 @@
+<div id="applyModal">
+  <div class="modal-card">
+    <h3 class="surface-title mb-3">Submit Application</h3>
+    <form method="POST" id="applyForm" class="vstack gap-3">
+      {% csrf_token %}
+
+      <textarea name="note" placeholder="Add a tailored note..." rows="4"></textarea>
+      <input type="hidden" name="resume_choice" id="resumeChoice">
+
+      <div class="form-actions">
+        <button type="submit" class="primary-btn border-0">Submit</button>
+        <button type="button" class="secondary-btn" onclick="closeModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openApplyModal(jobId) {
+  const resume = document.querySelector('input[name="resume_choice"]:checked').value;
+  document.getElementById("resumeChoice").value = resume;
+  document.getElementById("applyForm").action = `/apply/apply/${jobId}/`;
+  document.getElementById("applyModal").style.display = "flex";
+}
+
+function closeModal() {
+  document.getElementById("applyModal").style.display = "none";
+}
+</script>

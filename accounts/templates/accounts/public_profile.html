@@ -1,67 +1,90 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
-<div class="p-3 mt-4">
+<section class="page-shell">
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-md-10 col-lg-8">
-        <div class="card shadow p-3 mb-4 rounded">
-          <div class="card-body">
-
-            <div class="d-flex justify-content-between align-items-start">
-              <div>
-                <h2 class="mb-1">{{ template_data.profile.user.get_username }}</h2>
-                {% if template_data.profile.show_headline and template_data.profile.headline %}
-                  <p class="text-muted mb-0">{{ template_data.profile.headline }}</p>
+        <div class="surface-card">
+          <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div class="d-flex align-items-start gap-3">
+              <div class="flex-shrink-0">
+                {% if template_data.profile.profile_picture %}
+                  <img src="{{ template_data.profile.profile_picture.url }}" alt="Profile picture" class="rounded-circle border" style="width:84px;height:84px;object-fit:cover;">
+                {% else %}
+                  <img src="{% static 'img/default_avatar.png' %}" alt="Default profile picture" class="rounded-circle border" style="width:84px;height:84px;object-fit:cover;">
                 {% endif %}
               </div>
+              <div>
+                <p class="page-kicker mb-2">Public candidate profile</p>
+                <h1 class="page-title page-title-sm mb-1">{{ template_data.profile.user.get_username }}</h1>
+                {% if template_data.is_owner %}
+                  {% if template_data.profile.location %}<p class="small text-muted mb-1">{{ template_data.profile.location }}</p>{% endif %}
+                {% else %}
+                  {% if template_data.profile.location_city_state %}<p class="small text-muted mb-1">{{ template_data.profile.location_city_state }}</p>{% endif %}
+                {% endif %}
+                {% if template_data.profile.user.email %}
+                  {% if template_data.is_owner or not template_data.profile.hide_email_from_employers %}
+                    <p class="small text-muted mb-1">{{ template_data.profile.user.email }}</p>
+                  {% endif %}
+                {% endif %}
+                {% if template_data.profile.show_headline and template_data.profile.headline %}<p class="surface-copy mb-0">{{ template_data.profile.headline }}</p>{% endif %}
+              </div>
             </div>
-
-            <hr />
-
-            <h5>Skills</h5>
-            {% if template_data.profile.show_skills and template_data.profile.skills %}
-              <p>{{ template_data.profile.skills }}</p>
-            {% else %}
-              <p class="text-muted">Hidden from recruiters.</p>
-            {% endif %}
-
-            <hr />
-
-            <h5>Education</h5>
-            {% if template_data.profile.show_education and template_data.profile.education %}
-              <p style="white-space: pre-wrap;">{{ template_data.profile.education }}</p>
-            {% else %}
-              <p class="text-muted">Hidden from recruiters.</p>
-            {% endif %}
-
-            <hr />
-
-            <h5>Work Experience</h5>
-            {% if template_data.profile.show_work_experience and template_data.profile.work_experience %}
-              <p style="white-space: pre-wrap;">{{ template_data.profile.work_experience }}</p>
-            {% else %}
-              <p class="text-muted">Hidden from recruiters.</p>
-            {% endif %}
-
-            <hr />
-
-            <h5>Links</h5>
-            {% if template_data.profile.show_links and template_data.profile.links.exists %}
-              <ul class="mb-0">
-                {% for link in template_data.profile.links.all %}
-                  <li>
-                    {% if link.label %}<b>{{ link.label }}:</b> {% endif %}
-                    <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.url }}</a>
-                  </li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p class="text-muted">Hidden from recruiters.</p>
+            {% if template_data.is_owner %}
+              <a class="secondary-btn" href="{% url 'accounts.profile_edit' %}">Edit</a>
             {% endif %}
           </div>
+
+          {% if template_data.is_owner and not template_data.profile.visible_to_recruiters %}
+            <div class="alert alert-warning mt-3 mb-0">You are previewing your public profile while set to private.</div>
+          {% endif %}
+
+          <hr>
+
+          {% if template_data.profile.show_skills %}
+          <h5 class="surface-title">Skills</h5>
+          {% if template_data.profile.skills %}<p>{{ template_data.profile.skills }}</p>{% else %}<p class="text-muted">No skills added yet.</p>{% endif %}
+          <hr>
+          {% endif %}
+
+          {% if template_data.profile.projects %}
+          <h5 class="surface-title">Projects</h5>
+          <p style="white-space: pre-wrap;">{{ template_data.profile.projects }}</p>
+          <hr>
+          {% endif %}
+
+          {% if template_data.profile.show_education %}
+          <h5 class="surface-title">Education</h5>
+          {% if template_data.profile.education %}<p style="white-space: pre-wrap;">{{ template_data.profile.education }}</p>{% else %}<p class="text-muted">No education added yet.</p>{% endif %}
+          <hr>
+          {% endif %}
+
+          {% if template_data.profile.show_work_experience %}
+          <h5 class="surface-title">Work Experience</h5>
+          {% if template_data.profile.work_experience %}<p style="white-space: pre-wrap;">{{ template_data.profile.work_experience }}</p>{% else %}<p class="text-muted">No work experience added yet.</p>{% endif %}
+          <hr>
+          {% endif %}
+
+          {% if template_data.profile.show_links %}
+          <h5 class="surface-title">Links</h5>
+          {% if template_data.has_links %}
+            <ul class="mb-0">
+              {% for link in template_data.profile.links.all %}
+              <li>{% if link.label %}<b>{{ link.label }}:</b> {% endif %}<a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">{{ link.url }}</a></li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-muted">No links added yet.</p>
+          {% endif %}
+          {% endif %}
+        </div>
+
+        <div class="text-center mt-3">
+          <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn">Back to Search</a>
         </div>
       </div>
     </div>
   </div>
-</div>
+</section>
 {% endblock content %}

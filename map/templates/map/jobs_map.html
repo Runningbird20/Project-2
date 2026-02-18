@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-shell">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+      <div>
+        <p class="page-kicker mb-2">Interactive map</p>
+        <h1 class="page-title page-title-sm mb-1">Job Postings Near You</h1>
+        <p class="page-copy mb-0">{{ template_data.jobs_count }} pinned job locations.</p>
+      </div>
+      <div class="form-actions">
+        <a href="{% url 'jobposts.search' %}" class="secondary-btn">Back to jobs</a>
+      </div>
+    </div>
+
+    {% if jobs_data %}
+      <div class="row g-3">
+        <div class="col-lg-8">
+          <div class="surface-card p-2">
+            <div id="jobsMap" style="height: 70vh; min-height: 420px; border-radius: 12px;"></div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="surface-card h-100">
+            <div class="text-uppercase text-muted small mb-2">Near me tools</div>
+            <div class="vstack gap-2 mb-3">
+              <button id="useMyLocationBtn" type="button" class="primary-btn border-0 btn-compact">Use My Location</button>
+              <button id="clearLocationBtn" type="button" class="secondary-btn btn-compact">Clear Near Me</button>
+            </div>
+            <div class="mb-3">
+              <label for="radiusMiles" class="form-label">Radius (miles)</label>
+              <input id="radiusMiles" type="number" min="1" max="500" value="25" class="form-control">
+            </div>
+            <div id="nearMeStatus" class="small text-muted mb-3">Showing all pinned jobs.</div>
+            <hr>
+            <div class="text-uppercase text-muted small mb-2">Locations</div>
+            <div id="jobsList" class="vstack gap-2"></div>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="surface-card">
+        <p class="text-muted mb-0">No job postings with pinned map locations yet.</p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{% if jobs_data %}
+  {{ jobs_data|json_script:"jobs-map-data" }}
+{% endif %}
+{% endblock content %}
+
+{% block extra_scripts %}
+{% if jobs_data %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+(function () {
+  const dataElement = document.getElementById('jobs-map-data');
+  if (!dataElement) return;
+
+  const jobs = JSON.parse(dataElement.textContent);
+  const jobsMap = L.map('jobsMap');
+  const markerLayer = L.layerGroup().addTo(jobsMap);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(jobsMap);
+
+  const jobsState = jobs.map((job) => ({
+    ...job,
+    marker: null,
+    distanceMiles: null
+  }));
+
+  let userMarker = null;
+  let userRadiusCircle = null;
+  let userPosition = null;
+  let nearMeEnabled = false;
+
+  const jobsList = document.getElementById('jobsList');
+  const nearMeStatus = document.getElementById('nearMeStatus');
+  const radiusInput = document.getElementById('radiusMiles');
+  const useMyLocationBtn = document.getElementById('useMyLocationBtn');
+  const clearLocationBtn = document.getElementById('clearLocationBtn');
+
+  function haversineMiles(lat1, lon1, lat2, lon2) {
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const R = 3958.8;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  function selectedRadiusMiles() {
+    const parsed = parseFloat(radiusInput.value);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    return 25;
+  }
+
+  function markerPopupHtml(job) {
+    return `
+      <div style="min-width:220px">
+        <div style="font-weight:700">${job.title}</div>
+        <div style="color:#555">${job.company}</div>
+        <div style="font-size:12px;color:#666;margin-top:4px">${job.location}</div>
+        <div style="font-size:12px;color:#666">${job.full_address || ''}</div>
+        <a href="${job.detail_url}" style="display:inline-block;margin-top:8px">View posting</a>
+      </div>
+    `;
+  }
+
+  function renderList(items) {
+    jobsList.innerHTML = '';
+    if (!items.length) {
+      jobsList.innerHTML = '<p class="small text-muted mb-0">No jobs in current radius.</p>';
+      return;
+    }
+
+    items.forEach((job) => {
+      const row = document.createElement('div');
+      row.className = 'border rounded p-2';
+      const distance = job.distanceMiles != null ? ` · ${job.distanceMiles.toFixed(1)} mi` : '';
+      row.innerHTML = `
+        <div class="fw-semibold">${job.title}</div>
+        <div class="small text-muted">${job.company}${distance}</div>
+        <div class="small text-muted">${job.location}</div>
+        <a class="small" href="${job.detail_url}">Open posting</a>
+      `;
+      row.addEventListener('mouseenter', () => {
+        if (job.marker) {
+          job.marker.openPopup();
+        }
+      });
+      row.addEventListener('click', () => {
+        jobsMap.setView([job.latitude, job.longitude], Math.max(jobsMap.getZoom(), 11));
+        if (job.marker) job.marker.openPopup();
+      });
+      jobsList.appendChild(row);
+    });
+  }
+
+  function applyNearMe() {
+    const radius = selectedRadiusMiles();
+
+    let visibleJobs = jobsState;
+    if (nearMeEnabled && userPosition) {
+      visibleJobs = jobsState.filter((job) => {
+        job.distanceMiles = haversineMiles(userPosition.lat, userPosition.lng, job.latitude, job.longitude);
+        return job.distanceMiles <= radius;
+      });
+      visibleJobs.sort((a, b) => a.distanceMiles - b.distanceMiles);
+      nearMeStatus.textContent = `Showing jobs within ${radius} miles of your location.`;
+    } else {
+      jobsState.forEach((job) => {
+        job.distanceMiles = null;
+      });
+      nearMeStatus.textContent = 'Showing all pinned jobs.';
+    }
+
+    markerLayer.clearLayers();
+    visibleJobs.forEach((job) => {
+      const marker = L.marker([job.latitude, job.longitude]).addTo(markerLayer);
+      marker.bindPopup(markerPopupHtml(job));
+      job.marker = marker;
+    });
+
+    if (userMarker && userRadiusCircle) {
+      userRadiusCircle.setRadius(radius * 1609.34);
+    }
+
+    if (visibleJobs.length) {
+      const bounds = L.latLngBounds(visibleJobs.map((job) => [job.latitude, job.longitude]));
+      if (nearMeEnabled && userPosition) bounds.extend([userPosition.lat, userPosition.lng]);
+      jobsMap.fitBounds(bounds.pad(0.2));
+    }
+
+    renderList(visibleJobs);
+  }
+
+  function resetNearMe() {
+    nearMeEnabled = false;
+    userPosition = null;
+    if (userMarker) jobsMap.removeLayer(userMarker);
+    if (userRadiusCircle) jobsMap.removeLayer(userRadiusCircle);
+    userMarker = null;
+    userRadiusCircle = null;
+    applyNearMe();
+  }
+
+  useMyLocationBtn.addEventListener('click', function () {
+    if (!navigator.geolocation) {
+      nearMeStatus.textContent = 'Geolocation is not supported in this browser.';
+      return;
+    }
+
+    nearMeStatus.textContent = 'Finding your location...';
+    navigator.geolocation.getCurrentPosition(
+      function (position) {
+        const radius = selectedRadiusMiles();
+        userPosition = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        nearMeEnabled = true;
+
+        if (userMarker) jobsMap.removeLayer(userMarker);
+        if (userRadiusCircle) jobsMap.removeLayer(userRadiusCircle);
+
+        userMarker = L.marker([userPosition.lat, userPosition.lng]).addTo(jobsMap);
+        userMarker.bindPopup('You are here');
+
+        userRadiusCircle = L.circle([userPosition.lat, userPosition.lng], {
+          radius: radius * 1609.34,
+          color: '#1d2433',
+          fillColor: '#1d2433',
+          fillOpacity: 0.08
+        }).addTo(jobsMap);
+
+        applyNearMe();
+      },
+      function () {
+        nearMeStatus.textContent = 'Could not access your location. Check browser permissions.';
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000
+      }
+    );
+  });
+
+  clearLocationBtn.addEventListener('click', resetNearMe);
+  radiusInput.addEventListener('change', applyNearMe);
+
+  applyNearMe();
+})();
+</script>
+{% endif %}
+{% endblock extra_scripts %}
