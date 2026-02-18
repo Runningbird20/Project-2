@@ -43,7 +43,7 @@ def sync_applicant_job_matches(applicant_user):
         matched_skills = ", ".join(overlap)
         score = len(overlap)
 
-        match, _ = ApplicantJobMatch.objects.get_or_create(
+        match, created = ApplicantJobMatch.objects.get_or_create(
             applicant=applicant_user,
             job=job,
             defaults={"score": score, "matched_skills": matched_skills},
@@ -74,6 +74,19 @@ def sync_applicant_job_matches(applicant_user):
             )
             match.employer_notified_at = timezone.now()
             match.save(update_fields=["employer_notified_at", "updated_at"])
+
+        if created and applicant_user.email:
+            send_mail(
+                subject=f"New job match: {job.title}",
+                message=(
+                    f"You matched with '{job.title}' at {job.company} based on skills: "
+                    f"{matched_skills}.\n\n"
+                    "Log in to PandaPulse to review this opportunity."
+                ),
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
+                recipient_list=[applicant_user.email],
+                fail_silently=True,
+            )
 
     ApplicantJobMatch.objects.filter(applicant=applicant_user).exclude(job_id__in=matched_job_ids).delete()
 

@@ -99,8 +99,30 @@ class SignupWithProfileForm(CustomUserCreationForm):
             raise forms.ValidationError("This username is already taken.")
         return username
 
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip()
+        if not email:
+            raise forms.ValidationError("Email is required.")
+        User = get_user_model()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("An account with this email already exists.")
+        return email
+
     def clean_skills(self):
         return normalize_skills_csv(self.cleaned_data.get("skills", ""))
+
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip()
+        if not email:
+            return email
+
+        User = get_user_model()
+        existing = User.objects.filter(email__iexact=email)
+        if self.instance and self.instance.pk:
+            existing = existing.exclude(pk=self.instance.user_id)
+        if existing.exists():
+            raise forms.ValidationError("An account with this email already exists.")
+        return email
 
 class ProfileEditForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):

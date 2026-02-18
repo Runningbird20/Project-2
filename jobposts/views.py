@@ -12,7 +12,7 @@ from map.forms import OfficeLocationForm
 from map.models import OfficeLocation
 from map.services import OfficeLocationGeocodingError, geocode_office_address
 from .forms import JobPostForm
-from .models import ApplicantJobMatch, JobPost
+from .models import JobPost
 from .matching import sync_applicant_job_matches
 from django.views.decorators.http import require_POST
 from apply.models import Application
@@ -191,6 +191,7 @@ def search(request):
     radius_warning = ''
     radius_active = False
     is_applicant = False
+    applicant_profile = None
     has_home_address = False
     home_address = ''
 
@@ -224,6 +225,7 @@ def search(request):
     if request.user.is_authenticated:
         profile = Profile.objects.filter(user=request.user).first()
         if profile and profile.account_type == Profile.AccountType.APPLICANT:
+            applicant_profile = profile
             is_applicant = True
             home_address = (profile.location or '').strip()
             has_home_address = bool(home_address)
@@ -283,13 +285,23 @@ def search(request):
     posts_sequence = list(posts)
     matched_posts = []
     other_posts = posts_sequence
-    if is_applicant and request.user.is_authenticated:
+    if is_applicant and request.user.is_authenticated and applicant_profile:
         sync_applicant_job_matches(request.user)
-        matched_job_ids = set(
-            ApplicantJobMatch.objects.filter(applicant=request.user).values_list("job_id", flat=True)
-        )
-        matched_posts = [post for post in posts_sequence if post.id in matched_job_ids]
-        other_posts = [post for post in posts_sequence if post.id not in matched_job_ids]
+
+        def _skill_set(raw_value):
+            if not raw_value:
+                return set()
+            return {token.strip().lower() for token in raw_value.split(",") if token.strip()}
+
+        applicant_skills = _skill_set(applicant_profile.skills)
+        matched_posts = []
+        other_posts = []
+        for post in posts_sequence:
+            post_skills = _skill_set(post.skills)
+            if applicant_skills.intersection(post_skills):
+                matched_posts.append(post)
+            else:
+                other_posts.append(post)
 
     template_data['posts'] = posts_sequence
     template_data['matched_posts'] = matched_posts
