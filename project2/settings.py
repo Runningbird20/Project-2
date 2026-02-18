@@ -45,12 +45,8 @@ INSTALLED_APPS = [
     'apply',
     'jobposts',
     'map',
-<<<<<<< HEAD
-    'pulses',
-=======
     'messaging',
     'interviews',
->>>>>>> ad05adef181ac0fbe4cfffb0695c17807909bcf4
 ]
 
 MIDDLEWARE = [
