@@ -71,7 +71,7 @@
               {% if user.is_authenticated and not can_post_job %}
               <a class="footer-link" href="{% url 'accounts.profile_edit' %}?highlight=account_type">Become an Employer</a>
               {% endif %}
-              {% if user.is_staff %}
+              {% if user.is_superuser %}
               <a class="footer-link" href="{% url 'accounts.manage_users' %}">Manage Users</a>
               {% endif %}
             </div>
