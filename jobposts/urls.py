@@ -8,4 +8,7 @@ urlpatterns = [
     path('dashboard/', views.dashboard, name='jobposts.dashboard'),
     path('delete/<int:job_id>/', views.delete_job, name='jobposts.delete'),
     path('job/<int:post_id>/', views.job_detail, name='jobposts.detail'),
+    path('job/<int:post_id>/', views.job_detail, name='jobposts.detail'),
+    path('edit_post/<int:post_id>/', views.edit_post, name='jobposts.edit_post'),
+    path('remove_post/<int:post_id>/', views.remove_post, name='jobposts.remove_post'),
 ]

@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 import os
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -114,7 +115,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/New_York'
 
 USE_I18N = True
 
@@ -124,11 +125,44 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [
-    BASE_DIR / 'project2/static/',
+    BASE_DIR / 'project2' / 'static',
 ]
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / "media"
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Email configuration.
+# Default to SMTP so confirmation emails are actually delivered unless overridden.
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com').strip()
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'pandapulse.donotreply@gmail.com').strip()
+EMAIL_HOST_PASSWORD = (
+    os.getenv('EMAIL_HOST_PASSWORD', os.getenv('GOOGLE_APP_PASSWORD', 'rtvw zxpo aenm vele'))
+    .strip()
+    .replace(' ', '')
+    .replace('-', '')
+)
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'true').lower() == 'true'
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'false').lower() == 'true'
+EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '20'))
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER).strip()
+
+if EMAIL_BACKEND == 'django.core.mail.backends.smtp.EmailBackend' and (not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD):
+    raise ImproperlyConfigured(
+        "SMTP email requires EMAIL_HOST_USER and EMAIL_HOST_PASSWORD (or GOOGLE_APP_PASSWORD)."
+    )
+
+
+
+
+
+
+
+

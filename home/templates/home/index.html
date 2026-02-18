@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+
 {% block content %}
 <section class="hero-shell">
   <div class="container hero-content text-center">
@@ -11,6 +12,7 @@
     <div class="hero-actions">
       {% if can_post_job %}
       <a class="secondary-btn" href="{% url 'jobposts.create' %}">Post a job</a>
+      <a class="secondary-btn" href="{% url 'jobposts.dashboard' %}">Employer Dashboard</a>
       {% elif user.is_authenticated %}
       <a class="primary-btn" href="{% url 'jobposts.search' %}">Browse jobs</a>
       {% endif %}
@@ -41,3 +43,12 @@
 </section>
 {% endblock content %}
 
+{% block extra_scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  window.dispatchEvent(new CustomEvent("panda:bubble", {
+    detail: { text: "Welcome to PandaPulse!" }
+  }));
+});
+</script>
+{% endblock %}

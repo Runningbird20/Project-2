@@ -2,13 +2,13 @@
 {% block content %}
 <section class="page-shell">
   <div class="container">
-    <div class="page-intro text-start mb-3">
-      <p class="page-kicker">Admin</p>
-      <h1 class="page-title page-title-sm">Manage Users</h1>
-      <p class="page-copy mb-0">Review account roles and open user management actions.</p>
+    <div class="mb-4">
+        <p class="page-kicker mb-2">Admin</p>
+        <h1 class="page-title page-title-sm mb-1">Manage Users</h1>
+        <p class="page-copy mb-0">Review account roles and open user management actions.</p>
     </div>
 
-    <div class="surface-card mb-3">
+    <div class="surface-card mb-4">
       <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
         <form method="GET" action="{% url 'accounts.manage_users' %}" class="d-flex gap-2 flex-wrap">
           <input type="text" name="search" class="form-control" placeholder="Search by username or email..." value="{{ template_data.search_query }}">
@@ -18,7 +18,10 @@
           {% endif %}
         </form>
         {% if user.is_staff %}
-          <a href="{% url 'accounts.export_usage_report' %}" class="secondary-btn">Export Usage Report</a>
+          <div class="d-flex flex-column align-items-end gap-2 ms-auto">
+            <a href="{% url 'accounts.applicant_clusters_map' %}" class="secondary-btn">Applicant Clusters Map</a>
+            <a href="{% url 'accounts.export_usage_report' %}" class="secondary-btn">Export Usage Report</a>
+          </div>
         {% endif %}
       </div>
     </div>

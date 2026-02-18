@@ -3,6 +3,15 @@ from django.conf import settings
 
 
 class JobPost(models.Model):
+    COMPANY_SIZE_CHOICES = [
+        ("small", "Small (1-50)"),
+        ("mid_size", "Mid-size (51-500)"),
+        ("large", "Large (501-5,000)"),
+        ("fortune_500", "Fortune 500"),
+        ("startup", "Startup"),
+        ("enterprise", "Enterprise"),
+        ("other", "Other"),
+    ]
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -23,9 +32,34 @@ class JobPost(models.Model):
         ("hybrid", "Hybrid"),
     ]
     work_setting = models.CharField(max_length=20, choices=WORK_SETTING_CHOICES, default="onsite")
+    company_size = models.CharField(max_length=20, choices=COMPANY_SIZE_CHOICES, default="other")
     visa_sponsorship = models.BooleanField(default=False)
     description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.title} at {self.company}"
+
+
+class ApplicantJobMatch(models.Model):
+    applicant = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="job_matches",
+    )
+    job = models.ForeignKey(
+        JobPost,
+        on_delete=models.CASCADE,
+        related_name="applicant_matches",
+    )
+    score = models.IntegerField(default=0)
+    matched_skills = models.CharField(max_length=300, blank=True)
+    employer_notified_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("applicant", "job")
+
+    def __str__(self):
+        return f"{self.applicant.username} match for {self.job.title}"

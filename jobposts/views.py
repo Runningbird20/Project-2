@@ -1,3 +1,7 @@
+import math
+
+from django.conf import settings
+from django.core.mail import send_mail
 from django.db import models
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
@@ -11,13 +15,35 @@ from map.models import OfficeLocation
 from map.services import OfficeLocationGeocodingError, geocode_office_address
 from .forms import JobPostForm
 from .models import JobPost
+from .matching import sync_applicant_job_matches
 from django.views.decorators.http import require_POST
 from apply.models import Application
+from apply.services import auto_archive_old_rejections, enforce_employer_response_deadline
+from project2.skills import COMMON_SKILLS
+from django.contrib.admin.views.decorators import staff_member_required
 
 from django.db.models import Count
 
+
+def _haversine_miles(lat1, lon1, lat2, lon2):
+    """Calculate great-circle distance in miles between two lat/lon points."""
+    earth_radius_miles = 3958.8
+    d_lat = math.radians(lat2 - lat1)
+    d_lon = math.radians(lon2 - lon1)
+    a = (
+        math.sin(d_lat / 2) ** 2
+        + math.cos(math.radians(lat1))
+        * math.cos(math.radians(lat2))
+        * math.sin(d_lon / 2) ** 2
+    )
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return earth_radius_miles * c
+
+
 @login_required
 def dashboard(request):
+    enforce_employer_response_deadline()
+    auto_archive_old_rejections()
     profile = request.user.profile
     context = {}
     
@@ -34,6 +60,11 @@ def dashboard(request):
             'skills': profile.skills,
             'apps_sent_count': apps_sent_count,
             'success_count': success_count,
+            'recent_applications': apps.select_related('job').order_by('-applied_at')[:5],
+            'archived_rejected_applications': apps.filter(
+                status='rejected',
+                archived_by_applicant=True,
+            ).select_related('job').order_by('-rejected_at', '-applied_at')[:5],
         })
 
     # --- EMPLOYER LOGIC ---
@@ -47,65 +78,63 @@ def dashboard(request):
         ).order_by('-created_at')
 
         overall_total = sum(job.total_apps for job in my_jobs)
-        
+        employer_jobs = list(my_jobs)
+
+        def _skill_set(raw_value):
+            if not raw_value:
+                return set()
+            return {token.strip().lower() for token in raw_value.split(",") if token.strip()}
+
+        applied_pairs = set(
+            Application.objects.filter(job__owner=request.user).values_list("user_id", "job_id")
+        )
+        job_skill_sets = [(job, _skill_set(job.skills)) for job in employer_jobs]
+        candidate_matches = []
+        applicant_profiles = Profile.objects.filter(
+            account_type=Profile.AccountType.APPLICANT,
+            visible_to_recruiters=True,
+        ).select_related("user").order_by("user__username")
+
+        for candidate in applicant_profiles:
+            candidate_skills = _skill_set(candidate.skills)
+            if not candidate_skills:
+                continue
+
+            best_job = None
+            best_score = 0
+            for job, job_skills in job_skill_sets:
+                if (candidate.user_id, job.id) in applied_pairs:
+                    continue
+                score = len(candidate_skills.intersection(job_skills))
+                if score > best_score:
+                    best_score = score
+                    best_job = job
+
+            if best_job:
+                candidate_matches.append({
+                    "candidate": candidate,
+                    "job": best_job,
+                    "score": best_score,
+                })
+    
         saved_searches = request.user.saved_searches.all()
     
         context.update({
             'jobs': my_jobs,
             'overall_total': overall_total,
             'saved_searches': saved_searches,
+            'matched_candidates': candidate_matches,
+            'archived_rejected_applicants': Application.objects.filter(
+                job__owner=request.user,
+                status='rejected',
+                archived_by_employer=True,
+            ).select_related('job', 'user').order_by('-rejected_at', '-applied_at')[:5],
         })
 
     return render(request, 'jobposts/dashboard.html', context)
 
 def get_job_recommendations(user_profile):
-    """
-    Ranks jobs based on location match AND overlap between user skills and job requirements.
-    """
-    user_skills = []
-    if user_profile.skills:
-        user_skills = [s.strip().lower() for s in user_profile.skills.split(',') if s.strip()]
-    
-    user_location = user_profile.location.strip().lower() if user_profile.location else ""
-
-    if not user_skills and not user_location:
-        return JobPost.objects.none()
-
-    query = Q()
-    
-    for skill in user_skills:
-        query |= Q(title__icontains=skill) | Q(description__icontains=skill) | Q(skills__icontains=skill)
-
-    if user_location:
-        query |= Q(location__icontains=user_location)
-
-    applied_job_ids = user_profile.user.application_set.values_list('job_id', flat=True)    
-    suggested_jobs = JobPost.objects.filter(query).exclude(id__in=applied_job_ids).distinct()
-
-    recommended_list = []
-    for job in suggested_jobs:
-        score = 0
-        job_title = job.title.lower()
-        job_desc = job.description.lower()
-        job_loc = job.location.lower()
-        job_skills = job.skills.lower() if job.skills else ""
-
-        for skill in user_skills:
-            if skill in job_title: score += 3  
-            if skill in job_skills: score += 2 
-            if skill in job_desc: score += 1   
-
-        if user_location and user_location in job_loc:
-            score += 5 
-
-        recommended_list.append({
-            'job': job,
-            'score': score
-        })
-
-    recommended_list.sort(key=lambda x: x['score'], reverse=True)
-    
-    return [item['job'] for item in recommended_list[:5]]
+    return sync_applicant_job_matches(user_profile.user)
 
 
 def _is_employer(user):
@@ -131,6 +160,23 @@ def create(request):
             post.save()
             try:
                 _save_office_location(post, map_form)
+                if request.user.email:
+                    try:
+                        send_mail(
+                            subject=f"Job posted: {post.title}",
+                            message=(
+                                f"Hi {request.user.username},\n\n"
+                                f"Your job posting '{post.title}' at {post.company} is now live on PandaPulse."
+                            ),
+                            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
+                            recipient_list=[request.user.email],
+                            fail_silently=False,
+                        )
+                    except Exception as exc:
+                        if settings.DEBUG:
+                            messages.warning(request, f"Job posting confirmation email could not be sent: {exc}")
+                        else:
+                            messages.warning(request, "Job posting confirmation email could not be sent.")
                 return redirect('jobposts.search')
             except OfficeLocationGeocodingError as exc:
                 map_form.add_error(None, str(exc))
@@ -141,6 +187,7 @@ def create(request):
     template_data['form'] = form
     template_data['map_form'] = map_form
     template_data['submit_label'] = 'Create Job Post'
+    template_data['skill_options'] = COMMON_SKILLS
     return render(request, 'jobposts/create.html', {'template_data': template_data})
 
 
@@ -173,6 +220,7 @@ def edit(request, post_id):
     template_data['form'] = form
     template_data['map_form'] = map_form
     template_data['submit_label'] = 'Save Changes'
+    template_data['skill_options'] = COMMON_SKILLS
     return render(request, 'jobposts/create.html', {'template_data': template_data})
 
 
@@ -194,7 +242,16 @@ def search(request):
     salary_min = request.GET.get('salary_min', '').strip()
     salary_max = request.GET.get('salary_max', '').strip()
     work_setting = request.GET.get('work_setting', '').strip()
+    company_size = request.GET.get('company_size', '').strip()
     visa_sponsorship = request.GET.get('visa_sponsorship', '').strip()
+    use_home_radius = False
+    radius_miles = ''
+    radius_warning = ''
+    radius_active = False
+    is_applicant = False
+    applicant_profile = None
+    has_home_address = False
+    home_address = ''
 
     if title:
         posts = posts.filter(title__icontains=title)
@@ -206,7 +263,9 @@ def search(request):
         posts = posts.filter(location__icontains=location)
     if work_setting:
         posts = posts.filter(work_setting=work_setting)
-    if visa_sponsorship == 'true':
+    if company_size:
+        posts = posts.filter(company_size=company_size)
+    if visa_sponsorship.lower() in {'true', '1', 'on', 'yes'}:
         posts = posts.filter(visa_sponsorship=True)
     if salary_min:
         try:
@@ -221,7 +280,91 @@ def search(request):
         except ValueError:
             pass
 
-    template_data['posts'] = posts
+    if request.user.is_authenticated:
+        profile = Profile.objects.filter(user=request.user).first()
+        if profile and profile.account_type == Profile.AccountType.APPLICANT:
+            applicant_profile = profile
+            is_applicant = True
+            home_address = (profile.location or '').strip()
+            has_home_address = bool(home_address)
+
+            session_use_home_radius = request.session.get('job_search_use_home_radius', False)
+            session_radius_miles = request.session.get('job_search_radius_miles', '25')
+
+            use_home_radius = (
+                request.GET.get('use_home_radius') == 'true'
+                if 'use_home_radius' in request.GET
+                else bool(session_use_home_radius)
+            )
+            raw_radius = request.GET.get('radius_miles', str(session_radius_miles)).strip()
+            try:
+                radius_value = float(raw_radius)
+                if radius_value <= 0:
+                    raise ValueError
+                radius_miles = str(int(radius_value)) if radius_value.is_integer() else f'{radius_value:.1f}'
+            except (ValueError, TypeError):
+                radius_miles = '25'
+
+            request.session['job_search_use_home_radius'] = use_home_radius
+            request.session['job_search_radius_miles'] = radius_miles
+
+            if use_home_radius:
+                if not has_home_address:
+                    radius_warning = 'Add your home address in your profile to use radius filtering.'
+                else:
+                    try:
+                        home_lat, home_lon = geocode_office_address(home_address)
+                        home_lat = float(home_lat)
+                        home_lon = float(home_lon)
+                        filtered_posts = []
+                        for post in posts:
+                            if post.work_setting == 'remote':
+                                filtered_posts.append(post)
+                                continue
+
+                            office_location = getattr(post, 'office_location', None)
+                            if not office_location:
+                                continue
+
+                            distance_miles = _haversine_miles(
+                                home_lat,
+                                home_lon,
+                                float(office_location.latitude),
+                                float(office_location.longitude),
+                            )
+                            if distance_miles <= float(radius_miles):
+                                post.distance_from_home_miles = round(distance_miles, 1)
+                                filtered_posts.append(post)
+                        posts = filtered_posts
+                        radius_active = True
+                    except OfficeLocationGeocodingError:
+                        radius_warning = 'Could not map your home address right now. Showing all search results.'
+
+    posts_sequence = list(posts)
+    matched_posts = []
+    other_posts = posts_sequence
+    if is_applicant and request.user.is_authenticated and applicant_profile:
+        sync_applicant_job_matches(request.user)
+
+        def _skill_set(raw_value):
+            if not raw_value:
+                return set()
+            return {token.strip().lower() for token in raw_value.split(",") if token.strip()}
+
+        applicant_skills = _skill_set(applicant_profile.skills)
+        matched_posts = []
+        other_posts = []
+        for post in posts_sequence:
+            post_skills = _skill_set(post.skills)
+            if applicant_skills.intersection(post_skills):
+                matched_posts.append(post)
+            else:
+                other_posts.append(post)
+
+    template_data['posts'] = posts_sequence
+    template_data['matched_posts'] = matched_posts
+    template_data['other_posts'] = other_posts
+    template_data['posts_count'] = len(posts_sequence)
     template_data['can_post_job'] = can_post_job
     template_data['filters'] = {
         'title': title,
@@ -230,8 +373,16 @@ def search(request):
         'salary_min': salary_min,
         'salary_max': salary_max,
         'work_setting': work_setting,
-        'visa_sponsorship': visa_sponsorship == 'true',
+        'company_size': company_size,
+        'visa_sponsorship': visa_sponsorship.lower() in {'true', '1', 'on', 'yes'},
+        'use_home_radius': use_home_radius,
+        'radius_miles': radius_miles,
     }
+    template_data['is_applicant'] = is_applicant
+    template_data['has_home_address'] = has_home_address
+    template_data['home_address'] = home_address
+    template_data['radius_warning'] = radius_warning
+    template_data['radius_active'] = radius_active
     return render(request, 'jobposts/search.html', {'template_data': template_data})
 
 def _save_office_location(post, map_form):
@@ -272,7 +423,7 @@ def delete_job(request, job_id):
     return redirect('jobposts.dashboard')
 
 def job_detail(request, post_id):
-    job = get_object_or_404(JobPost, pk=post_id)
+    job = get_object_or_404(JobPost.objects.select_related('office_location'), pk=post_id)
     has_applied = False
     
     if request.user.is_authenticated:
@@ -282,3 +433,34 @@ def job_detail(request, post_id):
         'job': job,
         'has_applied': has_applied
     })
+
+
+
+@staff_member_required
+def edit_post(request, post_id):
+    post = get_object_or_404(JobPost, pk=post_id)
+    template_data = {'title': 'Edit Job Post'}
+
+    if request.method == 'POST':
+        form = JobPostForm(request.POST, instance=post)
+        if form.is_valid():
+            updated_post = form.save(commit=False)
+            updated_post.save()
+            return redirect('jobposts.search')
+    else:
+        form = JobPostForm(instance=post)
+
+    template_data['form'] = form
+    template_data['submit_label'] = 'Save Changes'
+    template_data['post_id'] = post_id
+    template_data['skill_options'] = COMMON_SKILLS
+    return render(request, 'jobposts/edit_post.html', {'template_data': template_data})
+
+@staff_member_required
+def remove_post(request, post_id):
+    if request.method == "POST":
+        post = JobPost.objects.get(id=post_id)
+        post.delete()
+        return redirect('jobposts.search')
+    else:
+        return redirect('jobposts.search')
