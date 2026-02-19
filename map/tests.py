@@ -32,7 +32,7 @@ class MapViewTests(TestCase):
         response = self.client.get(reverse('map.job_location', args=[post.id]))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Open in OpenStreetMap')
+        self.assertContains(response, 'Open in Google Maps')
 
     def test_jobs_map_page_lists_pinned_jobs(self):
         user = User.objects.create_user(username='owner2', password='pass12345')

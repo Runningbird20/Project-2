@@ -30,18 +30,13 @@
                 <input type="hidden" id="id_skills" name="skills" value="{{ template_data.form.skills.value|default_if_none:'' }}">
                 <div class="skill-picker" data-hidden-input-id="id_skills">
                   <div class="skill-chip-list"></div>
-                  <div class="d-flex gap-2 flex-wrap mt-2">
+                  <div class="mt-2">
                     <select class="form-select skill-select" style="max-width: 260px;">
                       <option value="">Select a skill</option>
                       {% for skill in template_data.skill_options %}
                       <option value="{{ skill }}">{{ skill }}</option>
                       {% endfor %}
                     </select>
-                    <button type="button" class="secondary-btn btn-compact border-0 skill-add-select">Add</button>
-                  </div>
-                  <div class="d-flex gap-2 flex-wrap mt-2">
-                    <input type="text" class="form-control skill-custom-input" placeholder="Add custom skill" style="max-width: 260px;">
-                    <button type="button" class="secondary-btn btn-compact border-0 skill-add-custom">Add</button>
                   </div>
                 </div>
               </div>
@@ -104,9 +99,6 @@
 
     const chipList = picker.querySelector('.skill-chip-list');
     const select = picker.querySelector('.skill-select');
-    const addSelectBtn = picker.querySelector('.skill-add-select');
-    const customInput = picker.querySelector('.skill-custom-input');
-    const addCustomBtn = picker.querySelector('.skill-add-custom');
 
     let skills = hiddenInput.value
       .split(',')
@@ -139,29 +131,15 @@
       });
     }
 
-    addSelectBtn.addEventListener('click', function () {
+    function addFromSelect() {
       const value = (select.value || '').trim();
       if (!value) return;
       skills.push(value);
       select.value = '';
       sync();
-    });
-
-    function addCustom() {
-      const value = (customInput.value || '').trim();
-      if (!value) return;
-      skills.push(value);
-      customInput.value = '';
-      sync();
     }
 
-    addCustomBtn.addEventListener('click', addCustom);
-    customInput.addEventListener('keydown', function (event) {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        addCustom();
-      }
-    });
+    select.addEventListener('change', addFromSelect);
 
     sync();
   });

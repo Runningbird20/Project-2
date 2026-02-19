@@ -59,8 +59,8 @@
               </p>
             {% endif %}
             <div>
-              {% if job.skills %}
-                {% for skill in job.skills.split %}
+              {% if job_skill_list %}
+                {% for skill in job_skill_list %}
                   <span class="badge bg-primary-subtle text-primary rounded-pill px-3">{{ skill }}</span>
                 {% endfor %}
               {% endif %}

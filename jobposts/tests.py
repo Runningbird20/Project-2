@@ -8,6 +8,7 @@ from decimal import Decimal
 
 from accounts.models import Profile
 from map.models import OfficeLocation
+from apply.models import Application
 from .models import ApplicantJobMatch, JobPost
 
 
@@ -375,6 +376,32 @@ class JobPostViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Resume Match 67%')
+
+    def test_dashboard_prefills_interview_form_from_query_param(self):
+        job = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Backend Engineer',
+            company='Acme Inc',
+            location='Atlanta, GA',
+            pay_range='$80k-$100k',
+            work_setting='hybrid',
+            description='Build APIs',
+        )
+        application = Application.objects.create(
+            user=self.applicant_user,
+            job=job,
+            resume_type='profile',
+        )
+
+        self.client.login(username='employer', password='pass12345')
+        response = self.client.get(
+            reverse('jobposts.dashboard'),
+            {'tab': 'emp-interviews', 'interview_application': application.id},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        form = response.context['interview_proposal_form']
+        self.assertEqual(form.fields['application'].initial, application.id)
 
     def test_job_detail_shows_resume_match_percentage_for_applicant(self):
         profile = Profile.objects.get(user=self.applicant_user)

@@ -33,7 +33,7 @@
         </h6>
         <div class="kanban-scroll vstack gap-3 drop-zone" data-status="{{ status_key }}">
           {% for app in apps %}
-          <div class="surface-card p-3 applicant-card" draggable="true" data-app-id="{{ app.id }}" data-current-status="{{ app.status }}">
+          <div class="surface-card p-3 applicant-card" draggable="true" data-app-id="{{ app.id }}" data-current-status="{{ app.status }}" data-applicant-name="{{ app.user.get_full_name|default:app.user.username }}">
             <div class="d-flex justify-content-between align-items-start mb-2">
               <h6 class="fw-bold mb-0">{{ app.user.get_full_name|default:app.user.username }}</h6>
               <a href="mailto:{{ app.user.email }}" class="text-muted"><i class="bi bi-envelope"></i></a>
@@ -106,22 +106,51 @@
   </div>
 </div>
 
+<div class="modal fade" id="interviewPromptModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow rounded-4">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold">Set Up Interview Slots</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-0 pb-3 px-4">
+        <p class="mb-0 text-muted" id="interviewPromptText">
+          Applicant moved to Interview. Would you like to add a few date/time options now?
+        </p>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="secondary-btn btn-compact border-0" data-bs-dismiss="modal">Later</button>
+        <a href="#" class="primary-btn btn-compact border-0" id="setInterviewSlotsNowBtn">Set Up Slots</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 let pendingUpdate = null;
 let draggedCard = null;
 const rejectionModal = new bootstrap.Modal(document.getElementById('rejectionModal'));
+const interviewPromptModal = new bootstrap.Modal(document.getElementById('interviewPromptModal'));
 
 document.addEventListener('DOMContentLoaded', function () {
   const urlParams = new URLSearchParams(window.location.search);
   const undoAppId = urlParams.get('undo_app');
   const oldStatus = urlParams.get('old_status');
+  const setupInterviewAppId = urlParams.get('setup_interview_app');
+  const setupInterviewName = urlParams.get('setup_interview_name');
+
+  if (setupInterviewAppId) {
+    showInterviewPrompt(setupInterviewAppId, setupInterviewName);
+  }
   if (undoAppId && oldStatus) {
     showUndoToast(undoAppId, oldStatus);
+  }
+  if (window.location.search) {
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 });
 
-function executeStatusUpdate(appId, newStatus, previousStatus, isUndo) {
+function executeStatusUpdate(appId, newStatus, previousStatus, isUndo, applicantName) {
   fetch(`/apply/update-status/${appId}/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
@@ -129,7 +158,22 @@ function executeStatusUpdate(appId, newStatus, previousStatus, isUndo) {
   }).then((res) => {
     if (!res.ok) { alert('Error updating status.'); return; }
     const currentUrl = window.location.pathname;
-    window.location.href = isUndo ? currentUrl : `${currentUrl}?undo_app=${appId}&old_status=${previousStatus}`;
+    if (isUndo) {
+      window.location.href = currentUrl;
+      return;
+    }
+    const params = new URLSearchParams();
+    params.set('undo_app', appId);
+    if (previousStatus) {
+      params.set('old_status', previousStatus);
+    }
+    if (newStatus === 'interview') {
+      params.set('setup_interview_app', appId);
+      if (applicantName) {
+        params.set('setup_interview_name', applicantName);
+      }
+    }
+    window.location.href = `${currentUrl}?${params.toString()}`;
   });
 }
 
@@ -147,10 +191,21 @@ function undoChange(appId, oldStatus) {
   executeStatusUpdate(appId, oldStatus, null, true);
 }
 
+function showInterviewPrompt(appId, applicantName) {
+  const promptText = document.getElementById('interviewPromptText');
+  const setupBtn = document.getElementById('setInterviewSlotsNowBtn');
+  const dashboardUrl = `{% url 'jobposts.dashboard' %}?tab=emp-interviews&interview_application=${encodeURIComponent(appId)}`;
+  setupBtn.setAttribute('href', dashboardUrl);
+  promptText.textContent = applicantName
+    ? `${applicantName} is now in Interview. Would you like to propose a few interview date/time options now?`
+    : 'Applicant moved to Interview. Would you like to add a few date/time options now?';
+  interviewPromptModal.show();
+}
+
 document.getElementById('confirmRejection').addEventListener('click', () => {
   if (pendingUpdate) {
     rejectionModal.hide();
-    executeStatusUpdate(pendingUpdate.appId, 'rejected', pendingUpdate.previousStatus, false);
+    executeStatusUpdate(pendingUpdate.appId, 'rejected', pendingUpdate.previousStatus, false, pendingUpdate.applicantName);
   }
 });
 
@@ -184,11 +239,12 @@ document.querySelectorAll('.drop-zone').forEach((zone) => {
 
     const appId = draggedCard.dataset.appId;
     const previousStatus = draggedCard.dataset.currentStatus;
+    const applicantName = draggedCard.dataset.applicantName;
     const newStatus = zone.dataset.status;
 
     if (!newStatus || newStatus === previousStatus) return;
-    if (newStatus === 'rejected') { pendingUpdate = { appId, previousStatus }; rejectionModal.show(); return; }
-    executeStatusUpdate(appId, newStatus, previousStatus, false);
+    if (newStatus === 'rejected') { pendingUpdate = { appId, previousStatus, applicantName }; rejectionModal.show(); return; }
+    executeStatusUpdate(appId, newStatus, previousStatus, false, applicantName);
   });
 });
 </script>

@@ -1127,6 +1127,61 @@ html.dark-mode .job-detail-page .message-recruiter-btn:focus-visible {
   box-shadow: none;
 }
 
+html.dark-mode #interviewSlotModal .modal-content,
+html.dark-mode #interviewPromptModal .modal-content {
+  background: #121d2d;
+  border: 1px solid #3b4a62 !important;
+  color: #e6edf8;
+}
+
+html.dark-mode #interviewSlotModal .modal-header,
+html.dark-mode #interviewPromptModal .modal-header {
+  border-bottom-color: #3b4a62;
+}
+
+html.dark-mode #interviewSlotModal .modal-footer,
+html.dark-mode #interviewPromptModal .modal-footer {
+  border-top-color: #3b4a62;
+}
+
+html.dark-mode #interviewSlotModal .form-control,
+html.dark-mode #interviewSlotModal .form-select {
+  background-color: rgba(17, 24, 35, 0.95);
+  border-color: #3b4a62;
+  color: #edf2ff;
+}
+
+html.dark-mode #interviewSlotModal #selectedInterviewDateLabel {
+  background-color: rgba(17, 24, 35, 0.95) !important;
+  border-color: #3b4a62;
+  color: #edf2ff;
+}
+
+html.dark-mode #interviewSlotModal input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(200%);
+}
+
+html.dark-mode #interviewSlotModal .modal-footer .secondary-btn,
+html.dark-mode #interviewPromptModal .modal-footer .secondary-btn {
+  background: #2a3b58;
+  color: #e6edf8;
+  border-color: #4a5d7d;
+}
+
+html.dark-mode #interviewSlotModal .modal-footer .secondary-btn:hover,
+html.dark-mode #interviewSlotModal .modal-footer .secondary-btn:focus,
+html.dark-mode #interviewPromptModal .modal-footer .secondary-btn:hover,
+html.dark-mode #interviewPromptModal .modal-footer .secondary-btn:focus {
+  background: #8eb9ff;
+  color: #0b1526;
+  border-color: #8eb9ff;
+}
+
+html.dark-mode #interviewSlotModal .btn-close,
+html.dark-mode #interviewPromptModal .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
 #applyModal {
   position: fixed;
   inset: 0;

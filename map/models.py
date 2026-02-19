@@ -55,13 +55,10 @@ class OfficeLocation(models.Model):
     def osm_embed_url(self):
         lat = float(self.latitude)
         lon = float(self.longitude)
-        delta = 0.01
-        bbox = f'{lon - delta},{lat - delta},{lon + delta},{lat + delta}'
-        marker = f'{lat},{lon}'
-        return f'https://www.openstreetmap.org/export/embed.html?bbox={bbox}&layer=mapnik&marker={marker}'
+        return f'https://maps.google.com/maps?q={lat},{lon}&z=15&output=embed'
 
     @property
     def osm_link_url(self):
         lat = float(self.latitude)
         lon = float(self.longitude)
-        return f'https://www.openstreetmap.org/?mlat={lat}&mlon={lon}#map=15/{lat}/{lon}'
+        return f'https://www.google.com/maps/search/?api=1&query={lat},{lon}'

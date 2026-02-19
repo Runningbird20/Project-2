@@ -32,6 +32,23 @@ def _skill_set(raw_value):
     return {token.strip().lower() for token in raw_value.split(",") if token.strip()}
 
 
+def _skill_list(raw_value):
+    if not raw_value:
+        return []
+    seen = set()
+    ordered = []
+    for token in str(raw_value).replace(";", ",").split(","):
+        skill = token.strip()
+        if not skill:
+            continue
+        key = skill.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        ordered.append(skill)
+    return ordered
+
+
 def _skill_overlap_percent(applicant_skills, job_skills):
     if not applicant_skills or not job_skills:
         return 0
@@ -148,6 +165,7 @@ def dashboard(request):
             get_employer_interview_context(
                 request.user,
                 month_key=request.GET.get("interview_month"),
+                initial_application_id=request.GET.get("interview_application"),
             )
         )
 
@@ -455,6 +473,7 @@ def job_detail(request, post_id):
         'job': job,
         'has_applied': has_applied,
         'skill_overlap_percent': skill_overlap_percent,
+        'job_skill_list': _skill_list(job.skills),
     })
 
 
