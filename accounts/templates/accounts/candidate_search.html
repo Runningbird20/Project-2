@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
-<section class="page-shell">
+<section class="page-shell candidate-search-page">
   <div class="container">
     <div class="row g-4">
       <div class="col-lg-4">
@@ -24,9 +24,9 @@
             </div>
 
             <div class="vstack gap-2">
-              <div class="form-actions">
-                <button type="submit" class="primary-btn border-0">Search</button>
-                <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn">Reset</a>
+              <div class="candidate-search-filter-actions">
+                <button type="submit" class="primary-btn border-0 w-100">Search</button>
+                <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn w-100">Reset</a>
               </div>
               <button type="button" id="saveAlertTrigger" class="secondary-btn w-100" data-bs-toggle="modal" data-bs-target="#saveSearchModal">
                 Save as Alert
@@ -61,14 +61,13 @@
                     {% if p.location_city_state %}<div class="small text-muted">{{ p.location_city_state }}</div>{% endif %}
                     {% if p.skills %}<div class="small text-muted">{{ p.skills }}</div>{% endif %}
                   </div>
-                  <div class="text-end">
-                    <a class="btn btn-sm btn-outline-dark"
+                  <div class="text-end d-flex gap-2 justify-content-end candidate-card-actions">
+                    <a class="secondary-btn candidate-action-btn"
                        href="{% url 'accounts.public_profile' p.user.username %}">
                       View profile
                     </a>
-                    <a href="{% url 'messaging:chat_detail' p.user.id %}" class="btn btn-primary btn-sm">
-                      <i class="bi bi-envelope"></i> 
-                      Message Candidate
+                    <a href="{% url 'messaging:chat_detail' p.user.id %}" class="primary-btn candidate-action-btn border-0">
+                      <span>Message Candidate</span>
                     </a>
                   </div>
                 </div>
@@ -110,7 +109,7 @@
             <input type="text" name="search_name" class="form-control" placeholder="e.g. Python Engineers in Atlanta" required>
           </div>
 
-          <div class="p-3 bg-light rounded-3">
+          <div class="p-3 rounded-3 filter-preview-card">
             <div class="small text-muted mb-1">Current Filters:</div>
             <div id="modalFilterPreview" class="fw-bold small">All Candidates</div>
           </div>

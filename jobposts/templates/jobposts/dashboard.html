@@ -99,6 +99,7 @@
         <p class="page-copy mb-0">Manage listings, candidate matches, and hiring workflows.</p>
       </div>
       <div class="form-actions">
+        <a href="{% url 'messaging:inbox' %}" class="secondary-btn">Messages</a>
         <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn">Find Candidates</a>
         <a href="{% url 'jobposts.create' %}" class="primary-btn border-0">Post New Job</a>
       </div>
@@ -142,7 +143,7 @@
               <div class="px-4 py-3 border-bottom"><h3 class="surface-title mb-0">My Job Listing</h3></div>
               <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 job-table">
-                  <thead class="table-light"><tr><th class="ps-4 py-3">Job Details</th><th class="py-3">Posted On</th><th class="py-3 text-center">Total Apps</th><th class="py-3 text-center">New</th><th class="py-3 text-end pe-4">Manage</th></tr></thead>
+                  <thead class="table-light"><tr><th class="ps-4 py-3">Job Details</th><th class="py-3 text-center">Posted On</th><th class="py-3 text-center">Total Apps</th><th class="py-3 text-center">New</th><th class="py-3 text-end pe-4">Manage</th></tr></thead>
                   <tbody>
                     {% for job in jobs %}
                     <tr>
@@ -157,7 +158,7 @@
                           {% endif %}
                         </div>
                       </td>
-                      <td class="small text-muted">{{ job.created_at|date:'M d, Y' }}</td>
+                      <td class="small text-muted text-center posted-on-cell">{{ job.created_at|date:'M d, Y' }}</td>
                       <td class="text-center">{{ job.total_apps }}</td>
                       <td class="text-center">{% if job.new_apps > 0 %}<span class="badge bg-success-subtle text-success">{{ job.new_apps }} New</span>{% else %}<span class="text-muted">-</span>{% endif %}</td>
                       <td class="text-end pe-4"><div class="form-actions justify-content-end"><a href="{% url 'apply:employer_pipeline' job.id %}" class="secondary-btn">Pipeline</a><a href="{% url 'jobposts.edit' job.id %}" class="secondary-btn">Edit</a><form action="{% url 'jobposts.delete' job.id %}" method="POST" onsubmit="return confirm('Delete this listing?');">{% csrf_token %}<button type="submit" class="danger-btn border-0">Delete</button></form></div></td>
@@ -172,9 +173,67 @@
           </div>
 
           <div class="tab-pane fade" id="emp-interviews" role="tabpanel" aria-labelledby="emp-interviews-btn" tabindex="0">
+            {% include "interviews/partials/interview_calendar.html" with interview_tab_target="emp-interviews" %}
+            <div class="surface-card mb-3">
+              <h3 class="surface-title mb-3">Propose Interview Slot</h3>
+              <form method="post" action="{% url 'interviews:propose' %}" class="row g-3">
+                {% csrf_token %}
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Applicant + Role</label>
+                  {{ interview_proposal_form.application }}
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-semibold">Start</label>
+                  {{ interview_proposal_form.start_at }}
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-semibold">Duration (mins)</label>
+                  {{ interview_proposal_form.duration_minutes }}
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Meeting Link</label>
+                  {{ interview_proposal_form.meeting_link }}
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Notes</label>
+                  {{ interview_proposal_form.notes }}
+                </div>
+                <div class="col-12">
+                  <button type="submit" class="primary-btn btn-compact border-0">Propose Slot</button>
+                </div>
+              </form>
+            </div>
+            <div class="surface-card mb-3">
+              <h3 class="surface-title mb-3">Open Slots</h3>
+              <div class="vstack gap-2">
+                {% for slot in open_interview_slots %}
+                <div class="border rounded-4 p-3">
+                  <div class="fw-semibold">{{ slot.applicant.username }} - {{ slot.application.job.title }}</div>
+                  <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
+                </div>
+                {% empty %}
+                <p class="text-muted mb-0">No open interview slots.</p>
+                {% endfor %}
+              </div>
+            </div>
             <div class="surface-card p-0 overflow-hidden">
-              <div class="px-4 py-3 border-bottom"><h3 class="surface-title mb-0">My Interviews</h3></div>
-              <div class="px-4 py-4 text-muted">This section will list scheduled interviews and interview outcomes.</div>
+              <div class="px-4 py-3 border-bottom"><h3 class="surface-title mb-0">Scheduled Interviews</h3></div>
+              <div class="px-4 py-3 vstack gap-2">
+                {% for slot in scheduled_interviews %}
+                <div class="border rounded-4 p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                  <div>
+                    <div class="fw-semibold">{{ slot.applicant.username }} - {{ slot.application.job.title }}</div>
+                    <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
+                  </div>
+                  <div class="form-actions">
+                    <a class="secondary-btn btn-compact" href="{{ slot.google_calendar_url }}">Google Calendar</a>
+                    <a class="secondary-btn btn-compact" href="{% url 'interviews:download_ics' slot.id %}">Download ICS</a>
+                  </div>
+                </div>
+                {% empty %}
+                <p class="text-muted mb-0">No scheduled interviews yet.</p>
+                {% endfor %}
+              </div>
             </div>
           </div>
 
@@ -285,4 +344,48 @@
     {% endif %}
   </div>
 </section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  (function () {
+    var SCROLL_KEY = "interview_calendar_scroll_y";
+
+    function activateTabFromQuery() {
+      var params = new URLSearchParams(window.location.search);
+      var tabId = params.get("tab");
+      if (!tabId) return;
+      var trigger = document.querySelector('[data-bs-target="#' + tabId + '"]');
+      if (!trigger || typeof bootstrap === "undefined" || !bootstrap.Tab) return;
+      bootstrap.Tab.getOrCreateInstance(trigger).show();
+    }
+
+    function bindInterviewMonthLinks() {
+      document.querySelectorAll(".interview-month-link").forEach(function (link) {
+        link.addEventListener("click", function () {
+          try {
+            sessionStorage.setItem(SCROLL_KEY, String(window.scrollY || window.pageYOffset || 0));
+          } catch (e) {}
+        });
+      });
+    }
+
+    function restoreScrollAfterMonthChange() {
+      try {
+        var raw = sessionStorage.getItem(SCROLL_KEY);
+        if (!raw) return;
+        sessionStorage.removeItem(SCROLL_KEY);
+        var y = parseInt(raw, 10);
+        if (Number.isNaN(y)) return;
+        window.scrollTo(0, y);
+      } catch (e) {}
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      activateTabFromQuery();
+      bindInterviewMonthLinks();
+      restoreScrollAfterMonthChange();
+    });
+  })();
+</script>
 {% endblock %}

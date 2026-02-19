@@ -9,7 +9,7 @@
           <h1 class="page-title page-title-sm">Edit User {{ template_data.user.user }}</h1>
           <hr />
 
-          <form method="POST">
+          <form method="POST" id="edit-user-form">
             {% csrf_token %}
             {{ template_data.form.non_field_errors }}
 
@@ -63,16 +63,16 @@
               })();
             </script>
 
-            <div class="form-actions mt-3">
-              <button type="submit" class="primary-btn border-0">Save</button>
-              <a class="secondary-btn" href="{% url 'accounts.manage_users' %}">Back</a>
-            </div>
           </form>
 
-          <div class="form-actions mt-3">
-            <form action="{% url 'accounts.remove_user' template_data.user.id %}" method="POST">
+          <div class="form-actions mt-3 d-flex justify-content-between w-100">
+            <div class="d-flex gap-2 flex-wrap">
+              <button type="submit" form="edit-user-form" class="primary-btn border-0">Save</button>
+              <a class="secondary-btn" href="{% url 'accounts.manage_users' %}">Back</a>
+            </div>
+            <form action="{% url 'accounts.remove_user' template_data.user.id %}" method="POST" class="ms-auto">
               {% csrf_token %}
-              <button type="submit" class="secondary-btn border-0">Remove User</button>
+              <button type="submit" class="secondary-btn remove-user-btn border-0">Remove User</button>
             </form>
           </div>
         </div>

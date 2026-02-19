@@ -3,10 +3,16 @@
 {% block content %}
 <section class="page-shell">
   <div class="container">
-    <div class="page-intro text-center">
-      <p class="page-kicker">Candidate tools</p>
-      <h1 class="page-title page-title-sm">Applicant Dashboard</h1>
-      <p class="page-copy mb-0">Application streak: <strong>{{ application_streak|default:'0' }} day{% if application_streak != 1 %}s{% endif %}</strong></p>
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+      <div>
+        <p class="page-kicker mb-2">Candidate tools</p>
+        <h1 class="page-title page-title-sm mb-1">Applicant Dashboard</h1>
+        <p class="page-copy mb-0">Application streak: <strong>{{ application_streak|default:'0' }} day{% if application_streak != 1 %}s{% endif %}</strong></p>
+      </div>
+      <div class="form-actions">
+        <a href="{% url 'messaging:inbox' %}" class="secondary-btn">Messages</a>
+        <a href="{% url 'jobposts.search' %}" class="primary-btn border-0">View Open Positions</a>
+      </div>
     </div>
 
     <div class="row g-4 align-items-start">
@@ -33,9 +39,25 @@
             </button>
           </div>
         </div>
+        <div class="surface-card mt-4">
+          <h3 class="surface-title mb-3">Activity Feed</h3>
+          <div class="vstack gap-3">
+            {% for event in activity_events %}
+              <div class="border rounded-4 p-3">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                  <span class="badge bg-dark-subtle text-dark">{{ event.event_type }}</span>
+                  <span class="small text-muted">{{ event.timestamp|date:"M j, Y g:i A" }}</span>
+                </div>
+                <p class="small mb-0 mt-2">{{ event.detail }}</p>
+              </div>
+            {% empty %}
+              <p class="text-muted mb-0">No activity yet. Updates will appear here as employers interact with your applications.</p>
+            {% endfor %}
+          </div>
+        </div>
       </div>
 
-      <div class="col-lg-6">
+      <div class="col-lg-9">
         <div class="tab-content vstack gap-4" id="applicant-dashboard-content">
           <div class="tab-pane fade show active" id="tab-applications" role="tabpanel" aria-labelledby="tab-applications-btn" tabindex="0">
             <div class="surface-card mb-4">
@@ -140,9 +162,53 @@
           </div>
 
           <div class="tab-pane fade" id="tab-interviews" role="tabpanel" aria-labelledby="tab-interviews-btn" tabindex="0">
+            {% include "interviews/partials/interview_calendar.html" with interview_tab_target="tab-interviews" %}
+            <div class="surface-card mb-3">
+              <h3 class="surface-title mb-3">Available Interview Slots</h3>
+              <div class="vstack gap-2">
+                {% for slot in open_interview_slots %}
+                <div class="border rounded-4 p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                  <div>
+                    <div class="fw-semibold">{{ slot.application.job.title }} at {{ slot.application.job.company }}</div>
+                    <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
+                    {% if slot.meeting_link %}
+                      <div class="small"><a href="{{ slot.meeting_link }}" target="_blank" rel="noopener noreferrer">Meeting link</a></div>
+                    {% endif %}
+                    {% if slot.notes %}
+                      <div class="small text-muted">{{ slot.notes }}</div>
+                    {% endif %}
+                  </div>
+                  <form method="post" action="{% url 'interviews:book' slot.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="primary-btn btn-compact border-0">Choose Slot</button>
+                  </form>
+                </div>
+                {% empty %}
+                <p class="text-muted mb-0">No pending slots to choose right now.</p>
+                {% endfor %}
+              </div>
+            </div>
             <div class="surface-card">
-              <h3 class="surface-title mb-2">My Interviews</h3>
-              <p class="text-muted mb-0">This section will list upcoming interviews, interview history, and interview details.</p>
+              <h3 class="surface-title mb-3">Scheduled Interviews</h3>
+              <div class="vstack gap-2">
+                {% for slot in scheduled_interviews %}
+                <div class="border rounded-4 p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                  <div>
+                    <div class="fw-semibold">{{ slot.application.job.title }} at {{ slot.application.job.company }}</div>
+                    <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
+                    {% if slot.meeting_link %}
+                      <div class="small"><a href="{{ slot.meeting_link }}" target="_blank" rel="noopener noreferrer">Meeting link</a></div>
+                    {% endif %}
+                  </div>
+                  <div class="form-actions">
+                    <a class="secondary-btn btn-compact" href="{{ slot.google_calendar_url }}">Google Calendar</a>
+                    <a class="secondary-btn btn-compact" href="{% url 'interviews:download_ics' slot.id %}">Download ICS</a>
+                  </div>
+                </div>
+                {% empty %}
+                <p class="text-muted mb-0">No scheduled interviews yet.</p>
+                {% endfor %}
+              </div>
             </div>
           </div>
 
@@ -241,26 +307,51 @@
           </div>
         </div>
       </div>
-
-      <div class="col-lg-3">
-        <div class="surface-card">
-          <h3 class="surface-title mb-3">Activity Feed</h3>
-          <div class="vstack gap-3">
-            {% for event in activity_events %}
-              <div class="border rounded-4 p-3">
-                <div class="d-flex justify-content-between align-items-start gap-2">
-                  <span class="badge bg-dark-subtle text-dark">{{ event.event_type }}</span>
-                  <span class="small text-muted">{{ event.timestamp|date:"M j, Y g:i A" }}</span>
-                </div>
-                <p class="small mb-0 mt-2">{{ event.detail }}</p>
-              </div>
-            {% empty %}
-              <p class="text-muted mb-0">No activity yet. Updates will appear here as employers interact with your applications.</p>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  (function () {
+    var SCROLL_KEY = "interview_calendar_scroll_y";
+
+    function activateTabFromQuery() {
+      var params = new URLSearchParams(window.location.search);
+      var tabId = params.get("tab");
+      if (!tabId) return;
+      var trigger = document.querySelector('[data-bs-target="#' + tabId + '"]');
+      if (!trigger || typeof bootstrap === "undefined" || !bootstrap.Tab) return;
+      bootstrap.Tab.getOrCreateInstance(trigger).show();
+    }
+
+    function bindInterviewMonthLinks() {
+      document.querySelectorAll(".interview-month-link").forEach(function (link) {
+        link.addEventListener("click", function () {
+          try {
+            sessionStorage.setItem(SCROLL_KEY, String(window.scrollY || window.pageYOffset || 0));
+          } catch (e) {}
+        });
+      });
+    }
+
+    function restoreScrollAfterMonthChange() {
+      try {
+        var raw = sessionStorage.getItem(SCROLL_KEY);
+        if (!raw) return;
+        sessionStorage.removeItem(SCROLL_KEY);
+        var y = parseInt(raw, 10);
+        if (Number.isNaN(y)) return;
+        window.scrollTo(0, y);
+      } catch (e) {}
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      activateTabFromQuery();
+      bindInterviewMonthLinks();
+      restoreScrollAfterMonthChange();
+    });
+  })();
+</script>
 {% endblock %}

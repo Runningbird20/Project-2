@@ -4,6 +4,7 @@ from collections import Counter
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth import views as auth_views
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
@@ -16,6 +17,9 @@ from django.db import transaction
 from django.db.models import Count, Q
 from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 from map.services import OfficeLocationGeocodingError, geocode_office_address
 from project2.skills import COMMON_SKILLS
@@ -28,6 +32,18 @@ from jobposts.models import JobPost
 class Echo:
     def write(self, value):
         return value
+
+
+@method_decorator(never_cache, name="dispatch")
+@method_decorator(ensure_csrf_cookie, name="dispatch")
+class SafePasswordResetView(auth_views.PasswordResetView):
+    pass
+
+
+@method_decorator(never_cache, name="dispatch")
+@method_decorator(ensure_csrf_cookie, name="dispatch")
+class SafePasswordResetConfirmView(auth_views.PasswordResetConfirmView):
+    pass
 
 
 def _is_employer(user):

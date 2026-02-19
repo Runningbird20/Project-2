@@ -10,7 +10,7 @@
           <p class="surface-copy mb-0">Manage your account details and visibility.</p>
           <hr>
 
-          <form method="POST" enctype="multipart/form-data" id="profileForm">
+          <form method="POST" enctype="multipart/form-data" id="profileForm" class="edit-profile-form">
             {% csrf_token %}
             {{ template_data.form.non_field_errors }}
 

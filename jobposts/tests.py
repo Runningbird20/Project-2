@@ -354,6 +354,50 @@ class JobPostViewTests(TestCase):
         self.assertIn(visa_job, posts)
         self.assertNotIn(non_visa_job, posts)
 
+    def test_search_shows_resume_match_percentage_for_applicant(self):
+        profile = Profile.objects.get(user=self.applicant_user)
+        profile.skills = "Python, Django"
+        profile.save(update_fields=["skills"])
+
+        JobPost.objects.create(
+            owner=self.employer_user,
+            title='Backend Engineer',
+            company='Acme Inc',
+            location='Atlanta, GA',
+            pay_range='$80k-$100k',
+            skills='Python, Django, SQL',
+            work_setting='hybrid',
+            description='Build APIs',
+        )
+
+        self.client.login(username='applicant', password='pass12345')
+        response = self.client.get(reverse('jobposts.search'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Resume Match 67%')
+
+    def test_job_detail_shows_resume_match_percentage_for_applicant(self):
+        profile = Profile.objects.get(user=self.applicant_user)
+        profile.skills = "Python, Django"
+        profile.save(update_fields=["skills"])
+
+        job = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Backend Engineer',
+            company='Acme Inc',
+            location='Atlanta, GA',
+            pay_range='$80k-$100k',
+            skills='Python, Django, SQL',
+            work_setting='hybrid',
+            description='Build APIs',
+        )
+
+        self.client.login(username='applicant', password='pass12345')
+        response = self.client.get(reverse('jobposts.detail', args=[job.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Resume Match 67%')
+
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
 class ApplicantMatchingTests(TestCase):

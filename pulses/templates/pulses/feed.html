@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="pulses-shell" id="pulsesShell">
+  <div class="pulses-topbar">
+    <div class="pulses-title">
+      <span class="badge bg-dark-subtle text-dark border">Pulses</span>
+      <span class="ms-2 text-muted small">Scroll to watch</span>
+    </div>
+    <a class="primary-btn btn-compact" href="{% url 'pulses:upload' %}">
+      <i class="bi bi-upload me-1"></i> Upload
+    </a>
+  </div>
+
+  {% for pulse in template_data.pulses %}
+    <section class="pulse-item">
+      <!-- ✅ Frame wrapper ensures the video is centered no matter its aspect ratio -->
+      <div class="pulse-frame">
+        <video
+          class="pulse-video"
+          src="{{ pulse.video.url }}"
+          playsinline
+          muted
+          loop
+          preload="metadata"
+        ></video>
+      </div>
+
+      <div class="pulse-gradient"></div>
+
+      <div class="pulse-overlay">
+        <div class="pulse-user">@{{ pulse.user.username }}</div>
+        {% if pulse.caption %}
+          <div class="pulse-caption">{{ pulse.caption }}</div>
+        {% endif %}
+        <div class="pulse-date">{{ pulse.created_at|date:"M j, Y" }}</div>
+      </div>
+
+      <div class="pulse-actions">
+        <button class="pulse-action-btn" type="button" data-action="mute" title="Mute/unmute">
+          <i class="bi bi-volume-mute-fill"></i>
+        </button>
+        <a class="pulse-action-btn text-decoration-none" href="{% url 'pulses:upload' %}" title="Upload">
+          <i class="bi bi-plus-lg"></i>
+        </a>
+        {% if pulse.user != request.user %}
+          <a class="pulse-contact-btn text-decoration-none" href="{% url 'messaging:chat_detail' pulse.user.id %}">
+            {% if pulse.user.profile.account_type == "EMPLOYER" %}
+              Contact Employer
+            {% else %}
+              Contact Candidate
+            {% endif %}
+          </a>
+        {% endif %}
+      </div>
+    </section>
+  {% empty %}
+    <section class="page-shell">
+      <div class="container">
+        <div class="surface-card text-center" style="max-width: 820px; margin: 0 auto;">
+          <div class="page-kicker">Pulses</div>
+          <h2 class="page-title page-title-sm mb-2">No pulses yet</h2>
+          <p class="page-copy mb-4">Be the first to upload a video.</p>
+          <a class="primary-btn" href="{% url 'pulses:upload' %}">
+            <i class="bi bi-upload me-2"></i> Upload a Pulse
+          </a>
+        </div>
+      </div>
+    </section>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{# ✅ Make sure your pulses.css includes .pulse-frame { aspect-ratio... overflow:hidden } and .pulse-video { object-fit: cover; object-position:center } #}
+<link rel="stylesheet" href="{% static 'pulses/pulses.css' %}">
+
+<script>
+(function () {
+  const shell = document.getElementById("pulsesShell");
+  if (!shell) return;
+
+  const videos = Array.from(shell.querySelectorAll(".pulse-video"));
+  if (!videos.length) return;
+
+  function safePlay(video) {
+    if (!video) return;
+    video.muted = video.muted ?? true;
+    video.playsInline = true;
+    const p = video.play();
+    if (p && typeof p.catch === "function") p.catch(() => {});
+  }
+
+  function pauseAndReset(video) {
+    if (!video) return;
+    video.pause();
+    try { video.currentTime = 0; } catch (e) {}
+  }
+
+  // ✅ Only the most-visible video plays; all others pause
+  const observer = new IntersectionObserver((entries) => {
+    const visible = entries
+      .filter(e => e.isIntersecting)
+      .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+
+    if (!visible.length) {
+      videos.forEach(v => v.pause());
+      return;
+    }
+
+    const active = visible[0].target;
+
+    videos.forEach(v => {
+      if (v === active) safePlay(v);
+      else pauseAndReset(v);
+    });
+  }, {
+    root: null,
+    threshold: [0.25, 0.5, 0.65, 0.8],
+  });
+
+  videos.forEach(v => observer.observe(v));
+
+  // Tap video to pause/play
+  shell.addEventListener("click", (e) => {
+    const vid = e.target.closest("video");
+    if (!vid) return;
+    if (vid.paused) safePlay(vid);
+    else vid.pause();
+  });
+
+  // Mute toggle per video card
+  shell.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-action='mute']");
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const card = btn.closest(".pulse-item");
+    const vid = card ? card.querySelector("video") : null;
+    if (!vid) return;
+
+    vid.muted = !vid.muted;
+    btn.innerHTML = vid.muted
+      ? '<i class="bi bi-volume-mute-fill"></i>'
+      : '<i class="bi bi-volume-up-fill"></i>';
+  });
+
+  // Pause everything when tab is hidden
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) videos.forEach(v => v.pause());
+  });
+})();
+</script>
+{% endblock %}

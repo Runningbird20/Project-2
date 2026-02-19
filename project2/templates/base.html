@@ -109,7 +109,9 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
           <div class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
-            <a class="nav-link site-link" href="{% url 'home.about' %}">About</a>
+            {% if user.is_authenticated %}
+              <a class="nav-link site-link" href="{% url 'pulses:feed' %}">Pulses</a>
+            {% endif %}
             <a class="nav-link site-link" href="{% url 'jobposts.search' %}">
               {% if can_post_job %}Candidate Search{% else %}Open Positions{% endif %}
             </a>

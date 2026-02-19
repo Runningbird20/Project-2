@@ -55,6 +55,8 @@ INSTALLED_APPS = [
     'map',
     'chatbot',
     'messaging',
+    'interviews',
+    'pulses',
 ]
 
 MIDDLEWARE = [
