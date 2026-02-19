@@ -9,11 +9,7 @@
           <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
             <div class="d-flex align-items-start gap-3">
               <div class="flex-shrink-0">
-                {% if template_data.profile.profile_picture %}
-                  <img src="{{ template_data.profile.profile_picture.url }}" alt="Profile picture" class="rounded-circle border" style="width:84px;height:84px;object-fit:cover;">
-                {% else %}
-                  <img src="{% static 'img/default_avatar.png' %}" alt="Default profile picture" class="rounded-circle border" style="width:84px;height:84px;object-fit:cover;">
-                {% endif %}
+                <img src="{{ template_data.profile.profile_picture_or_default_url }}" alt="Profile picture" class="rounded-circle border" style="width:84px;height:84px;object-fit:cover;">
               </div>
               <div>
                 <p class="page-kicker mb-2">{% if template_data.is_own_profile %}My profile{% else %}Candidate profile{% endif %}</p>

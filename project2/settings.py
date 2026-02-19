@@ -47,12 +47,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     'home',
     'accounts',
     'apply',
     'jobposts',
     'map',
     'chatbot',
+    'messaging',
 ]
 
 MIDDLEWARE = [
@@ -63,6 +65,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'accounts.middleware.UpdateLastActivityMiddleware',
 ]
 
 OPENROUTER_API_KEY = "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"

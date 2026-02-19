@@ -1,6 +1,4 @@
 {% extends "base.html" %}
-{% load static %}
-
 {% block content %}
 <section class="page-shell">
   <div class="container">
@@ -15,19 +13,11 @@
             </div>
             <div class="d-flex align-items-center gap-3">
               <div class="text-center">
-                {% if template_data.applicant_profile.profile_picture %}
-                  <img src="{{ template_data.applicant_profile.profile_picture.url }}" class="rounded-circle border" style="width:72px;height:72px;object-fit:cover;" alt="Applicant photo">
-                {% else %}
-                  <img src="{% static 'img/default_avatar.png' %}" class="rounded-circle border" style="width:72px;height:72px;object-fit:cover;" alt="Applicant photo">
-                {% endif %}
+                <img src="{{ template_data.applicant_profile.profile_picture_or_default_url }}" class="rounded-circle border" style="width:72px;height:72px;object-fit:cover;" alt="Applicant photo">
                 <div class="small text-muted mt-1">Candidate</div>
               </div>
               <div class="text-center">
-                {% if template_data.recruiter_profile.profile_picture %}
-                  <img src="{{ template_data.recruiter_profile.profile_picture.url }}" class="rounded-circle border" style="width:72px;height:72px;object-fit:cover;" alt="Recruiter photo">
-                {% else %}
-                  <img src="{% static 'img/default_avatar.png' %}" class="rounded-circle border" style="width:72px;height:72px;object-fit:cover;" alt="Recruiter photo">
-                {% endif %}
+                <img src="{{ template_data.recruiter_profile.profile_picture_or_default_url }}" class="rounded-circle border" style="width:72px;height:72px;object-fit:cover;" alt="Recruiter photo">
                 <div class="small text-muted mt-1">Recruiter</div>
               </div>
             </div>
