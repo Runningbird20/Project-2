@@ -1,0 +1,3 @@
+python seed_demo_data.py --employers 12 --applicants 30 --jobs 70
+
+Feel free to change number of employers, applicants, and jobs to fit your needs.
