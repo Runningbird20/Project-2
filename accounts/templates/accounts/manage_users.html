@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
-<section class="page-shell">
+<section class="page-shell manage-users-page">
   <div class="container">
     <div class="mb-4">
         <p class="page-kicker mb-2">Admin</p>
@@ -40,8 +40,8 @@
           <tbody>
             {% for u in template_data.users %}
             <tr>
-              <td>{{ u.id }}</td>
-              <td>{{ u.user.username }}</td>
+              <td class="manage-user-id">{{ u.id }}</td>
+              <td class="manage-user-username">{{ u.user.username }}</td>
               <td>
                 {% if u.user.is_superuser %}
                   <span class="badge bg-dark">Superuser</span>

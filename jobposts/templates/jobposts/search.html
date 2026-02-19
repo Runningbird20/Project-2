@@ -189,7 +189,7 @@
                       </div>
                       {% if request.user.is_authenticated and not template_data.can_post_job %}
                         <div class="job-post-map-cta">
-                          <a class="primary-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}">Apply Now</a>
+                          <a class="primary-btn apply-now-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}">Apply Now</a>
                         </div>
                       {% endif %}
                     </aside>
@@ -197,7 +197,7 @@
                     <aside class="job-post-map">
                       <div class="job-post-map-placeholder"></div>
                       <div class="job-post-map-cta">
-                        <a class="primary-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}">Apply Now</a>
+                        <a class="primary-btn apply-now-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}">Apply Now</a>
                       </div>
                     </aside>
                     {% endif %}
@@ -268,7 +268,7 @@
                     </div>
                     {% if request.user.is_authenticated and not template_data.can_post_job %}
                       <div class="job-post-map-cta">
-                        <a class="primary-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}">Apply Now</a>
+                        <a class="primary-btn apply-now-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}">Apply Now</a>
                       </div>
                     {% endif %}
                   </aside>
@@ -276,7 +276,7 @@
                   <aside class="job-post-map">
                     <div class="job-post-map-placeholder"></div>
                     <div class="job-post-map-cta">
-                      <a class="primary-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}">Apply Now</a>
+                      <a class="primary-btn apply-now-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}">Apply Now</a>
                     </div>
                   </aside>
                   {% endif %}

@@ -143,7 +143,7 @@
               <div class="px-4 py-3 border-bottom"><h3 class="surface-title mb-0">My Job Listing</h3></div>
               <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 job-table">
-                  <thead class="table-light"><tr><th class="ps-4 py-3">Job Details</th><th class="py-3">Posted On</th><th class="py-3 text-center">Total Apps</th><th class="py-3 text-center">New</th><th class="py-3 text-end pe-4">Manage</th></tr></thead>
+                  <thead class="table-light"><tr><th class="ps-4 py-3">Job Details</th><th class="py-3 text-center">Posted On</th><th class="py-3 text-center">Total Apps</th><th class="py-3 text-center">New</th><th class="py-3 text-end pe-4">Manage</th></tr></thead>
                   <tbody>
                     {% for job in jobs %}
                     <tr>
@@ -158,7 +158,7 @@
                           {% endif %}
                         </div>
                       </td>
-                      <td class="small text-muted">{{ job.created_at|date:'M d, Y' }}</td>
+                      <td class="small text-muted text-center posted-on-cell">{{ job.created_at|date:'M d, Y' }}</td>
                       <td class="text-center">{{ job.total_apps }}</td>
                       <td class="text-center">{% if job.new_apps > 0 %}<span class="badge bg-success-subtle text-success">{{ job.new_apps }} New</span>{% else %}<span class="text-muted">-</span>{% endif %}</td>
                       <td class="text-end pe-4"><div class="form-actions justify-content-end"><a href="{% url 'apply:employer_pipeline' job.id %}" class="secondary-btn">Pipeline</a><a href="{% url 'jobposts.edit' job.id %}" class="secondary-btn">Edit</a><form action="{% url 'jobposts.delete' job.id %}" method="POST" onsubmit="return confirm('Delete this listing?');">{% csrf_token %}<button type="submit" class="danger-btn border-0">Delete</button></form></div></td>
