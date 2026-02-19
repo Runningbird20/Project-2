@@ -71,10 +71,17 @@ def get_applicant_interview_context(user, month_key=None):
     }
 
 
-def get_employer_interview_context(user, month_key=None, post_data=None):
+def get_employer_interview_context(user, month_key=None, post_data=None, initial_application_id=None):
     scheduled = _base_interview_queryset().filter(employer=user, status=InterviewSlot.Status.BOOKED).order_by("start_at")
     open_slots = _base_interview_queryset().filter(employer=user, status=InterviewSlot.Status.OPEN).order_by("start_at")
     form = InterviewSlotProposalForm(post_data or None, employer=user)
+    if initial_application_id and not post_data:
+        try:
+            parsed_application_id = int(initial_application_id)
+        except (TypeError, ValueError):
+            parsed_application_id = None
+        if parsed_application_id and form.fields["application"].queryset.filter(id=parsed_application_id).exists():
+            form.fields["application"].initial = parsed_application_id
     return {
         "scheduled_interviews": scheduled,
         "open_interview_slots": open_slots,

@@ -173,35 +173,15 @@
           </div>
 
           <div class="tab-pane fade" id="emp-interviews" role="tabpanel" aria-labelledby="emp-interviews-btn" tabindex="0">
-            {% include "interviews/partials/interview_calendar.html" with interview_tab_target="emp-interviews" %}
+            {% include "interviews/partials/interview_calendar.html" with interview_tab_target="emp-interviews" interview_calendar_interactive=True %}
             <div class="surface-card mb-3">
-              <h3 class="surface-title mb-3">Propose Interview Slot</h3>
-              <form method="post" action="{% url 'interviews:propose' %}" class="row g-3">
-                {% csrf_token %}
-                <div class="col-md-6">
-                  <label class="form-label fw-semibold">Applicant + Role</label>
-                  {{ interview_proposal_form.application }}
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label fw-semibold">Start</label>
-                  {{ interview_proposal_form.start_at }}
-                </div>
-                <div class="col-md-3">
-                  <label class="form-label fw-semibold">Duration (mins)</label>
-                  {{ interview_proposal_form.duration_minutes }}
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label fw-semibold">Meeting Link</label>
-                  {{ interview_proposal_form.meeting_link }}
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label fw-semibold">Notes</label>
-                  {{ interview_proposal_form.notes }}
-                </div>
-                <div class="col-12">
-                  <button type="submit" class="primary-btn btn-compact border-0">Propose Slot</button>
-                </div>
-              </form>
+              <h3 class="surface-title mb-2">Propose Interview Slots</h3>
+              <p class="text-muted mb-2">
+                Click a day on the calendar to add a time option for an applicant.
+              </p>
+              <p class="small text-muted mb-0">
+                Best practice: propose at least 2-3 time slots for each applicant to improve scheduling speed.
+              </p>
             </div>
             <div class="surface-card mb-3">
               <h3 class="surface-title mb-3">Open Slots</h3>
@@ -233,6 +213,52 @@
                 {% empty %}
                 <p class="text-muted mb-0">No scheduled interviews yet.</p>
                 {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <div class="modal fade" id="interviewSlotModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content border-0 shadow rounded-4">
+                <form method="post" action="{% url 'interviews:propose' %}" id="interviewSlotForm">
+                  {% csrf_token %}
+                  <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Add Interview Time</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body py-4">
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Selected Date</label>
+                      <div id="selectedInterviewDateLabel" class="form-control bg-body-tertiary">-</div>
+                      <input type="hidden" name="start_at" id="interviewStartAtInput">
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold" for="interviewTimeInput">Time</label>
+                      <input type="time" id="interviewTimeInput" class="form-control" required>
+                      <div class="form-text">Pick one time now, then add more slots for the same applicant.</div>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Applicant + Role</label>
+                      {{ interview_proposal_form.application }}
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Duration (mins)</label>
+                      {{ interview_proposal_form.duration_minutes }}
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Meeting Link</label>
+                      {{ interview_proposal_form.meeting_link }}
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label fw-semibold">Notes</label>
+                      {{ interview_proposal_form.notes }}
+                    </div>
+                  </div>
+                  <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="secondary-btn btn-compact border-0" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="primary-btn btn-compact border-0">Add Slot</button>
+                  </div>
+                </form>
               </div>
             </div>
           </div>
@@ -370,6 +396,40 @@
       });
     }
 
+    function bindInterviewDaySlotPicker() {
+      var slotModalEl = document.getElementById("interviewSlotModal");
+      if (!slotModalEl || typeof bootstrap === "undefined" || !bootstrap.Modal) return;
+
+      var slotModal = bootstrap.Modal.getOrCreateInstance(slotModalEl);
+      var form = document.getElementById("interviewSlotForm");
+      var startInput = document.getElementById("interviewStartAtInput");
+      var timeInput = document.getElementById("interviewTimeInput");
+      var selectedDateLabel = document.getElementById("selectedInterviewDateLabel");
+      var selectedDate = null;
+
+      document.querySelectorAll(".interview-day-select[data-interview-date]").forEach(function (dayBtn) {
+        dayBtn.addEventListener("click", function () {
+          selectedDate = dayBtn.getAttribute("data-interview-date");
+          if (!selectedDate) return;
+          selectedDateLabel.textContent = selectedDate;
+          startInput.value = "";
+          timeInput.value = "";
+          slotModal.show();
+        });
+      });
+
+      if (form) {
+        form.addEventListener("submit", function (event) {
+          if (!selectedDate || !timeInput.value) {
+            event.preventDefault();
+            alert("Select a date and time before adding an interview slot.");
+            return;
+          }
+          startInput.value = selectedDate + "T" + timeInput.value;
+        });
+      }
+    }
+
     function restoreScrollAfterMonthChange() {
       try {
         var raw = sessionStorage.getItem(SCROLL_KEY);
@@ -384,6 +444,7 @@
     document.addEventListener("DOMContentLoaded", function () {
       activateTabFromQuery();
       bindInterviewMonthLinks();
+      bindInterviewDaySlotPicker();
       restoreScrollAfterMonthChange();
     });
   })();

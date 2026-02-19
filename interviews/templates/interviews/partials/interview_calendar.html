@@ -30,6 +30,13 @@
     border-color: rgba(59, 130, 246, 0.55);
     transform: translateY(-1px);
   }
+  .interview-day-select {
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+  }
   .interview-day.is-outside {
     opacity: 0.45;
   }
@@ -66,6 +73,10 @@
   .dark-mode .interview-chip-time {
     color: #ffffff;
   }
+  .interview-day-select:focus-visible {
+    outline: 2px solid rgba(59, 130, 246, 0.55);
+    outline-offset: 2px;
+  }
 </style>
 
 <div class="surface-card mb-3 interview-calendar-shell">
@@ -87,15 +98,27 @@
     <div class="interview-weekday">Sat</div>
     {% for week in interview_calendar.weeks %}
       {% for day in week %}
-      <div class="interview-day {% if not day.in_month %}is-outside{% endif %}">
-        <div class="interview-day-num">{{ day.date|date:"j" }}</div>
-        {% for item in day.items %}
-          <div class="interview-chip">
-            <div class="interview-chip-time">{{ item.start_at|date:"g:i A" }}</div>
-            <div class="text-truncate">{{ item.application.job.title }}</div>
-          </div>
-        {% endfor %}
-      </div>
+      {% if interview_calendar_interactive and day.in_month %}
+        <button type="button" class="interview-day interview-day-select" data-interview-date="{{ day.date|date:'Y-m-d' }}">
+          <div class="interview-day-num">{{ day.date|date:"j" }}</div>
+          {% for item in day.items %}
+            <div class="interview-chip">
+              <div class="interview-chip-time">{{ item.start_at|date:"g:i A" }}</div>
+              <div class="text-truncate">{{ item.application.job.title }}</div>
+            </div>
+          {% endfor %}
+        </button>
+      {% else %}
+        <div class="interview-day {% if not day.in_month %}is-outside{% endif %}">
+          <div class="interview-day-num">{{ day.date|date:"j" }}</div>
+          {% for item in day.items %}
+            <div class="interview-chip">
+              <div class="interview-chip-time">{{ item.start_at|date:"g:i A" }}</div>
+              <div class="text-truncate">{{ item.application.job.title }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
       {% endfor %}
     {% endfor %}
   </div>

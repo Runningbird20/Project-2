@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -27,11 +28,14 @@ def propose_slot(request):
     form = InterviewSlotProposalForm(request.POST, employer=request.user)
     if not form.is_valid():
         messages.error(request, "Could not create slot. Check date/time and fields.")
-        return redirect("jobposts.dashboard")
+        return redirect(f"{reverse('jobposts.dashboard')}?tab=emp-interviews")
 
-    create_slot_from_form(form)
+    slot = create_slot_from_form(form)
     messages.success(request, "Interview slot proposed.")
-    return redirect("jobposts.dashboard")
+    month_key = timezone.localtime(slot.start_at).strftime("%Y-%m")
+    return redirect(
+        f"{reverse('jobposts.dashboard')}?tab=emp-interviews&interview_month={month_key}&interview_application={slot.application_id}"
+    )
 
 
 @login_required
