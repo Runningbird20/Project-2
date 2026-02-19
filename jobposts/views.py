@@ -276,7 +276,7 @@ def edit(request, post_id):
 def search(request):
     if request.user.is_authenticated:
         prof = Profile.objects.filter(user=request.user).first()
-        if prof and prof.account_type == Profile.AccountType.EMPLOYER:
+        if prof and (prof.account_type == Profile.AccountType.EMPLOYER and not prof.user.is_staff):
             return redirect("accounts.candidate_search")
 
     template_data = {'title': 'Job Search'}
