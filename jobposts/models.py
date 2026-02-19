@@ -1,7 +1,6 @@
 from django.db import models
 from django.conf import settings
 
-
 class JobPost(models.Model):
     COMPANY_SIZE_CHOICES = [
         ("small", "Small (1-50)"),
@@ -12,6 +11,13 @@ class JobPost(models.Model):
         ("enterprise", "Enterprise"),
         ("other", "Other"),
     ]
+    
+    WORK_SETTING_CHOICES = [
+        ("remote", "Remote"),
+        ("onsite", "On-site"),
+        ("hybrid", "Hybrid"),
+    ]
+
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -26,11 +32,7 @@ class JobPost(models.Model):
     skills = models.CharField(max_length=300, blank=True)
     salary_min = models.IntegerField(null=True, blank=True)
     salary_max = models.IntegerField(null=True, blank=True)
-    WORK_SETTING_CHOICES = [
-        ("remote", "Remote"),
-        ("onsite", "On-site"),
-        ("hybrid", "Hybrid"),
-    ]
+    
     work_setting = models.CharField(max_length=20, choices=WORK_SETTING_CHOICES, default="onsite")
     company_size = models.CharField(max_length=20, choices=COMPANY_SIZE_CHOICES, default="other")
     visa_sponsorship = models.BooleanField(default=False)

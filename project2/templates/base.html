@@ -18,11 +18,84 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="{% static 'mascot/panda.css' %}">
+
+    <style>
+      /* --- CHAT CONTAINER --- */
+      #chat-container {
+        position: fixed;
+        bottom: 30px; /* Aligned with mascot position */
+        right: 30px;
+        width: 420px;
+        height: 600px;
+        min-width: 350px;
+        min-height: 450px;
+        background: var(--chat-bg, #fff);
+        border-radius: 24px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        display: flex;
+        flex-direction: column;
+        z-index: 2100;
+        resize: both;
+        overflow: hidden;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+      }
+
+      /* Hidden State for Chat Window */
+      .chat-closed {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+        pointer-events: none;
+        display: none !important;
+      }
+
+      .chat-header {
+        cursor: move;
+        background: #f8f9fa;
+        padding: 15px 20px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+      }
+
+      #chat-box {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 20px;
+      }
+
+      /* --- MASCOT LOGIC --- */
+      #panda-mascot {
+        position: fixed;
+        bottom: 20px;
+        right: 30px;
+        z-index: 2000;
+        cursor: pointer;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+
+      /* Hide mascot when this class is added */
+      .mascot-hidden {
+        opacity: 0;
+        transform: scale(0) rotate(-45deg);
+        pointer-events: none;
+      }
+
+      .panda-wrap img {
+        width: 120px; /* Made bigger as requested */
+        height: auto;
+        filter: drop-shadow(0 8px 25px rgba(0,0,0,0.2));
+      }
+
+      .panda-wrap img:hover {
+        transform: scale(1.05) translateY(-5px);
+      }
+    </style>
   </head>
   <body>
     <nav class="navbar navbar-expand-lg site-nav py-3">
@@ -40,9 +113,6 @@
             <a class="nav-link site-link" href="{% url 'jobposts.search' %}">
               {% if can_post_job %}Candidate Search{% else %}Open Positions{% endif %}
             </a>
-            {% if can_post_job %}
-              <a class="nav-link site-link" href="{% url 'jobposts.create' %}">Post a Job</a>
-            {% endif %}
             {% if user.is_authenticated %}
               {% if can_post_job %}
                 <a class="nav-link site-link" href="{% url 'jobposts.dashboard' %}">Employer Dashboard</a>
@@ -80,7 +150,7 @@
 
     {% if user.is_authenticated %}
     <div id="chat-container" class="chat-closed">
-        <div class="chat-header">
+        <div class="chat-header" id="chat-handle">
             <div class="header-left">
                 <span class="status-dot"></span>
                 <span>Panda Assistant</span>
@@ -118,6 +188,7 @@
     let chatInitialized = false;
     let debugActive = false;
 
+    // --- UTILITIES ---
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -133,19 +204,81 @@
         return cookieValue;
     }
 
+    // --- DRAGGABLE LOGIC ---
+    function makeDraggable(elmnt) {
+      let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+      const handle = document.getElementById("chat-handle");
+      
+      handle.onmousedown = dragMouseDown;
+
+      function dragMouseDown(e) {
+        if (e.target.closest('button')) return;
+        e.preventDefault();
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
+      }
+
+      function elementDrag(e) {
+        e.preventDefault();
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+        elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        elmnt.style.bottom = "auto";
+        elmnt.style.right = "auto";
+      }
+
+      function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const chatContainer = document.getElementById("chat-container");
+      if (chatContainer) makeDraggable(chatContainer);
+    });
+
+    // --- CHAT & MASCOT TOGGLE LOGIC ---
+    async function toggleChat() {
+        const container = document.getElementById('chat-container');
+        const mascot = document.getElementById('panda-mascot');
+        
+        const isOpening = container.classList.contains('chat-closed');
+
+        if (isOpening) {
+            // OPENING CHAT
+            container.classList.remove('chat-closed');
+            mascot.classList.add('mascot-hidden'); 
+            mascot.classList.remove('mascot-pop-animation'); // Reset animation
+            
+            if (!chatInitialized) {
+                chatInitialized = true;
+                await fetchGreeting();
+            }
+        } else {
+            // CLOSING CHAT
+            container.classList.add('chat-closed');
+            mascot.classList.remove('mascot-hidden');
+            
+            // Trigger the pop animation
+            mascot.classList.add('mascot-pop-animation');
+            
+            // Clean up the animation class after it finishes so it can be re-triggered
+            setTimeout(() => {
+                mascot.classList.remove('mascot-pop-animation');
+            }, 500);
+        }
+    }
+
     function toggleDebug() {
         debugActive = !debugActive;
         const btn = document.getElementById('debug-btn');
-        btn.style.color = debugActive ? 'var(--panda-green)' : '#999';
-    }
-
-    async function toggleChat() {
-        const container = document.getElementById('chat-container');
-        container.classList.toggle('chat-closed');
-        if (!container.classList.contains('chat-closed') && !chatInitialized) {
-            chatInitialized = true;
-            await fetchGreeting();
-        }
+        btn.style.color = debugActive ? '#2ecc71' : '#999';
     }
 
     async function fetchGreeting() {
@@ -236,23 +369,58 @@
                 if (done) break;
                 const chunk = decoder.decode(value);
                 fullText += chunk;
-                const displayMsg = fullText.replace(/\[\/?DRAFT\]/g, '');
+                const displayMsg = fullText.replace(/\[\/?DRAFT\]/g, '').replace(/\[SKILL\].*?\[\/SKILL\]/g, '').replace(/\[APPLY:\d+\]/g, '');
                 botDiv.innerHTML = marked.parse(displayMsg);
                 chatBox.scrollTop = chatBox.scrollHeight;
             }
 
-            // Post-stream logic for drafts and feedback
+            // Tag Logic Processing (Draft, Skill, Apply)
             const draftMatch = fullText.match(/\[DRAFT\]([\s\S]*?)\[\/DRAFT\]/);
             if (draftMatch) {
                 const applyBtn = document.createElement('button');
-                applyBtn.className = 'btn btn-sm btn-success mt-2 d-block';
-                applyBtn.innerHTML = 'Apply to Profile';
+                applyBtn.className = 'btn btn-sm btn-success mt-2 d-block w-100';
+                applyBtn.innerHTML = '<i class="bi bi-pencil-square"></i> Apply to Profile Bio';
                 applyBtn.onclick = () => saveDraftToProfile(draftMatch[1].trim(), applyBtn);
                 botDiv.appendChild(applyBtn);
             }
 
+            const skillMatch = fullText.match(/\[SKILL\](.*?)\[\/SKILL\]/);
+            if (skillMatch) {
+                const skillName = skillMatch[1];
+                const skillBtn = document.createElement('button');
+                skillBtn.className = 'btn btn-sm btn-primary mt-2 d-block w-100';
+                skillBtn.innerHTML = `<i class="bi bi-plus-circle"></i> Add "${skillName}" to Skills`;
+                skillBtn.onclick = () => {
+                    skillBtn.disabled = true;
+                    fetch('/chatbot/add-skill/', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': getCookie('csrftoken')},
+                        body: `skill=${encodeURIComponent(skillName)}`
+                    }).then(res => { if(res.ok) skillBtn.innerHTML = "✅ Skill Added!"; });
+                };
+                botDiv.appendChild(skillBtn);
+            }
+
+            const applyMatch = fullText.match(/\[APPLY:(\d+)\]/);
+            if (applyMatch) {
+                const jobId = applyMatch[1];
+                const jobBtn = document.createElement('button');
+                jobBtn.className = 'btn btn-sm btn-warning mt-2 d-block w-100';
+                jobBtn.innerHTML = `<i class="bi bi-rocket-takeoff"></i> One-Click Apply to Job #${jobId}`;
+                jobBtn.onclick = () => {
+                    jobBtn.disabled = true;
+                    fetch(`/chatbot/chat-apply/${jobId}/`, {
+                        method: 'POST',
+                        headers: {'X-CSRFToken': getCookie('csrftoken')}
+                    }).then(res => res.json()).then(data => {
+                        jobBtn.innerHTML = data.status === 'success' ? "✅ Application Sent!" : "Already Applied";
+                    });
+                };
+                botDiv.appendChild(jobBtn);
+            }
+
             const feedback = document.createElement('div');
-            feedback.className = 'feedback-container mt-2';
+            feedback.className = 'feedback-container mt-2 pt-2 border-top';
             feedback.innerHTML = `<small class="text-muted me-2">Helpful?</small>
                 <span class="feedback-btn" onclick="submitFeedback('up', this)">👍</span>
                 <span class="feedback-btn" onclick="submitFeedback('down', this)">👎</span>`;
@@ -274,7 +442,7 @@
             headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': getCookie('csrftoken') },
             body: `bio=${encodeURIComponent(content)}`
         });
-        if (resp.ok) btn.innerHTML = '✅ Updated!';
+        if (resp.ok) btn.innerHTML = '✅ Bio Updated!';
     }
 
     async function submitFeedback(rating, el) {
@@ -287,7 +455,7 @@
     }
 
     async function clearChat() {
-        if (!confirm("Reset?")) return;
+        if (!confirm("Reset memory?")) return;
         await fetch('/chatbot/clear/', { method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') } });
         document.getElementById('chat-box').innerHTML = '';
         chatInitialized = false;
@@ -304,28 +472,13 @@
           try {
             localStorage.setItem("site-theme", isDark ? "dark" : "light");
           } catch (e) {}
-          document.querySelectorAll("[data-darkmode-toggle]").forEach(function (toggle) {
-            if ("checked" in toggle) {
-              toggle.checked = isDark;
-            }
-          });
         }
-
         function initialMode() {
-          try {
-            return localStorage.getItem("site-theme") === "dark" ? "dark" : "light";
-          } catch (e) {
-            return "light";
-          }
+          try { return localStorage.getItem("site-theme") === "dark" ? "dark" : "light"; }
+          catch (e) { return "light"; }
         }
-
         document.addEventListener("DOMContentLoaded", function () {
           applyTheme(initialMode());
-          document.querySelectorAll("[data-darkmode-toggle]").forEach(function (toggle) {
-            toggle.addEventListener("change", function () {
-              applyTheme(this.checked ? "dark" : "light");
-            });
-          });
         });
       })();
     </script>
