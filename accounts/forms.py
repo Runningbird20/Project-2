@@ -1,3 +1,5 @@
+import re
+
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
@@ -6,6 +8,101 @@ from django.utils.safestring import mark_safe
 
 from .models import Profile
 from project2.skills import normalize_skills_csv
+
+
+def _split_state_and_postal(raw_region):
+    region = (raw_region or "").strip()
+    if not region:
+        return "", ""
+    match = re.match(r"^([A-Za-z]{2})(?:\s+(\d{5}(?:-\d{4})?))?$", region)
+    if match:
+        return match.group(1).upper(), (match.group(2) or "")
+    pieces = region.split()
+    if len(pieces) >= 2 and pieces[-1].isdigit():
+        return " ".join(pieces[:-1]), pieces[-1]
+    return region, ""
+
+
+def _parse_location_parts(raw_location):
+    parts = [part.strip() for part in (raw_location or "").split(",") if part.strip()]
+    parsed = {
+        "address_line_1": "",
+        "address_line_2": "",
+        "city": "",
+        "state": "",
+        "postal_code": "",
+        "country": "United States",
+    }
+    if not parts:
+        return parsed
+
+    parsed["address_line_1"] = parts[0]
+
+    if len(parts) == 1:
+        return parsed
+    if len(parts) == 2:
+        parsed["city"] = parts[1]
+        return parsed
+
+    last_part = parts[-1]
+    has_explicit_country = not any(ch.isdigit() for ch in last_part) and len(last_part) > 2
+    if has_explicit_country and len(parts) >= 4:
+        parsed["country"] = last_part
+        parsed["city"] = parts[-3]
+        state, postal = _split_state_and_postal(parts[-2])
+        parsed["state"] = state
+        parsed["postal_code"] = postal
+        middle = parts[1:-3]
+    else:
+        parsed["city"] = parts[-2]
+        state, postal = _split_state_and_postal(parts[-1])
+        parsed["state"] = state
+        parsed["postal_code"] = postal
+        middle = parts[1:-2]
+
+    if middle:
+        parsed["address_line_2"] = ", ".join(middle)
+    return parsed
+
+
+class ApplicantAddressFieldsMixin:
+    def _build_applicant_location(self, require_full):
+        address_line_1 = (self.cleaned_data.get("address_line_1") or "").strip()
+        address_line_2 = (self.cleaned_data.get("address_line_2") or "").strip()
+        city = (self.cleaned_data.get("city") or "").strip()
+        state = (self.cleaned_data.get("state") or "").strip()
+        postal_code = (self.cleaned_data.get("postal_code") or "").strip()
+        country = (self.cleaned_data.get("country") or "").strip() or "United States"
+
+        has_any = any([address_line_1, address_line_2, city, state, postal_code, country])
+        if require_full and not any([address_line_1, city, state, postal_code]):
+            self.add_error("address_line_1", "Address is required for applicants.")
+            self.add_error("city", "City is required for applicants.")
+            self.add_error("state", "State is required for applicants.")
+            self.add_error("postal_code", "ZIP is required for applicants.")
+            return ""
+
+        if has_any:
+            required_fields = {
+                "address_line_1": address_line_1,
+                "city": city,
+                "state": state,
+                "postal_code": postal_code,
+            }
+            for field_name, value in required_fields.items():
+                if not value:
+                    self.add_error(field_name, "This field is required.")
+            if any(self.errors.get(field_name) for field_name in required_fields):
+                return ""
+
+            parts = [address_line_1]
+            if address_line_2:
+                parts.append(address_line_2)
+            parts.append(city)
+            parts.append(f"{state} {postal_code}".strip())
+            parts.append(country)
+            return ", ".join(parts)
+        return ""
 
 class CustomErrorList(ErrorList):
     def __str__(self):
@@ -20,7 +117,7 @@ class CustomUserCreationForm(UserCreationForm):
             self.fields[fieldname].help_text = None
             self.fields[fieldname].widget.attrs.update({'class': 'form-control'})
 
-class SignupWithProfileForm(CustomUserCreationForm):
+class SignupWithProfileForm(ApplicantAddressFieldsMixin, CustomUserCreationForm):
     email = forms.EmailField(
         required=True,
         widget=forms.EmailInput(attrs={"class": "form-control", "autocomplete": "email"}),
@@ -44,10 +141,74 @@ class SignupWithProfileForm(CustomUserCreationForm):
         required=False,
         widget=forms.TextInput(attrs={'class': 'form-control'}),
     )
+    address_line_1 = forms.CharField(
+        max_length=255,
+        required=False,
+        label="Address Line 1",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "e.g. 75 5th St NW",
+            }
+        ),
+    )
+    address_line_2 = forms.CharField(
+        max_length=255,
+        required=False,
+        label="Address Line 2",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Suite, floor, unit (optional)",
+            }
+        ),
+    )
+    city = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "e.g. Atlanta",
+            }
+        ),
+    )
+    state = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "e.g. GA",
+            }
+        ),
+    )
+    postal_code = forms.CharField(
+        max_length=20,
+        required=False,
+        label="ZIP",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "e.g. 30308",
+            }
+        ),
+    )
+    country = forms.CharField(
+        max_length=100,
+        required=False,
+        initial="United States",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "e.g. United States",
+            }
+        ),
+    )
     location = forms.CharField(
         max_length=255,
         required=False,
-        label="Full Address",
+        label="Company Address",
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
@@ -82,11 +243,25 @@ class SignupWithProfileForm(CustomUserCreationForm):
         widget=forms.Textarea(attrs={"class": "form-control", "rows": 3}),
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["country"].initial = "United States"
+        if self.is_bound:
+            return
+        parsed = _parse_location_parts(self.initial.get("location", ""))
+        for key in ["address_line_1", "address_line_2", "city", "state", "postal_code", "country"]:
+            if parsed.get(key):
+                self.fields[key].initial = parsed[key]
+
     def clean(self):
         cleaned = super().clean()
         acct = cleaned.get("account_type")
         if acct == Profile.AccountType.EMPLOYER and not cleaned.get("company_name"):
             self.add_error("company_name", "Company name is required for employers.")
+        if acct == Profile.AccountType.APPLICANT:
+            cleaned["location"] = self._build_applicant_location(require_full=True)
+        elif acct == Profile.AccountType.EMPLOYER:
+            cleaned["location"] = self._build_applicant_location(require_full=False)
         return cleaned
 
     def clean_username(self):
@@ -124,7 +299,7 @@ class SignupWithProfileForm(CustomUserCreationForm):
             raise forms.ValidationError("An account with this email already exists.")
         return email
 
-class ProfileEditForm(forms.ModelForm):
+class ProfileEditForm(ApplicantAddressFieldsMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
@@ -134,6 +309,29 @@ class ProfileEditForm(forms.ModelForm):
             user = self.instance.user
         if user:
             self.fields["email"].initial = user.email
+        self.fields["country"].initial = "United States"
+        if self.instance and self.instance.pk and not self.is_bound:
+            if any(
+                [
+                    self.instance.address_line_1,
+                    self.instance.address_line_2,
+                    self.instance.city,
+                    self.instance.state,
+                    self.instance.postal_code,
+                    self.instance.country,
+                ]
+            ):
+                self.fields["address_line_1"].initial = self.instance.address_line_1
+                self.fields["address_line_2"].initial = self.instance.address_line_2
+                self.fields["city"].initial = self.instance.city
+                self.fields["state"].initial = self.instance.state
+                self.fields["postal_code"].initial = self.instance.postal_code
+                self.fields["country"].initial = self.instance.country or "United States"
+            else:
+                parsed = _parse_location_parts(self.instance.location)
+                for key in ["address_line_1", "address_line_2", "city", "state", "postal_code", "country"]:
+                    if parsed.get(key):
+                        self.fields[key].initial = parsed[key]
 
     link_0_label = forms.CharField(
         required=False, 
@@ -162,6 +360,70 @@ class ProfileEditForm(forms.ModelForm):
             attrs={"class": "form-control", "autocomplete": "email"}
         ),
     )
+    address_line_1 = forms.CharField(
+        max_length=255,
+        required=False,
+        label="Address Line 1",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "e.g. 75 5th St NW",
+            }
+        ),
+    )
+    address_line_2 = forms.CharField(
+        max_length=255,
+        required=False,
+        label="Address Line 2",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Suite, floor, unit (optional)",
+            }
+        ),
+    )
+    city = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "e.g. Atlanta",
+            }
+        ),
+    )
+    state = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "e.g. GA",
+            }
+        ),
+    )
+    postal_code = forms.CharField(
+        max_length=20,
+        required=False,
+        label="ZIP",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "e.g. 30308",
+            }
+        ),
+    )
+    country = forms.CharField(
+        max_length=100,
+        required=False,
+        initial="United States",
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "e.g. United States",
+            }
+        ),
+    )
 
     class Meta:
         model = Profile
@@ -171,6 +433,12 @@ class ProfileEditForm(forms.ModelForm):
             "headline",
             "skills",
             "location",
+            "address_line_1",
+            "address_line_2",
+            "city",
+            "state",
+            "postal_code",
+            "country",
             "projects",
             "education",
             "work_experience",
@@ -220,7 +488,7 @@ class ProfileEditForm(forms.ModelForm):
             "show_work_experience": "Show work experience",
             "show_links": "Show links",
             "hide_email_from_employers": "Hide email from employers",
-            "location": "Full Address",
+            "location": "Company Address",
             "company_name": "Company Name",
             "company_website": "Company Website",
             "company_description": "Company Description",
@@ -235,6 +503,10 @@ class ProfileEditForm(forms.ModelForm):
             cleaned["account_type"] = acct
         if acct == Profile.AccountType.EMPLOYER and not cleaned.get("company_name"):
             self.add_error("company_name", "Company name is required for employers.")
+        if acct == Profile.AccountType.APPLICANT:
+            cleaned["location"] = self._build_applicant_location(require_full=False)
+        elif acct == Profile.AccountType.EMPLOYER:
+            cleaned["location"] = self._build_applicant_location(require_full=False)
         return cleaned
 
     def clean_skills(self):

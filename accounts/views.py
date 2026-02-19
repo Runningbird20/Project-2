@@ -216,16 +216,22 @@ def signup(request):
 
     acct = form.cleaned_data.get("account_type", Profile.AccountType.APPLICANT)
     location_value = (form.cleaned_data.get("location") or "").strip()
+    address_line_1 = (form.cleaned_data.get("address_line_1") or "").strip()
+    address_line_2 = (form.cleaned_data.get("address_line_2") or "").strip()
+    city = (form.cleaned_data.get("city") or "").strip()
+    state = (form.cleaned_data.get("state") or "").strip()
+    postal_code = (form.cleaned_data.get("postal_code") or "").strip()
+    country = (form.cleaned_data.get("country") or "").strip() or "United States"
     if acct == Profile.AccountType.APPLICANT:
         if not location_value:
-            form.add_error("location", "Full address is required for applicants.")
+            form.add_error("address_line_1", "Address is required for applicants.")
             template_data["form"] = form
             template_data["skill_options"] = COMMON_SKILLS
             return render(request, "accounts/signup.html", {"template_data": template_data})
         try:
             geocode_office_address(location_value)
         except OfficeLocationGeocodingError as exc:
-            form.add_error("location", str(exc))
+            form.add_error("address_line_1", str(exc))
             template_data["form"] = form
             template_data["skill_options"] = COMMON_SKILLS
             return render(request, "accounts/signup.html", {"template_data": template_data})
@@ -240,6 +246,12 @@ def signup(request):
             profile.account_type = acct
             profile.profile_picture = form.cleaned_data.get("profile_picture")
             profile.location = location_value
+            profile.address_line_1 = address_line_1
+            profile.address_line_2 = address_line_2
+            profile.city = city
+            profile.state = state
+            profile.postal_code = postal_code
+            profile.country = country
             profile.projects = form.cleaned_data.get("projects", "")
 
             if acct == Profile.AccountType.EMPLOYER:
@@ -456,7 +468,12 @@ def candidate_search(request):
         for t in [t.strip() for t in skills.split(",") if t.strip()]:
             qs = qs.filter(skills__icontains=t)
     if location:
-        qs = qs.filter(location__icontains=location)
+        qs = qs.filter(
+            Q(location__icontains=location)
+            | Q(city__icontains=location)
+            | Q(state__icontains=location)
+            | Q(address_line_1__icontains=location)
+        )
     if projects:
         qs = qs.filter(Q(projects__icontains=projects) | Q(headline__icontains=projects))
 

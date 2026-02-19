@@ -18,12 +18,41 @@
             <div class="field-block">{{ template_data.form.profile_picture.label_tag }} {{ template_data.form.profile_picture }}</div>
             <div class="field-block">{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</div>
 
+            <div class="field-block">
+              <div class="border rounded-4 p-3 bg-light-subtle map-pin-card">
+                <div class="text-uppercase text-muted small mb-2">Address</div>
+                <div class="row g-3">
+                  <div class="col-12">
+                    {{ template_data.form.address_line_1.label_tag }} {{ template_data.form.address_line_1 }}
+                    {{ template_data.form.address_line_1.errors }}
+                  </div>
+                  <div class="col-12">
+                    {{ template_data.form.address_line_2.label_tag }} {{ template_data.form.address_line_2 }}
+                    {{ template_data.form.address_line_2.errors }}
+                  </div>
+                  <div class="col-md-5">
+                    {{ template_data.form.city.label_tag }} {{ template_data.form.city }}
+                    {{ template_data.form.city.errors }}
+                  </div>
+                  <div class="col-md-3">
+                    {{ template_data.form.state.label_tag }} {{ template_data.form.state }}
+                    {{ template_data.form.state.errors }}
+                  </div>
+                  <div class="col-md-4">
+                    {{ template_data.form.postal_code.label_tag }} {{ template_data.form.postal_code }}
+                    {{ template_data.form.postal_code.errors }}
+                  </div>
+                  <div class="col-md-6">
+                    {{ template_data.form.country.label_tag }} {{ template_data.form.country }}
+                    {{ template_data.form.country.errors }}
+                  </div>
+                </div>
+                <div class="form-text mt-2">Used for nearby jobs. Employers only see city and state for applicants.</div>
+              </div>
+            </div>
+
             <div id="applicant_fields">
               <div class="field-block">{{ template_data.form.headline.label_tag }} {{ template_data.form.headline }}</div>
-              <div class="field-block">
-                {{ template_data.form.location.label_tag }} {{ template_data.form.location }}
-                <div class="form-text">Only your city and state are shown to employers.</div>
-              </div>
               <div class="field-block">{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</div>
               <div class="field-block">
                 <label for="id_skills">{{ template_data.form.skills.label }}</label>
@@ -60,7 +89,6 @@
               <div class="field-block">{{ template_data.form.company_name.label_tag }} {{ template_data.form.company_name }}</div>
               <div class="field-block">{{ template_data.form.company_website.label_tag }} {{ template_data.form.company_website }}</div>
               <div class="field-block">{{ template_data.form.company_description.label_tag }} {{ template_data.form.company_description }}</div>
-              <div class="field-block">{{ template_data.form.location.label_tag }} {{ template_data.form.location }}</div>
             </div>
 
             <div class="form-actions mt-4">

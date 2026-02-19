@@ -334,7 +334,7 @@ def search(request):
         if profile and profile.account_type == Profile.AccountType.APPLICANT:
             applicant_profile = profile
             is_applicant = True
-            home_address = (profile.location or '').strip()
+            home_address = profile.full_address
             has_home_address = bool(home_address)
 
             session_use_home_radius = request.session.get('job_search_use_home_radius', False)

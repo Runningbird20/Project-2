@@ -112,7 +112,7 @@
         {% endif %}
 
         {% if template_data.posts %}
-          <div class="vstack gap-3">
+          <div class="vstack gap-3{% if template_data.radius_active %} job-results-scroll{% endif %}">
             {% if template_data.is_applicant and template_data.matched_posts %}
               <div class="text-uppercase small text-muted fw-semibold mb-1">Matched Jobs</div>
               {% for post in template_data.matched_posts %}
@@ -168,7 +168,7 @@
                       <div class="ratio ratio-4x3 job-post-map-frame">
                         <iframe title="Office location map" src="{{ post.office_location.osm_embed_url }}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
                       </div>
-                      <div class="small text-muted mt-2">
+                      <div class="small text-muted mt-2 job-post-location-scroll">
                         {% if post.office_location.full_address %}{{ post.office_location.full_address }} - {% endif %}
                         <a href="{% url 'map.job_location' post.id %}" class="link-secondary">Full map</a>
                       </div>
@@ -264,7 +264,7 @@
                     <div class="ratio ratio-4x3 job-post-map-frame">
                       <iframe title="Office location map" src="{{ post.office_location.osm_embed_url }}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
                     </div>
-                    <div class="small text-muted mt-2">
+                    <div class="small text-muted mt-2 job-post-location-scroll">
                       {% if post.office_location.full_address %}{{ post.office_location.full_address }} - {% endif %}
                       <a href="{% url 'map.job_location' post.id %}" class="link-secondary">Full map</a>
                     </div>

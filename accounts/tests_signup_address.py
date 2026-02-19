@@ -19,12 +19,16 @@ class ApplicantSignupAddressTests(TestCase):
                 "password1": "StrongPass123!",
                 "password2": "StrongPass123!",
                 "account_type": Profile.AccountType.APPLICANT,
-                "location": "",
+                "address_line_1": "",
+                "city": "",
+                "state": "",
+                "postal_code": "",
+                "country": "United States",
             },
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Full address is required for applicants.")
+        self.assertContains(response, "Address is required for applicants.")
         self.assertFalse(get_user_model().objects.filter(username="applicant_no_address").exists())
 
     @patch("accounts.views.geocode_office_address", side_effect=OfficeLocationGeocodingError("Bad address"))
@@ -37,7 +41,11 @@ class ApplicantSignupAddressTests(TestCase):
                 "password1": "StrongPass123!",
                 "password2": "StrongPass123!",
                 "account_type": Profile.AccountType.APPLICANT,
-                "location": "Not a real address",
+                "address_line_1": "Not a real address",
+                "city": "Nowhere",
+                "state": "GA",
+                "postal_code": "30303",
+                "country": "United States",
             },
         )
 
@@ -55,10 +63,16 @@ class ApplicantSignupAddressTests(TestCase):
                 "password1": "StrongPass123!",
                 "password2": "StrongPass123!",
                 "account_type": Profile.AccountType.APPLICANT,
-                "location": "123 Peachtree St NE, Atlanta, GA 30303, United States",
+                "address_line_1": "123 Peachtree St NE",
+                "city": "Atlanta",
+                "state": "GA",
+                "postal_code": "30303",
+                "country": "United States",
             },
         )
 
         self.assertEqual(response.status_code, 302)
         user = get_user_model().objects.get(username="applicant_good_address")
         self.assertEqual(user.profile.location, "123 Peachtree St NE, Atlanta, GA 30303, United States")
+        self.assertEqual(user.profile.city, "Atlanta")
+        self.assertEqual(user.profile.state, "GA")

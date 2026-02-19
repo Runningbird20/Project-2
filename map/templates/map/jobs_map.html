@@ -6,14 +6,23 @@
       <div>
         <p class="page-kicker mb-2">Interactive map</p>
         <h1 class="page-title page-title-sm mb-1">Job Postings Near You</h1>
-        <p class="page-copy mb-0">{{ template_data.jobs_count }} pinned job locations.</p>
+        {% if template_data.map_notice %}
+          <p class="page-copy mb-0">{{ template_data.map_notice }}</p>
+        {% else %}
+          <p class="page-copy mb-0">Set your profile address to view nearby pinned jobs.</p>
+        {% endif %}
       </div>
       <div class="form-actions">
         <a href="{% url 'jobposts.search' %}" class="secondary-btn">Back to jobs</a>
       </div>
     </div>
 
-    {% if jobs_data %}
+    {% if template_data.address_prompt %}
+      <div class="surface-card">
+        <p class="text-muted mb-2">{{ template_data.address_prompt }}</p>
+        <a href="{% url 'accounts.profile_edit' %}" class="primary-btn border-0 btn-compact">Add Address in Profile</a>
+      </div>
+    {% elif jobs_data %}
       <div class="row g-3">
         <div class="col-lg-8">
           <div class="surface-card p-2">
@@ -21,26 +30,53 @@
           </div>
         </div>
         <div class="col-lg-4">
-          <div class="surface-card h-100">
-            <div class="text-uppercase text-muted small mb-2">Near me tools</div>
-            <div class="vstack gap-2 mb-3">
-              <button id="useMyLocationBtn" type="button" class="primary-btn border-0 btn-compact">Use My Location</button>
-              <button id="clearLocationBtn" type="button" class="secondary-btn btn-compact">Clear Near Me</button>
-            </div>
-            <div class="mb-3">
+          <div class="surface-card">
+            <div class="text-uppercase text-muted small mb-2">Range Filter</div>
+            <form method="get" class="mb-3">
               <label for="radiusMiles" class="form-label">Radius (miles)</label>
-              <input id="radiusMiles" type="number" min="1" max="500" value="25" class="form-control">
+              <input
+                id="radiusMiles"
+                type="number"
+                min="1"
+                max="500"
+                name="radius_miles"
+                value="{{ template_data.radius_miles }}"
+                class="form-control"
+              >
+              <button type="submit" class="primary-btn border-0 btn-compact mt-3 w-100">Update Range</button>
+            </form>
+            <div class="small text-muted mb-3">{{ template_data.jobs_count }} jobs in range.</div>
+            <div class="vstack gap-2 jobs-map-list-scroll">
+              {% for job in jobs_data %}
+                <div class="border rounded p-2">
+                  <div class="fw-semibold">{{ job.title }}</div>
+                  <div class="small text-muted">{{ job.company }} - {{ job.distance_miles }} mi</div>
+                  <div class="small text-muted">{{ job.location }}</div>
+                  <a class="small" href="{{ job.detail_url }}">Open posting</a>
+                </div>
+              {% endfor %}
             </div>
-            <div id="nearMeStatus" class="small text-muted mb-3">Showing all pinned jobs.</div>
-            <hr>
-            <div class="text-uppercase text-muted small mb-2">Locations</div>
-            <div id="jobsList" class="vstack gap-2"></div>
           </div>
         </div>
       </div>
     {% else %}
       <div class="surface-card">
-        <p class="text-muted mb-0">No job postings with pinned map locations yet.</p>
+        <p class="text-muted mb-2">No pinned jobs found in your current range.</p>
+        <form method="get" class="d-flex align-items-end gap-2 flex-wrap">
+          <div>
+            <label for="radiusMilesEmpty" class="form-label mb-1">Radius (miles)</label>
+            <input
+              id="radiusMilesEmpty"
+              type="number"
+              min="1"
+              max="500"
+              name="radius_miles"
+              value="{{ template_data.radius_miles }}"
+              class="form-control"
+            >
+          </div>
+          <button type="submit" class="primary-btn border-0 btn-compact">Try Larger Range</button>
+        </form>
       </div>
     {% endif %}
   </div>
@@ -64,50 +100,29 @@
 
     const mapEl = document.getElementById('jobsMap');
     const jobsMap = new google.maps.Map(mapEl, {
-      center: { lat: jobs[0].latitude, lng: jobs[0].longitude },
-      zoom: 6,
+      center: { lat: {{ map_center.lat }}, lng: {{ map_center.lng }} },
+      zoom: 9,
       mapTypeControl: false,
       streetViewControl: false,
       fullscreenControl: true,
     });
     const infoWindow = new google.maps.InfoWindow();
+    const bounds = new google.maps.LatLngBounds();
 
-    const jobsState = jobs.map((job) => ({
-      ...job,
-      marker: null,
-      distanceMiles: null,
-    }));
-
-    let activeMarkers = [];
-    let userMarker = null;
-    let userRadiusCircle = null;
-    let userPosition = null;
-    let nearMeEnabled = false;
-
-    const jobsList = document.getElementById('jobsList');
-    const nearMeStatus = document.getElementById('nearMeStatus');
-    const radiusInput = document.getElementById('radiusMiles');
-    const useMyLocationBtn = document.getElementById('useMyLocationBtn');
-    const clearLocationBtn = document.getElementById('clearLocationBtn');
-
-    function haversineMiles(lat1, lon1, lat2, lon2) {
-      const toRad = (deg) => (deg * Math.PI) / 180;
-      const R = 3958.8;
-      const dLat = toRad(lat2 - lat1);
-      const dLon = toRad(lon2 - lon1);
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
-    }
-
-    function selectedRadiusMiles() {
-      const parsed = parseFloat(radiusInput.value);
-      if (Number.isFinite(parsed) && parsed > 0) return parsed;
-      return 25;
-    }
+    const userMarker = new google.maps.Marker({
+      position: { lat: {{ map_center.lat }}, lng: {{ map_center.lng }} },
+      map: jobsMap,
+      title: 'Your profile address',
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 6,
+        fillColor: '#2563eb',
+        fillOpacity: 1,
+        strokeColor: '#ffffff',
+        strokeWeight: 2,
+      },
+    });
+    bounds.extend(userMarker.getPosition());
 
     function markerPopupHtml(job) {
       return `
@@ -116,168 +131,25 @@
           <div style="color:#555">${job.company}</div>
           <div style="font-size:12px;color:#666;margin-top:4px">${job.location}</div>
           <div style="font-size:12px;color:#666">${job.full_address || ''}</div>
+          <div style="font-size:12px;color:#666">${job.distance_miles} mi away</div>
           <a href="${job.detail_url}" style="display:inline-block;margin-top:8px">View posting</a>
         </div>
       `;
     }
 
-    function clearMarkers() {
-      activeMarkers.forEach((marker) => marker.setMap(null));
-      activeMarkers = [];
-    }
-
-    function renderMarkers(visibleJobs) {
-      clearMarkers();
-      visibleJobs.forEach((job) => {
-        const marker = new google.maps.Marker({
-          position: { lat: job.latitude, lng: job.longitude },
-          map: jobsMap,
-          title: job.title,
-        });
-        marker.addListener('click', () => {
-          infoWindow.setContent(markerPopupHtml(job));
-          infoWindow.open({ map: jobsMap, anchor: marker });
-        });
-        job.marker = marker;
-        activeMarkers.push(marker);
+    jobs.forEach((job) => {
+      const marker = new google.maps.Marker({
+        position: { lat: job.latitude, lng: job.longitude },
+        map: jobsMap,
+        title: job.title,
       });
-    }
-
-    function renderList(items) {
-      jobsList.innerHTML = '';
-      if (!items.length) {
-        jobsList.innerHTML = '<p class="small text-muted mb-0">No jobs in current radius.</p>';
-        return;
-      }
-
-      items.forEach((job) => {
-        const row = document.createElement('div');
-        row.className = 'border rounded p-2';
-        const distance = job.distanceMiles != null ? ` · ${job.distanceMiles.toFixed(1)} mi` : '';
-        row.innerHTML = `
-          <div class="fw-semibold">${job.title}</div>
-          <div class="small text-muted">${job.company}${distance}</div>
-          <div class="small text-muted">${job.location}</div>
-          <a class="small" href="${job.detail_url}">Open posting</a>
-        `;
-        row.addEventListener('mouseenter', () => {
-          if (job.marker) {
-            infoWindow.setContent(markerPopupHtml(job));
-            infoWindow.open({ map: jobsMap, anchor: job.marker });
-          }
-        });
-        row.addEventListener('click', () => {
-          jobsMap.setCenter({ lat: job.latitude, lng: job.longitude });
-          jobsMap.setZoom(Math.max(jobsMap.getZoom(), 11));
-          if (job.marker) {
-            infoWindow.setContent(markerPopupHtml(job));
-            infoWindow.open({ map: jobsMap, anchor: job.marker });
-          }
-        });
-        jobsList.appendChild(row);
+      marker.addListener('click', () => {
+        infoWindow.setContent(markerPopupHtml(job));
+        infoWindow.open({ map: jobsMap, anchor: marker });
       });
-    }
-
-    function fitVisibleBounds(visibleJobs) {
-      if (!visibleJobs.length) return;
-      const bounds = new google.maps.LatLngBounds();
-      visibleJobs.forEach((job) => bounds.extend({ lat: job.latitude, lng: job.longitude }));
-      if (nearMeEnabled && userPosition) {
-        bounds.extend({ lat: userPosition.lat, lng: userPosition.lng });
-      }
-      jobsMap.fitBounds(bounds);
-    }
-
-    function applyNearMe() {
-      const radius = selectedRadiusMiles();
-
-      let visibleJobs = jobsState;
-      if (nearMeEnabled && userPosition) {
-        visibleJobs = jobsState.filter((job) => {
-          job.distanceMiles = haversineMiles(userPosition.lat, userPosition.lng, job.latitude, job.longitude);
-          return job.distanceMiles <= radius;
-        });
-        visibleJobs.sort((a, b) => a.distanceMiles - b.distanceMiles);
-        nearMeStatus.textContent = `Showing jobs within ${radius} miles of your location.`;
-      } else {
-        jobsState.forEach((job) => {
-          job.distanceMiles = null;
-        });
-        nearMeStatus.textContent = 'Showing all pinned jobs.';
-      }
-
-      renderMarkers(visibleJobs);
-
-      if (userRadiusCircle) {
-        userRadiusCircle.setRadius(radius * 1609.34);
-      }
-
-      fitVisibleBounds(visibleJobs);
-      renderList(visibleJobs);
-    }
-
-    function resetNearMe() {
-      nearMeEnabled = false;
-      userPosition = null;
-      if (userMarker) userMarker.setMap(null);
-      if (userRadiusCircle) userRadiusCircle.setMap(null);
-      userMarker = null;
-      userRadiusCircle = null;
-      applyNearMe();
-    }
-
-    useMyLocationBtn.addEventListener('click', function () {
-      if (!navigator.geolocation) {
-        nearMeStatus.textContent = 'Geolocation is not supported in this browser.';
-        return;
-      }
-
-      nearMeStatus.textContent = 'Finding your location...';
-      navigator.geolocation.getCurrentPosition(
-        function (position) {
-          const radius = selectedRadiusMiles();
-          userPosition = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-          nearMeEnabled = true;
-
-          if (userMarker) userMarker.setMap(null);
-          if (userRadiusCircle) userRadiusCircle.setMap(null);
-
-          userMarker = new google.maps.Marker({
-            position: userPosition,
-            map: jobsMap,
-            title: 'You are here',
-          });
-
-          userRadiusCircle = new google.maps.Circle({
-            map: jobsMap,
-            center: userPosition,
-            radius: radius * 1609.34,
-            strokeColor: '#1d2433',
-            strokeOpacity: 0.8,
-            strokeWeight: 1.5,
-            fillColor: '#1d2433',
-            fillOpacity: 0.08,
-          });
-
-          applyNearMe();
-        },
-        function () {
-          nearMeStatus.textContent = 'Could not access your location. Check browser permissions.';
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-        }
-      );
+      bounds.extend(marker.getPosition());
     });
-
-    clearLocationBtn.addEventListener('click', resetNearMe);
-    radiusInput.addEventListener('change', applyNearMe);
-
-    applyNearMe();
+    jobsMap.fitBounds(bounds);
   }
   </script>
   <script async defer src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key|urlencode }}&callback=initJobsMap"></script>

@@ -1,7 +1,10 @@
+from unittest.mock import patch
+
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
+from accounts.models import Profile
 from jobposts.models import JobPost
 from .models import OfficeLocation
 
@@ -34,10 +37,18 @@ class MapViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Open in Google Maps')
 
-    def test_jobs_map_page_lists_pinned_jobs(self):
-        user = User.objects.create_user(username='owner2', password='pass12345')
+    @patch("map.views.geocode_office_address", return_value=("30.2672", "-97.7431"))
+    def test_jobs_map_page_lists_only_jobs_within_radius(self, _mock_geocode):
+        owner = User.objects.create_user(username='owner2', password='pass12345')
+        applicant = User.objects.create_user(username='applicant_map', password='pass12345')
+        Profile.objects.create(
+            user=applicant,
+            account_type=Profile.AccountType.APPLICANT,
+            location='500 W 2nd St, Austin, TX 78701, United States',
+        )
+
         pinned_post = JobPost.objects.create(
-            owner=user,
+            owner=owner,
             title='Frontend Engineer',
             company='Beta Inc',
             location='Austin, TX',
@@ -48,7 +59,7 @@ class MapViewTests(TestCase):
             description='Build UI.',
         )
         unpinned_post = JobPost.objects.create(
-            owner=user,
+            owner=owner,
             title='No Pin Job',
             company='Beta Inc',
             location='Remote',
@@ -69,9 +80,47 @@ class MapViewTests(TestCase):
             longitude='-97.733330',
         )
 
-        response = self.client.get(reverse('map.jobs_map'))
+        far_post = JobPost.objects.create(
+            owner=owner,
+            title='Far Away Engineer',
+            company='Gamma Inc',
+            location='Seattle, WA',
+            pay_range='$120k-$150k',
+            salary_min=120000,
+            salary_max=150000,
+            work_setting='onsite',
+            description='Far away role.',
+        )
+        OfficeLocation.objects.create(
+            job_post=far_post,
+            address_line_1='1201 3rd Ave',
+            city='Seattle',
+            state='WA',
+            postal_code='98101',
+            country='United States',
+            latitude='47.606200',
+            longitude='-122.332100',
+        )
+
+        self.client.login(username='applicant_map', password='pass12345')
+        response = self.client.get(reverse('map.jobs_map'), {'radius_miles': '25'})
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Job Postings Near You')
         self.assertContains(response, pinned_post.title)
         self.assertNotContains(response, unpinned_post.title)
+        self.assertNotContains(response, far_post.title)
+
+    def test_jobs_map_prompts_when_applicant_has_no_address(self):
+        applicant = User.objects.create_user(username='applicant_no_addr', password='pass12345')
+        Profile.objects.create(
+            user=applicant,
+            account_type=Profile.AccountType.APPLICANT,
+            location='',
+        )
+
+        self.client.login(username='applicant_no_addr', password='pass12345')
+        response = self.client.get(reverse('map.jobs_map'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Add your full address in Profile to view nearby jobs on the map.')

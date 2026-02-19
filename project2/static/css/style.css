@@ -1062,6 +1062,75 @@ html.dark-mode .status-rejected {
   padding-top: 0.5rem;
 }
 
+.job-post-location-scroll {
+  max-height: 3.2rem;
+  overflow-y: auto;
+  padding-right: 0.2rem;
+}
+
+.job-post-location-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.job-post-location-scroll::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 999px;
+}
+
+.job-search-page .job-results-scroll {
+  max-height: 75vh;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+}
+
+.job-search-page .job-results-scroll::-webkit-scrollbar {
+  width: 7px;
+}
+
+.job-search-page .job-results-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 999px;
+}
+
+.jobs-map-page .jobs-map-list-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: scroll;
+  padding-right: 0.25rem;
+}
+
+.jobs-map-page .jobs-map-list-scroll::-webkit-scrollbar {
+  width: 7px;
+}
+
+.jobs-map-page .jobs-map-list-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 999px;
+}
+
+.jobs-map-page .jobs-map-locations-card {
+  display: flex;
+  flex-direction: column;
+  max-height: 52vh;
+  min-height: 240px;
+  padding: 0.9rem;
+}
+
+.jobs-map-page .jobs-map-location-scroll {
+  max-height: 2.8rem;
+  overflow-y: auto;
+  padding-right: 0.2rem;
+}
+
+.jobs-map-page .jobs-map-location-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.jobs-map-page .jobs-map-location-scroll::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 999px;
+}
+
 .job-detail-modal-header {
   background: #1f2937;
   color: #ffffff;
@@ -1289,6 +1358,15 @@ html.dark-mode #interviewPromptModal .btn-close {
   .job-post-map {
     justify-self: start;
     max-width: 320px;
+  }
+
+  .jobs-map-page .jobs-map-locations-card {
+    max-height: none;
+    min-height: 0;
+  }
+
+  .jobs-map-page .jobs-map-list-scroll {
+    max-height: 45vh;
   }
 }
 

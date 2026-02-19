@@ -34,6 +34,12 @@ class Profile(models.Model):
     education = models.TextField(blank=True)
     work_experience = models.TextField(blank=True)
     location = models.CharField(max_length=255, blank=True)
+    address_line_1 = models.CharField(max_length=255, blank=True)
+    address_line_2 = models.CharField(max_length=255, blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    state = models.CharField(max_length=100, blank=True)
+    postal_code = models.CharField(max_length=20, blank=True)
+    country = models.CharField(max_length=100, blank=True, default="United States")
     projects = models.TextField(blank=True)
 
     # Employer-only fields
@@ -65,27 +71,51 @@ class Profile(models.Model):
 
     @property
     def location_city_state(self):
-        """
-        Return a privacy-safe location string (city/state) parsed from full address.
-        """
+        """Return privacy-safe city/state for profiles."""
+        city = (self.city or "").strip()
+        state = (self.state or "").strip()
+        if city and state:
+            return f"{city}, {state}"
+
+        # Legacy fallback for pre-structured addresses.
         raw = (self.location or "").strip()
         if not raw:
             return ""
-
         parts = [part.strip() for part in raw.split(",") if part.strip()]
         if len(parts) < 2:
             return raw
-
         city = parts[-2]
         region = parts[-1]
-
-        # Typical US form: "GA 30303" or "GA".
         match = re.match(r"^([A-Za-z]{2})(?:\s+\d{5}(?:-\d{4})?)?$", region)
         if match:
             return f"{city}, {match.group(1).upper()}"
-
         region_first_token = region.split()[0] if region.split() else region
         return f"{city}, {region_first_token}"
+
+    @property
+    def full_address(self):
+        has_core_address = any(
+            [
+                (self.address_line_1 or "").strip(),
+                (self.city or "").strip(),
+                (self.state or "").strip(),
+                (self.postal_code or "").strip(),
+            ]
+        )
+        if not has_core_address:
+            return (self.location or "").strip()
+
+        parts = [
+            (self.address_line_1 or "").strip(),
+            (self.address_line_2 or "").strip(),
+            (self.city or "").strip(),
+            f"{(self.state or '').strip()} {(self.postal_code or '').strip()}".strip(),
+            (self.country or "").strip(),
+        ]
+        combined = ", ".join([part for part in parts if part])
+        if combined:
+            return combined
+        return (self.location or "").strip()
 
 
 class ProfileLink(models.Model):
@@ -127,7 +157,12 @@ class SavedCandidateSearch(models.Model):
             for t in terms:
                 qs = qs.filter(skills__icontains=t)
         if loc:
-            qs = qs.filter(location__icontains=loc)
+            qs = qs.filter(
+                Q(location__icontains=loc)
+                | Q(city__icontains=loc)
+                | Q(state__icontains=loc)
+                | Q(address_line_1__icontains=loc)
+            )
         if proj:
             qs = qs.filter(Q(projects__icontains=proj) | Q(headline__icontains=proj))
 
