@@ -139,6 +139,19 @@
                     </div>
                     <div class="d-flex flex-column align-items-end justify-content-between gap-2">
                       <div class="text-end">
+                        {% if post.skill_overlap_percent is not None %}
+                          <span class="badge
+                            {% if post.skill_overlap_percent <= 40 %}
+                              bg-danger-subtle text-danger-emphasis
+                            {% elif post.skill_overlap_percent <= 70 %}
+                              bg-warning-subtle text-warning-emphasis
+                            {% else %}
+                              bg-success-subtle text-success-emphasis
+                            {% endif %}
+                            text-uppercase">
+                            Resume Match {{ post.skill_overlap_percent }}%
+                          </span>
+                        {% endif %}
                         <span class="badge bg-dark-subtle text-dark text-uppercase">{{ post.get_work_setting_display }}</span>
                         <span class="badge bg-info-subtle text-info-emphasis text-uppercase">{{ post.get_company_size_display }}</span>
                         {% if post.visa_sponsorship %}
@@ -204,6 +217,19 @@
                   </div>
                   <div class="d-flex flex-column align-items-end justify-content-between gap-2">
                     <div class="text-end">
+                      {% if post.skill_overlap_percent is not None %}
+                        <span class="badge
+                          {% if post.skill_overlap_percent <= 40 %}
+                            bg-danger-subtle text-danger-emphasis
+                          {% elif post.skill_overlap_percent <= 70 %}
+                            bg-warning-subtle text-warning-emphasis
+                          {% else %}
+                            bg-success-subtle text-success-emphasis
+                          {% endif %}
+                          text-uppercase">
+                          Resume Match {{ post.skill_overlap_percent }}%
+                        </span>
+                      {% endif %}
                       <span class="badge bg-dark-subtle text-dark text-uppercase">{{ post.get_work_setting_display }}</span>
                       <span class="badge bg-info-subtle text-info-emphasis text-uppercase">{{ post.get_company_size_display }}</span>
                       {% if post.visa_sponsorship %}

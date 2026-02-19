@@ -43,6 +43,21 @@
 
           <div class="mb-4">
             <h5 class="surface-title">Required Skills</h5>
+            {% if skill_overlap_percent is not None %}
+              <p class="small mb-2">
+                <span class="badge
+                  {% if skill_overlap_percent <= 40 %}
+                    bg-danger-subtle text-danger-emphasis
+                  {% elif skill_overlap_percent <= 70 %}
+                    bg-warning-subtle text-warning-emphasis
+                  {% else %}
+                    bg-success-subtle text-success-emphasis
+                  {% endif %}
+                  text-uppercase">
+                  Resume Match {{ skill_overlap_percent }}%
+                </span>
+              </p>
+            {% endif %}
             <div>
               {% if job.skills %}
                 {% for skill in job.skills.split %}
