@@ -156,7 +156,7 @@ def notify_booking(slot):
     gcal_url = google_calendar_link(slot)
     if slot.applicant.email:
         send_mail(
-            subject = f"Interview Scheduled: {slot.application.job.title}"
+            subject = f"Interview Scheduled: {slot.application.job.title}",
             message = (
                 f"Hi {slot.applicant.username},\n\n"
                 "Your interview has been successfully scheduled. Please find the details below:\n\n"
@@ -177,7 +177,7 @@ def notify_booking(slot):
         )
     if slot.employer.email:
         send_mail(
-            subject = f"Interview Confirmed: {slot.applicant.username}"
+            subject = f"Interview Confirmed: {slot.applicant.username}",
             message = (
                 f"Hi {slot.employer.username},\n\n"
                 f"{slot.applicant.username} has confirmed their interview by selecting an available time slot.\n\n"
