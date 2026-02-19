@@ -26,6 +26,7 @@ urlpatterns = [
     path('apply/', include(('apply.urls', 'apply'), namespace='apply')),
     path('jobposts/', include('jobposts.urls')),
     path('map/', include('map.urls')),
+    path('chatbot/', include('chatbot.urls')),
 ]
 
 if settings.DEBUG:

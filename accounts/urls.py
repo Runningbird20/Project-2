@@ -54,4 +54,7 @@ urlpatterns = [
     path("applicant-clusters-map/", views.applicant_clusters_map, name="accounts.applicant_clusters_map"),
     path("save-search/", views.save_candidate_search, name="accounts.save_search"),
     path("delete-search/<int:search_id>/", views.delete_candidate_search, name="accounts.delete_search"),
+
+    # --- NEW ENDPOINT FOR AI CHATBOT ---
+    path("update-bio/", views.update_bio_ajax, name="accounts.update_bio_ajax"),
 ]

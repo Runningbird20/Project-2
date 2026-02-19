@@ -7,6 +7,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -19,30 +22,20 @@
           <img src="{% static 'img/logo.png' %}?v=pandapulse-2" alt="logo" height="40" />
           <span>PandaPulse</span>
         </a>
-
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup"
-          aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup">
           <span class="navbar-toggler-icon site-toggler"></span>
         </button>
-
         <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
           <div class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
             <a class="nav-link site-link" href="{% url 'home.about' %}">About</a>
             <a class="nav-link site-link" href="{% url 'jobposts.search' %}">
               {% if can_post_job %}Candidate Search{% else %}Open Positions{% endif %}
             </a>
-
             {% if can_post_job %}
               <a class="nav-link site-link" href="{% url 'jobposts.create' %}">Post a Job</a>
             {% endif %}
-
             {% if user.is_authenticated %}
               <a class="nav-link site-link" href="{% url 'accounts.profile' %}">Profile</a>
-              {% if can_post_job %}
-                <a class="nav-link site-link" href="{% url 'jobposts.dashboard' %}">Dashboard</a>
-              {% else %}
-                <a class="nav-link site-link" href="{% url 'apply:application_status' %}">My Applications</a>
-              {% endif %}
               <a class="nav-link site-link" href="{% url 'accounts.logout' %}">Logout</a>
             {% else %}
               <a class="nav-link site-link" href="{% url 'accounts.login' %}">Login</a>
@@ -57,48 +50,237 @@
       {% if messages %}
       <div class="container mt-3">
         {% for message in messages %}
-          <div class="alert {% if 'error' in message.tags %}alert-danger{% elif 'warning' in message.tags %}alert-warning{% elif 'success' in message.tags %}alert-success{% else %}alert-info{% endif %}" role="alert">
+          <div class="alert {% if 'error' in message.tags %}alert-danger{% elif 'success' in message.tags %}alert-success{% else %}alert-info{% endif %}" role="alert">
             {{ message }}
           </div>
         {% endfor %}
       </div>
       {% endif %}
-      {% block content %}
-      {% endblock content %}
+      {% block content %}{% endblock content %}
     </main>
 
     <footer class="site-footer py-4 mt-auto">
-      <div class="container">
-        <div class="row g-3 align-items-start">
-          <div class="col-lg-5">
-            <p class="footer-title mb-1">PandaPulse</p>
-            <p class="footer-copy mb-0">Connecting candidates and employers with faster, cleaner hiring.</p>
-          </div>
-          <div class="col-lg-4 d-flex justify-content-lg-center justify-content-start">
-            <div class="d-flex gap-3 gap-lg-4 justify-content-lg-center justify-content-start flex-wrap flex-lg-nowrap">
-              <a class="footer-link" href="{% url 'home.about' %}">About</a>
-              {% if user.is_authenticated and not can_post_job %}
-              <a class="footer-link" href="{% url 'accounts.profile_edit' %}?highlight=account_type">Become an Employer</a>
-              {% endif %}
-              {% if user.is_superuser %}
-              <a class="footer-link" href="{% url 'accounts.manage_users' %}">Manage Users</a>
-              {% endif %}
-            </div>
-          </div>
-          <div class="col-lg-3 text-lg-end">
-            <span class="footer-copy">Copyright 2026</span>
-          </div>
-        </div>
+      <div class="container text-center">
+        <span class="footer-copy">Copyright 2026 PandaPulse</span>
       </div>
     </footer>
 
-    <div id="panda-confetti" aria-hidden="true"></div>
-    <div id="panda-mascot" aria-label="Site mascot">
-      <div class="panda-bubble" role="status" aria-live="polite"></div>
-      <div class="panda-wrap" title="Panda mascot">
-        <img src="{% static 'img/logo1.png' %}?v=pandapulse-4"/>
+    {% if user.is_authenticated %}
+    <div id="chat-container" class="chat-closed">
+        <div class="chat-header">
+            <div class="header-left">
+                <span class="status-dot"></span>
+                <span>Panda Assistant</span>
+            </div>
+            <div class="header-right">
+                <button onclick="toggleDebug()" id="debug-btn" class="header-btn" title="Toggle Debug Info">
+                    <i class="bi bi-bug"></i>
+                </button>
+                <button onclick="clearChat()" class="header-btn" title="Reset Chat"><i class="bi bi-arrow-clockwise"></i></button>
+                <button onclick="toggleChat()" class="header-btn">&times;</button>
+            </div>
+        </div>
+        
+        <div id="chat-box"></div>
+
+        <div id="suggestions-row" style="display: none;">
+            <button class="chip" onclick="sendQuickMessage('What is my name?')">👤 My Name?</button>
+            <button class="chip" onclick="sendQuickMessage('Rewrite my bio')">✍️ Rewrite Bio</button>
+        </div>
+
+        <div class="chat-input-area">
+            <input type="text" id="user-input" placeholder="Ask the panda..." onkeypress="if(event.key==='Enter') sendMessage()">
+            <button onclick="sendMessage()" id="send-btn"><i class="bi bi-send-fill"></i></button>
+        </div>
+    </div>
+
+    <div id="panda-mascot" onclick="toggleChat()" aria-label="Open AI Assistant">
+      <div class="panda-wrap">
+        <img src="{% static 'img/logo1.png' %}?v=pandapulse-4" alt="Panda Mascot"/>
       </div>
     </div>
+    {% endif %}
+
+    <script>
+    let chatInitialized = false;
+    let debugActive = false;
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function toggleDebug() {
+        debugActive = !debugActive;
+        const btn = document.getElementById('debug-btn');
+        btn.style.color = debugActive ? 'var(--panda-green)' : '#999';
+    }
+
+    async function toggleChat() {
+        const container = document.getElementById('chat-container');
+        container.classList.toggle('chat-closed');
+        if (!container.classList.contains('chat-closed') && !chatInitialized) {
+            chatInitialized = true;
+            await fetchGreeting();
+        }
+    }
+
+    async function fetchGreeting() {
+        const chatBox = document.getElementById('chat-box');
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'bot-msg thinking-msg';
+        loadingDiv.innerHTML = '<span>.</span><span>.</span><span>.</span>';
+        chatBox.appendChild(loadingDiv);
+
+        try {
+            const response = await fetch('/chatbot/greet/');
+            const data = await response.json();
+            loadingDiv.remove();
+            
+            const botDiv = document.createElement('div');
+            botDiv.className = 'bot-msg';
+            chatBox.appendChild(botDiv);
+            
+            let i = 0;
+            const text = data.greeting;
+            function typeWriter() {
+                if (i < text.length) {
+                    botDiv.innerHTML += text.charAt(i);
+                    i++;
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                    setTimeout(typeWriter, 30);
+                } else {
+                    document.getElementById('suggestions-row').style.display = 'flex';
+                }
+            }
+            typeWriter();
+        } catch (err) {
+            loadingDiv.remove();
+            const botDiv = document.createElement('div');
+            botDiv.className = 'bot-msg';
+            botDiv.innerText = "Hi! I'm your Panda Assistant. How can I help?";
+            chatBox.appendChild(botDiv);
+        }
+    }
+
+    function sendQuickMessage(text) {
+        document.getElementById('user-input').value = text;
+        sendMessage();
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('user-input');
+        const message = input.value.trim();
+        if (!message) return;
+
+        const chatBox = document.getElementById('chat-box');
+        document.getElementById('suggestions-row').style.display = 'none';
+        
+        const userDiv = document.createElement('div');
+        userDiv.className = 'user-msg';
+        userDiv.innerText = message;
+        chatBox.appendChild(userDiv);
+        
+        input.value = '';
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'bot-msg thinking-msg';
+        loadingDiv.innerHTML = '<span>.</span><span>.</span><span>.</span>';
+        chatBox.appendChild(loadingDiv);
+
+        try {
+            const response = await fetch('/chatbot/ask/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: `message=${encodeURIComponent(message)}&debug=${debugActive}`
+            });
+
+            loadingDiv.remove();
+            const botDiv = document.createElement('div');
+            botDiv.className = 'bot-msg';
+            chatBox.appendChild(botDiv);
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let fullText = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                const chunk = decoder.decode(value);
+                fullText += chunk;
+                const displayMsg = fullText.replace(/\[\/?DRAFT\]/g, '');
+                botDiv.innerHTML = marked.parse(displayMsg);
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+
+            // Post-stream logic for drafts and feedback
+            const draftMatch = fullText.match(/\[DRAFT\]([\s\S]*?)\[\/DRAFT\]/);
+            if (draftMatch) {
+                const applyBtn = document.createElement('button');
+                applyBtn.className = 'btn btn-sm btn-success mt-2 d-block';
+                applyBtn.innerHTML = 'Apply to Profile';
+                applyBtn.onclick = () => saveDraftToProfile(draftMatch[1].trim(), applyBtn);
+                botDiv.appendChild(applyBtn);
+            }
+
+            const feedback = document.createElement('div');
+            feedback.className = 'feedback-container mt-2';
+            feedback.innerHTML = `<small class="text-muted me-2">Helpful?</small>
+                <span class="feedback-btn" onclick="submitFeedback('up', this)">👍</span>
+                <span class="feedback-btn" onclick="submitFeedback('down', this)">👎</span>`;
+            botDiv.appendChild(feedback);
+
+        } catch (err) {
+            loadingDiv.remove();
+            const errDiv = document.createElement('div');
+            errDiv.className = 'bot-msg text-danger';
+            errDiv.innerText = "Error: Connection lost.";
+            chatBox.appendChild(errDiv);
+        }
+    }
+
+    async function saveDraftToProfile(content, btn) {
+        btn.innerText = "Saving...";
+        const resp = await fetch('/accounts/update-bio/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': getCookie('csrftoken') },
+            body: `bio=${encodeURIComponent(content)}`
+        });
+        if (resp.ok) btn.innerHTML = '✅ Updated!';
+    }
+
+    async function submitFeedback(rating, el) {
+        await fetch('/chatbot/feedback/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': getCookie('csrftoken') },
+            body: `rating=${rating}`
+        });
+        el.parentElement.innerHTML = '<small class="text-muted">Thanks!</small>';
+    }
+
+    async function clearChat() {
+        if (!confirm("Reset?")) return;
+        await fetch('/chatbot/clear/', { method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') } });
+        document.getElementById('chat-box').innerHTML = '';
+        chatInitialized = false;
+        toggleChat();
+    }
+    </script>
 
     <script src="{% static 'mascot/panda.js' %}"></script>
     {% block extra_scripts %}{% endblock %}

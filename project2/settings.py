@@ -13,9 +13,17 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import os
 from django.core.exceptions import ImproperlyConfigured
+import environ 
+
+env = environ.Env(
+    # set casting, default value
+    DEBUG=(bool, False)
+)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 
 # Quick-start development settings - unsuitable for production
@@ -44,6 +52,7 @@ INSTALLED_APPS = [
     'apply',
     'jobposts',
     'map',
+    'chatbot',
 ]
 
 MIDDLEWARE = [
@@ -55,6 +64,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+OPENROUTER_API_KEY = "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"
 
 ROOT_URLCONF = 'project2.urls'
 
