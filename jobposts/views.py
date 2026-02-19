@@ -25,6 +25,19 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Count
 
 
+def _skill_set(raw_value):
+    if not raw_value:
+        return set()
+    return {token.strip().lower() for token in raw_value.split(",") if token.strip()}
+
+
+def _skill_overlap_percent(applicant_skills, job_skills):
+    if not applicant_skills or not job_skills:
+        return 0
+    overlap_count = len(applicant_skills.intersection(job_skills))
+    return round((overlap_count / len(job_skills)) * 100)
+
+
 def _haversine_miles(lat1, lon1, lat2, lon2):
     """Calculate great-circle distance in miles between two lat/lon points."""
     earth_radius_miles = 3958.8
@@ -307,16 +320,12 @@ def search(request):
     if is_applicant and request.user.is_authenticated and applicant_profile:
         sync_applicant_job_matches(request.user)
 
-        def _skill_set(raw_value):
-            if not raw_value:
-                return set()
-            return {token.strip().lower() for token in raw_value.split(",") if token.strip()}
-
         applicant_skills = _skill_set(applicant_profile.skills)
         matched_posts = []
         other_posts = []
         for post in posts_sequence:
             post_skills = _skill_set(post.skills)
+            post.skill_overlap_percent = _skill_overlap_percent(applicant_skills, post_skills)
             if applicant_skills.intersection(post_skills):
                 matched_posts.append(post)
             else:
@@ -386,13 +395,20 @@ def delete_job(request, job_id):
 def job_detail(request, post_id):
     job = get_object_or_404(JobPost.objects.select_related('office_location'), pk=post_id)
     has_applied = False
+    skill_overlap_percent = None
     
     if request.user.is_authenticated:
         has_applied = Application.objects.filter(user=request.user, job=job).exists()
+        profile = Profile.objects.filter(user=request.user).first()
+        if profile and profile.account_type == Profile.AccountType.APPLICANT:
+            applicant_skills = _skill_set(profile.skills)
+            job_skills = _skill_set(job.skills)
+            skill_overlap_percent = _skill_overlap_percent(applicant_skills, job_skills)
     
     return render(request, 'jobposts/job_detail.html', {
         'job': job,
-        'has_applied': has_applied
+        'has_applied': has_applied,
+        'skill_overlap_percent': skill_overlap_percent,
     })
 
 
