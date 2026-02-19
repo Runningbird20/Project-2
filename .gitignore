@@ -7,3 +7,7 @@ __pycache__/
 # Virtual environments
 venv/
 env/
+
+# Local secrets / IDE run config
+.env
+.vscode/

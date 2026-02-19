@@ -18,6 +18,31 @@ from django.core.exceptions import ImproperlyConfigured
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _load_dotenv_file(path):
+    values = {}
+    if not path.exists():
+        return values
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key:
+            values[key] = value
+    return values
+
+
+_DOTENV_VALUES = _load_dotenv_file(BASE_DIR / ".env")
+
+
+def _env(key, default=""):
+    if key in _DOTENV_VALUES:
+        return _DOTENV_VALUES[key]
+    return os.getenv(key, default)
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
@@ -141,21 +166,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Email configuration.
 # Default to SMTP so confirmation emails are actually delivered unless overridden.
-EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com').strip()
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'pandapulse.donotreply@gmail.com').strip()
-EMAIL_HOST_PASSWORD = (
-    os.getenv('EMAIL_HOST_PASSWORD', os.getenv('GOOGLE_APP_PASSWORD', 'rtvw zxpo aenm vele'))
-    .strip()
-    .replace(' ', '')
-    .replace('-', '')
-)
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'true').lower() == 'true'
-EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'false').lower() == 'true'
-EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '20'))
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER).strip()
-GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', 'AIzaSyDiaMm81K5GJFoJWKCZ-q3JN2peygGiNA4').strip()
+EMAIL_BACKEND = _env('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = _env('EMAIL_HOST', 'smtp.gmail.com').strip()
+EMAIL_PORT = int(_env('EMAIL_PORT', '587'))
+EMAIL_HOST_USER = _env('EMAIL_HOST_USER', 'pandapulse.donotreply@gmail.com').strip()
+raw_google_app_password = _env('GOOGLE_APP_PASSWORD', '').strip()
+raw_email_password = _env('EMAIL_HOST_PASSWORD', '').strip()
+EMAIL_HOST_PASSWORD = (raw_google_app_password or raw_email_password).replace(' ', '').replace('-', '')
+EMAIL_USE_TLS = _env('EMAIL_USE_TLS', 'true').lower() == 'true'
+EMAIL_USE_SSL = _env('EMAIL_USE_SSL', 'false').lower() == 'true'
+EMAIL_TIMEOUT = int(_env('EMAIL_TIMEOUT', '20'))
+DEFAULT_FROM_EMAIL = _env('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER).strip()
+GOOGLE_MAPS_API_KEY = _env('GOOGLE_MAPS_API_KEY', '').strip()
 
 if EMAIL_BACKEND == 'django.core.mail.backends.smtp.EmailBackend' and (not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD):
     raise ImproperlyConfigured(
