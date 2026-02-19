@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block content %}
+<section class="page-shell">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="surface-card p-0 overflow-hidden messaging-card">
+                <div class="px-4 py-3 border-bottom">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <a href="javascript:history.back()" class="secondary-btn btn-compact border-0 p-0 me-3 text-decoration-none" style="min-width:36px;width:36px;height:36px;">
+                                <i class="bi bi-arrow-left fs-4"></i>
+                            </a>
+                            <div>
+                                <h5 class="mb-0 fw-bold">{{ partner.get_full_name|default:partner.username }}</h5>
+                                {% if partner.profile.last_activity %}
+                                    <small class="text-muted">
+                                        <i class="bi bi-circle-fill text-success me-1" style="font-size: 0.5rem;"></i>
+                                        Active {{ partner.profile.last_activity|naturaltime }}
+                                    </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <a href="{% url 'messaging:inbox' %}" class="secondary-btn btn-compact">
+                                All Chats
+                            </a>
+                            {% if can_post_job %}
+                                <a href="{% url 'jobposts.dashboard' %}" class="secondary-btn btn-compact">Back to Dashboard</a>
+                            {% else %}
+                                <a href="{% url 'apply:application_status' %}" class="secondary-btn btn-compact">Back to Dashboard</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="chat-window" class="overflow-auto p-4 messaging-chat-window" style="height: 500px; display: flex; flex-direction: column;">
+                    {% for msg in chat_messages %}
+                        <div class="mb-3 d-flex {% if msg.sender == request.user %}justify-content-end{% endif %}">
+                            <div class="p-3 rounded-4 shadow-sm messaging-bubble {% if msg.sender == request.user %}messaging-bubble-self{% else %}messaging-bubble-other{% endif %}"
+                                 style="max-width: 75%; {% if msg.sender == request.user %}border-bottom-right-radius: 4px !important;{% else %}border-bottom-left-radius: 4px !important;{% endif %}">
+                                <p class="mb-1">{{ msg.body }}</p>
+                                
+                                <div class="d-flex align-items-center justify-content-end gap-1">
+                                    <small class="{% if msg.sender == request.user %}text-white-50{% else %}text-muted{% endif %}" style="font-size: 0.7rem;">
+                                        {{ msg.timestamp|date:"H:i" }}
+                                    </small>
+                                    
+                                    {% if msg.sender == request.user %}
+                                        {% if msg.is_read %}
+                                            <i class="bi bi-check2-all text-white" style="font-size: 0.9rem;" title="Read"></i>
+                                        {% else %}
+                                            <i class="bi bi-check2 text-white-50" style="font-size: 0.9rem;" title="Sent"></i>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+
+                    <div id="typing-indicator" class="mt-auto d-none">
+                        <div class="d-flex align-items-center text-muted small fst-italic">
+                            <div class="typing-dots me-2">
+                                <span></span><span></span><span></span>
+                            </div>
+                            {{ partner.username }} is typing...
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 border-top">
+                    <form method="POST" id="messageForm">
+                        {% csrf_token %}
+                        <div class="input-group rounded-pill px-3 py-1 messaging-input-shell">
+                            <input type="text" name="body" class="form-control border-0 bg-transparent" 
+                                   placeholder="Type your message..." required autocomplete="off" id="messageInput">
+                            <button class="btn btn-link p-0 messaging-send-btn" type="submit">
+                                <i class="bi bi-send-fill fs-4"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+</section>
+
+<style>
+    .rounded-4 { border-radius: 1.2rem; }
+    .messaging-bubble-self { background-color: #007bff; color: #fff; }
+    .messaging-bubble-other { background-color: #ffffff; color: #333; }
+    .messaging-chat-window { background: #f8f9fa; }
+    .messaging-input-shell { background: #f8f9fa; }
+    .messaging-send-btn { color: #0d6efd; }
+    
+    .typing-dots span {
+        width: 4px; height: 4px; margin: 0 1px;
+        background-color: #adb5bd; border-radius: 50%;
+        display: inline-block; animation: typing-blink 1.4s infinite both;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing-blink { 0% { opacity: 0.2; } 20% { opacity: 1; } 100% { opacity: 0.2; } }
+</style>
+
+<script>
+    const chatWindow = document.getElementById('chat-window');
+    const typingIndicator = document.getElementById('typing-indicator');
+    const messageInput = document.getElementById('messageInput');
+
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+
+    let typingTimer;
+    messageInput.addEventListener('input', () => {
+        clearTimeout(typingTimer);
+        if (!typingTimer) {
+            fetch('/messages/update-typing/'); 
+        }
+        typingTimer = setTimeout(() => { typingTimer = null; }, 2000);
+    });
+
+    setInterval(() => {
+        fetch('/messages/check-typing/{{ partner.id }}/')
+            .then(response => response.json())
+            .then(data => {
+                const wasHidden = typingIndicator.classList.contains('d-none');
+                if (data.is_typing) {
+                    typingIndicator.classList.remove('d-none');
+                    if (wasHidden) chatWindow.scrollTop = chatWindow.scrollHeight;
+                } else {
+                    typingIndicator.classList.add('d-none');
+                }
+            });
+    }, 2000);
+</script>
+{% endblock %}

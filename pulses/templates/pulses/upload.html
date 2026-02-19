@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-shell">
+  <div class="container">
+    <div class="page-intro">
+      <div class="page-kicker">Pulses</div>
+      <h1 class="page-title page-title-sm">Upload a Pulse</h1>
+      <p class="page-copy">Upload a short video. It will appear in the Pulses feed in chronological order.</p>
+    </div>
+
+    <div class="surface-card" style="max-width: 760px; margin: 0 auto;">
+      <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        {% if template_data.form.non_field_errors %}
+          <div class="site-alert site-alert-danger mb-3">
+            {{ template_data.form.non_field_errors }}
+          </div>
+        {% endif %}
+
+        <div class="field-block">
+          <label class="form-label">Video</label>
+          {{ template_data.form.video }}
+          {% if template_data.form.video.errors %}
+            <div class="text-danger small mt-1">{{ template_data.form.video.errors }}</div>
+          {% endif %}
+          <div class="form-text">mp4 / webm / mov • up to ~75MB</div>
+        </div>
+
+        <div class="field-block">
+          <label class="form-label">Caption</label>
+          {{ template_data.form.caption }}
+          {% if template_data.form.caption.errors %}
+            <div class="text-danger small mt-1">{{ template_data.form.caption.errors }}</div>
+          {% endif %}
+        </div>
+
+        <div class="form-actions mt-3">
+          <button type="submit" class="primary-btn">Upload</button>
+          <a href="{% url 'pulses:feed' %}" class="secondary-btn">Back</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -5,6 +5,8 @@ from django.conf import settings
 from django.core.mail import send_mail
 from .models import Application
 from jobposts.models import JobPost
+from jobposts.models import ApplicantJobMatch
+from jobposts.matching import sync_applicant_job_matches
 from django.http import JsonResponse, HttpResponseForbidden, HttpResponse, Http404
 from django.views.decorators.http import require_POST
 import json
@@ -16,6 +18,7 @@ from .services import (
     enforce_employer_response_deadline,
     calculate_application_streak,
 )
+from interviews.services import get_applicant_interview_context
 
 @login_required
 def submit_application(request, job_id):
@@ -102,6 +105,7 @@ def application_status(request):
     """View for applicants to see the status of their own applications (Read-Only)."""
     enforce_employer_response_deadline()
     auto_archive_old_rejections()
+    sync_applicant_job_matches(request.user)
     active_applications = Application.objects.filter(
         user=request.user,
         archived_by_applicant=False,
@@ -110,13 +114,65 @@ def application_status(request):
         user=request.user,
         archived_by_applicant=True,
     ).select_related("job")
+    all_applications = Application.objects.filter(user=request.user).select_related("job")
+
+    activity_events = []
+    for application in all_applications:
+        role_label = f"{application.job.title} at {application.job.company}"
+
+        if application.employer_viewed_at:
+            activity_events.append(
+                {
+                    "timestamp": application.employer_viewed_at,
+                    "event_type": "Viewed",
+                    "detail": f"Your application for {role_label} was viewed by the employer.",
+                }
+            )
+
+        if application.status in {"review", "interview", "offer", "closed"} and application.responded_at:
+            activity_events.append(
+                {
+                    "timestamp": application.responded_at,
+                    "event_type": "Shortlisted",
+                    "detail": f"You were shortlisted for {role_label}.",
+                }
+            )
+
+        if application.status != "applied":
+            status_time = application.rejected_at if application.status == "rejected" else application.responded_at
+            if status_time:
+                activity_events.append(
+                    {
+                        "timestamp": status_time,
+                        "event_type": "Status Update",
+                        "detail": (
+                            f"{role_label} changed to {application.get_status_display()}."
+                        ),
+                    }
+                )
+
+    activity_events.sort(key=lambda item: item["timestamp"], reverse=True)
+    activity_events = activity_events[:30]
+
+    matched_jobs = (
+        ApplicantJobMatch.objects.filter(applicant=request.user)
+        .select_related("job")
+        .order_by("-score", "-updated_at")
+    )
+    interview_context = get_applicant_interview_context(
+        request.user,
+        month_key=request.GET.get("interview_month"),
+    )
     return render(
         request,
         "apply/status.html",
         {
             "applications": active_applications,
             "archived_applications": archived_applications,
+            "matched_jobs": matched_jobs,
+            "activity_events": activity_events,
             "application_streak": calculate_application_streak(request.user),
+            **interview_context,
         },
     )
 

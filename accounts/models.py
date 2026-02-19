@@ -12,6 +12,9 @@ class Profile(models.Model):
         EMPLOYER = "EMPLOYER", "Employer"
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
+    last_activity = models.DateTimeField(null=True, blank=True)
+    is_typing = models.BooleanField(default=False)
+    last_typing_update = models.DateTimeField(null=True, blank=True)
 
     account_type = models.CharField(
         max_length=20,
@@ -53,6 +56,12 @@ class Profile(models.Model):
 
     def __str__(self):
         return f"{self.user.username} Profile"
+
+    @property
+    def profile_picture_or_default_url(self):
+        if self.profile_picture:
+            return self.profile_picture.url
+        return f"{settings.MEDIA_URL}profile_pics/default-icon.png"
 
     @property
     def location_city_state(self):
