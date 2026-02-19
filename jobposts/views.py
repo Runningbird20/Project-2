@@ -340,11 +340,11 @@ def search(request):
             session_use_home_radius = request.session.get('job_search_use_home_radius', False)
             session_radius_miles = request.session.get('job_search_radius_miles', '25')
 
-            use_home_radius = (
-                request.GET.get('use_home_radius') == 'true'
-                if 'use_home_radius' in request.GET
-                else bool(session_use_home_radius)
-            )
+            raw_use_home_radius = request.GET.get('use_home_radius')
+            if raw_use_home_radius is None:
+                use_home_radius = bool(session_use_home_radius)
+            else:
+                use_home_radius = str(raw_use_home_radius).strip().lower() in {'true', '1', 'on', 'yes'}
             raw_radius = request.GET.get('radius_miles', str(session_radius_miles)).strip()
             try:
                 radius_value = float(raw_radius)

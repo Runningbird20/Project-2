@@ -30,31 +30,35 @@
           </div>
         </div>
         <div class="col-lg-4">
-          <div class="surface-card">
-            <div class="text-uppercase text-muted small mb-2">Range Filter</div>
-            <form method="get" class="mb-3">
-              <label for="radiusMiles" class="form-label">Radius (miles)</label>
-              <input
-                id="radiusMiles"
-                type="number"
-                min="1"
-                max="500"
-                name="radius_miles"
-                value="{{ template_data.radius_miles }}"
-                class="form-control"
-              >
-              <button type="submit" class="primary-btn border-0 btn-compact mt-3 w-100">Update Range</button>
-            </form>
-            <div class="small text-muted mb-3">{{ template_data.jobs_count }} jobs in range.</div>
-            <div class="vstack gap-2 jobs-map-list-scroll">
-              {% for job in jobs_data %}
-                <div class="border rounded p-2">
-                  <div class="fw-semibold">{{ job.title }}</div>
-                  <div class="small text-muted">{{ job.company }} - {{ job.distance_miles }} mi</div>
-                  <div class="small text-muted">{{ job.location }}</div>
-                  <a class="small" href="{{ job.detail_url }}">Open posting</a>
-                </div>
-              {% endfor %}
+          <div class="vstack gap-3">
+            <div class="surface-card">
+              <div class="text-uppercase text-muted small mb-2">Range Filter</div>
+              <form method="get" class="mb-0">
+                <label for="radiusMiles" class="form-label">Radius (miles)</label>
+                <input
+                  id="radiusMiles"
+                  type="number"
+                  min="1"
+                  max="500"
+                  name="radius_miles"
+                  value="{{ template_data.radius_miles }}"
+                  class="form-control"
+                >
+                <button type="submit" class="primary-btn border-0 btn-compact mt-3 w-100">Update Range</button>
+              </form>
+            </div>
+            <div class="surface-card">
+              <div class="small text-muted mb-3">{{ template_data.jobs_count }} jobs in range.</div>
+              <div class="vstack gap-2 jobs-map-list-scroll">
+                {% for job in jobs_data %}
+                  <div class="border rounded p-2">
+                    <div class="fw-semibold">{{ job.title }}</div>
+                    <div class="small text-muted">{{ job.company }} - {{ job.distance_miles }} mi</div>
+                    <div class="small text-muted">{{ job.location }}</div>
+                    <a class="small" href="{{ job.detail_url }}">Open posting</a>
+                  </div>
+                {% endfor %}
+              </div>
             </div>
           </div>
         </div>
@@ -89,6 +93,33 @@
 
 {% block extra_scripts %}
 {% if jobs_data %}
+  <script>
+  (function () {
+    function syncJobsArtifactScrollHeight() {
+      const mapEl = document.getElementById('jobsMap');
+      const listEl = document.querySelector('.jobs-map-page .jobs-map-list-scroll');
+      if (!mapEl || !listEl) return;
+
+      if (window.innerWidth < 992) {
+        listEl.style.maxHeight = '';
+        return;
+      }
+
+      const mapBottom = mapEl.getBoundingClientRect().bottom;
+      const listTop = listEl.getBoundingClientRect().top;
+      const targetHeight = Math.floor(mapBottom - listTop);
+
+      if (targetHeight > 140) {
+        listEl.style.maxHeight = targetHeight + 'px';
+      }
+    }
+
+    window.syncJobsArtifactScrollHeight = syncJobsArtifactScrollHeight;
+    window.addEventListener('resize', syncJobsArtifactScrollHeight);
+    window.addEventListener('load', syncJobsArtifactScrollHeight);
+    document.addEventListener('DOMContentLoaded', syncJobsArtifactScrollHeight);
+  })();
+  </script>
   {% if google_maps_api_key %}
   <script>
   function initJobsMap() {
@@ -150,6 +181,13 @@
       bounds.extend(marker.getPosition());
     });
     jobsMap.fitBounds(bounds);
+
+    // Re-sync the jobs list height after map layout settles.
+    google.maps.event.addListenerOnce(jobsMap, 'idle', function () {
+      if (typeof window.syncJobsArtifactScrollHeight === 'function') {
+        window.syncJobsArtifactScrollHeight();
+      }
+    });
   }
   </script>
   <script async defer src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key|urlencode }}&callback=initJobsMap"></script>

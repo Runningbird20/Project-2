@@ -1140,6 +1140,24 @@ html.dark-mode .status-rejected {
   background: #f8fafc;
 }
 
+#interviewSlotModal .form-select,
+#interviewSlotModal .form-control {
+  border-radius: 12px;
+  border-color: #d1d5db;
+}
+
+#interviewSlotModal .form-select {
+  background-color: #f8fafc;
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
+}
+
+#interviewSlotModal .form-control:focus,
+#interviewSlotModal .form-select:focus {
+  border-color: #9ca3af;
+  box-shadow: 0 0 0 0.15rem rgba(156, 163, 175, 0.25);
+}
+
 html.dark-mode .job-detail-page .text-secondary {
   color: #cfdaee !important;
 }
@@ -1218,6 +1236,12 @@ html.dark-mode #interviewSlotModal .form-select {
   background-color: rgba(17, 24, 35, 0.95);
   border-color: #3b4a62;
   color: #edf2ff;
+}
+
+html.dark-mode #interviewSlotModal .form-control:focus,
+html.dark-mode #interviewSlotModal .form-select:focus {
+  border-color: #9ca3af;
+  box-shadow: 0 0 0 0.15rem rgba(156, 163, 175, 0.3);
 }
 
 html.dark-mode #interviewSlotModal #selectedInterviewDateLabel {

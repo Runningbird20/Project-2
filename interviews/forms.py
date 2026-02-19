@@ -5,17 +5,27 @@ from apply.models import Application
 
 
 class InterviewSlotProposalForm(forms.Form):
+    DURATION_CHOICES = [
+        (15, "15 minutes"),
+        (30, "30 minutes"),
+        (45, "45 minutes"),
+        (60, "60 minutes"),
+        (90, "90 minutes"),
+        (120, "120 minutes"),
+    ]
+
     application = forms.ModelChoiceField(queryset=Application.objects.none(), required=True)
     start_at = forms.DateTimeField(
         required=True,
         widget=forms.DateTimeInput(attrs={"type": "datetime-local", "class": "form-control"}, format="%Y-%m-%dT%H:%M"),
         input_formats=["%Y-%m-%dT%H:%M"],
     )
-    duration_minutes = forms.IntegerField(
-        min_value=15,
-        max_value=240,
+    duration_minutes = forms.TypedChoiceField(
+        choices=DURATION_CHOICES,
+        coerce=int,
+        empty_value=30,
         initial=30,
-        widget=forms.NumberInput(attrs={"class": "form-control", "step": 15}),
+        widget=forms.Select(attrs={"class": "form-select"}),
     )
     meeting_link = forms.URLField(
         required=False,

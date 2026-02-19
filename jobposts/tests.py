@@ -297,6 +297,70 @@ class JobPostViewTests(TestCase):
             'Add your home address in your profile to use radius filtering.',
         )
 
+    def test_home_radius_can_be_unchecked_after_being_enabled(self):
+        nearby_post = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Nearby Onsite Role',
+            company='Acme Inc',
+            location='Atlanta, GA',
+            pay_range='$80k-$100k',
+            work_setting='onsite',
+            description='Near office',
+        )
+        far_post = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Far Onsite Role',
+            company='Acme Inc',
+            location='Savannah, GA',
+            pay_range='$80k-$100k',
+            work_setting='onsite',
+            description='Far office',
+        )
+        OfficeLocation.objects.create(
+            job_post=nearby_post,
+            address_line_1='75 5th St NW',
+            city='Atlanta',
+            state='GA',
+            postal_code='30308',
+            country='United States',
+            latitude=Decimal('33.776500'),
+            longitude=Decimal('-84.398300'),
+        )
+        OfficeLocation.objects.create(
+            job_post=far_post,
+            address_line_1='1 W Bay St',
+            city='Savannah',
+            state='GA',
+            postal_code='31401',
+            country='United States',
+            latitude=Decimal('32.080900'),
+            longitude=Decimal('-81.091200'),
+        )
+
+        profile = Profile.objects.get(user=self.applicant_user)
+        profile.location = '123 Peachtree St NE, Atlanta, GA 30303'
+        profile.save(update_fields=['location'])
+
+        self.client.login(username='applicant', password='pass12345')
+        with patch('jobposts.views.geocode_office_address', return_value=('33.776500', '-84.398300')):
+            first_response = self.client.get(
+                reverse('jobposts.search'),
+                {'use_home_radius': 'true', 'radius_miles': '15'},
+            )
+            second_response = self.client.get(
+                reverse('jobposts.search'),
+                {'use_home_radius': 'false', 'radius_miles': '15'},
+            )
+
+        self.assertEqual(first_response.status_code, 200)
+        self.assertEqual(second_response.status_code, 200)
+        filtered_posts = list(first_response.context['template_data']['posts'])
+        all_posts = list(second_response.context['template_data']['posts'])
+        self.assertIn(nearby_post, filtered_posts)
+        self.assertNotIn(far_post, filtered_posts)
+        self.assertIn(nearby_post, all_posts)
+        self.assertIn(far_post, all_posts)
+
     def test_search_filters_by_company_size(self):
         self.client.login(username='applicant', password='pass12345')
         matching = JobPost.objects.create(

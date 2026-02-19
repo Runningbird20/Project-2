@@ -68,6 +68,7 @@
             <div>
               <div class="text-uppercase text-muted small mb-2">Commute preference</div>
               <div class="form-check mb-2">
+                <input type="hidden" name="use_home_radius" value="false">
                 <input
                   class="form-check-input"
                   type="checkbox"
@@ -112,7 +113,7 @@
         {% endif %}
 
         {% if template_data.posts %}
-          <div class="vstack gap-3{% if template_data.radius_active %} job-results-scroll{% endif %}">
+          <div class="vstack gap-3 job-results-scroll">
             {% if template_data.is_applicant and template_data.matched_posts %}
               <div class="text-uppercase small text-muted fw-semibold mb-1">Matched Jobs</div>
               {% for post in template_data.matched_posts %}
@@ -377,6 +378,29 @@ function toggleResumeUpload(selectElement, postId) {
       form.submit();
     });
   });
+
+  function syncResultsScrollHeight() {
+    const resultsScroll = document.querySelector('.job-search-page .job-results-scroll');
+    const filtersCard = document.querySelector('.job-search-page .col-lg-4 .surface-card');
+    if (!resultsScroll || !filtersCard) return;
+
+    if (window.innerWidth < 992) {
+      resultsScroll.style.maxHeight = '';
+      return;
+    }
+
+    const listTop = resultsScroll.getBoundingClientRect().top;
+    const filtersBottom = filtersCard.getBoundingClientRect().bottom;
+    const targetHeight = Math.floor(filtersBottom - listTop);
+
+    if (targetHeight > 120) {
+      resultsScroll.style.maxHeight = targetHeight + 'px';
+    }
+  }
+
+  window.addEventListener('resize', syncResultsScrollHeight);
+  window.addEventListener('load', syncResultsScrollHeight);
+  syncResultsScrollHeight();
 })();
 </script>
 {% endblock content %}

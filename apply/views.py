@@ -159,7 +159,7 @@ def application_status(request):
                 )
 
     activity_events.sort(key=lambda item: item["timestamp"], reverse=True)
-    activity_events = activity_events[:30]
+    activity_events = activity_events[:3]
 
     matched_jobs = (
         ApplicantJobMatch.objects.filter(applicant=request.user)
