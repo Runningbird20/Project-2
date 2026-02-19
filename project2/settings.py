@@ -155,6 +155,7 @@ EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'true').lower() == 'true'
 EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'false').lower() == 'true'
 EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '20'))
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER).strip()
+GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', 'AIzaSyDiaMm81K5GJFoJWKCZ-q3JN2peygGiNA4').strip()
 
 if EMAIL_BACKEND == 'django.core.mail.backends.smtp.EmailBackend' and (not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD):
     raise ImproperlyConfigured(

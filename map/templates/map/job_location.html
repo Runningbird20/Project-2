@@ -22,7 +22,7 @@
             {% if template_data.post.office_location.full_address %}
               {{ template_data.post.office_location.full_address }} -
             {% endif %}
-            <a href="{{ template_data.post.office_location.osm_link_url }}" target="_blank" rel="noopener">Open in OpenStreetMap</a>
+            <a href="{{ template_data.post.office_location.osm_link_url }}" target="_blank" rel="noopener">Open in Google Maps</a>
           </div>
           {% else %}
           <p class="text-muted mt-3 mb-0">This job post does not have a pinned office location yet.</p>

@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
+from django.conf import settings
 
 from jobposts.models import JobPost
 
@@ -51,5 +52,6 @@ def jobs_map(request):
         {
             'template_data': template_data,
             'jobs_data': jobs_data,
+            'google_maps_api_key': getattr(settings, 'GOOGLE_MAPS_API_KEY', ''),
         },
     )
