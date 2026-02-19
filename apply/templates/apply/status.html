@@ -19,7 +19,10 @@
       <div class="col-lg-3">
         <div class="surface-card applicant-nav-card p-3">
           <div class="nav flex-column nav-pills gap-2" id="applicant-dashboard-nav" role="tablist" aria-orientation="vertical">
-            <button class="secondary-btn border-0 text-start active" id="tab-applications-btn" data-bs-toggle="pill" data-bs-target="#tab-applications" type="button" role="tab" aria-controls="tab-applications" aria-selected="true">
+            <button class="secondary-btn border-0 text-start active" id="tab-profile-btn" data-bs-toggle="pill" data-bs-target="#tab-profile" type="button" role="tab" aria-controls="tab-profile" aria-selected="true">
+              Profile
+            </button>
+            <button class="secondary-btn border-0 text-start" id="tab-applications-btn" data-bs-toggle="pill" data-bs-target="#tab-applications" type="button" role="tab" aria-controls="tab-applications" aria-selected="false">
               My Applications
             </button>
             <button class="secondary-btn border-0 text-start" id="tab-matched-jobs-btn" data-bs-toggle="pill" data-bs-target="#tab-matched-jobs" type="button" role="tab" aria-controls="tab-matched-jobs" aria-selected="false">
@@ -27,9 +30,6 @@
             </button>
             <button class="secondary-btn border-0 text-start" id="tab-interviews-btn" data-bs-toggle="pill" data-bs-target="#tab-interviews" type="button" role="tab" aria-controls="tab-interviews" aria-selected="false">
               My Interviews
-            </button>
-            <button class="secondary-btn border-0 text-start" id="tab-profile-btn" data-bs-toggle="pill" data-bs-target="#tab-profile" type="button" role="tab" aria-controls="tab-profile" aria-selected="false">
-              Profile
             </button>
             <button class="secondary-btn border-0 text-start" id="tab-archived-btn" data-bs-toggle="pill" data-bs-target="#tab-archived" type="button" role="tab" aria-controls="tab-archived" aria-selected="false">
               Archived Applications
@@ -59,7 +59,7 @@
 
       <div class="col-lg-9">
         <div class="tab-content vstack gap-4" id="applicant-dashboard-content">
-          <div class="tab-pane fade show active" id="tab-applications" role="tabpanel" aria-labelledby="tab-applications-btn" tabindex="0">
+          <div class="tab-pane fade" id="tab-applications" role="tabpanel" aria-labelledby="tab-applications-btn" tabindex="0">
             <div class="surface-card mb-4">
               <h3 class="surface-title mb-3">My Applications</h3>
               <div class="row g-4">
@@ -212,7 +212,7 @@
             </div>
           </div>
 
-          <div class="tab-pane fade" id="tab-profile" role="tabpanel" aria-labelledby="tab-profile-btn" tabindex="0">
+          <div class="tab-pane fade show active" id="tab-profile" role="tabpanel" aria-labelledby="tab-profile-btn" tabindex="0">
             <div class="surface-card">
               <h3 class="surface-title mb-3">Profile</h3>
               <div class="d-flex align-items-start gap-3 flex-wrap mb-3">

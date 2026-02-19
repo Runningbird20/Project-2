@@ -109,7 +109,10 @@
       <div class="col-lg-3">
         <div class="surface-card applicant-nav-card p-3">
           <div class="nav flex-column nav-pills gap-2" id="employer-dashboard-nav" role="tablist" aria-orientation="vertical">
-            <button class="secondary-btn border-0 text-start active" id="emp-listings-btn" data-bs-toggle="pill" data-bs-target="#emp-listings" type="button" role="tab" aria-controls="emp-listings" aria-selected="true">
+            <button class="secondary-btn border-0 text-start active" id="emp-profile-btn" data-bs-toggle="pill" data-bs-target="#emp-profile" type="button" role="tab" aria-controls="emp-profile" aria-selected="true">
+              Profile
+            </button>
+            <button class="secondary-btn border-0 text-start" id="emp-listings-btn" data-bs-toggle="pill" data-bs-target="#emp-listings" type="button" role="tab" aria-controls="emp-listings" aria-selected="false">
               My Job Listings
             </button>
             <button class="secondary-btn border-0 text-start" id="emp-matches-btn" data-bs-toggle="pill" data-bs-target="#emp-matches" type="button" role="tab" aria-controls="emp-matches" aria-selected="false">
@@ -117,9 +120,6 @@
             </button>
             <button class="secondary-btn border-0 text-start" id="emp-interviews-btn" data-bs-toggle="pill" data-bs-target="#emp-interviews" type="button" role="tab" aria-controls="emp-interviews" aria-selected="false">
               My Interviews
-            </button>
-            <button class="secondary-btn border-0 text-start" id="emp-profile-btn" data-bs-toggle="pill" data-bs-target="#emp-profile" type="button" role="tab" aria-controls="emp-profile" aria-selected="false">
-              Profile
             </button>
             <button class="secondary-btn border-0 text-start" id="emp-archived-btn" data-bs-toggle="pill" data-bs-target="#emp-archived" type="button" role="tab" aria-controls="emp-archived" aria-selected="false">
               Archived Applicants
@@ -133,7 +133,7 @@
 
       <div class="col-lg-9">
         <div class="tab-content vstack gap-4" id="employer-dashboard-content">
-          <div class="tab-pane fade show active" id="emp-listings" role="tabpanel" aria-labelledby="emp-listings-btn" tabindex="0">
+          <div class="tab-pane fade" id="emp-listings" role="tabpanel" aria-labelledby="emp-listings-btn" tabindex="0">
             <div class="row g-4 mb-4">
               <div class="col-md-4"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Active Postings</div><h3 class="surface-title mb-0">{{ jobs.count }}</h3></div></div>
               <div class="col-md-4"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Total Applicants</div><h3 class="surface-title mb-0">{{ overall_total|default:'0' }}</h3></div></div>
@@ -291,7 +291,7 @@
             </div>
           </div>
 
-          <div class="tab-pane fade" id="emp-profile" role="tabpanel" aria-labelledby="emp-profile-btn" tabindex="0">
+          <div class="tab-pane fade show active" id="emp-profile" role="tabpanel" aria-labelledby="emp-profile-btn" tabindex="0">
             <div class="surface-card">
               <h3 class="surface-title mb-2">Profile</h3>
               <div class="d-flex align-items-start gap-3 flex-wrap mb-3">
