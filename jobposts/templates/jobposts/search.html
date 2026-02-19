@@ -265,6 +265,12 @@
                     </div>
                   </aside>
                   {% endif %}
+
+                  {% if request.user.is_superuser %}">
+                    <div class="job-post-map-cta">
+                      <a class="btn btn-danger border-0 btn-compact w-100" href="{% url 'jobposts.edit_post' post.id %}">Edit Post</a>
+                    </div>
+                  {% endif %}
                 </div>
               </div>
 
