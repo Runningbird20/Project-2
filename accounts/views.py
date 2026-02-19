@@ -214,6 +214,22 @@ def signup(request):
         template_data["skill_options"] = COMMON_SKILLS
         return render(request, "accounts/signup.html", {"template_data": template_data})
 
+    acct = form.cleaned_data.get("account_type", Profile.AccountType.APPLICANT)
+    location_value = (form.cleaned_data.get("location") or "").strip()
+    if acct == Profile.AccountType.APPLICANT:
+        if not location_value:
+            form.add_error("location", "Full address is required for applicants.")
+            template_data["form"] = form
+            template_data["skill_options"] = COMMON_SKILLS
+            return render(request, "accounts/signup.html", {"template_data": template_data})
+        try:
+            geocode_office_address(location_value)
+        except OfficeLocationGeocodingError as exc:
+            form.add_error("location", str(exc))
+            template_data["form"] = form
+            template_data["skill_options"] = COMMON_SKILLS
+            return render(request, "accounts/signup.html", {"template_data": template_data})
+
     try:
         with transaction.atomic():
             user = form.save()
@@ -221,11 +237,9 @@ def signup(request):
             user.save(update_fields=["email"])
 
             profile, _ = Profile.objects.get_or_create(user=user)
-            acct = form.cleaned_data.get("account_type", Profile.AccountType.APPLICANT)
-
             profile.account_type = acct
             profile.profile_picture = form.cleaned_data.get("profile_picture")
-            profile.location = form.cleaned_data.get("location", "")
+            profile.location = location_value
             profile.projects = form.cleaned_data.get("projects", "")
 
             if acct == Profile.AccountType.EMPLOYER:
@@ -506,7 +520,7 @@ def delete_candidate_search(request, search_id):
     return redirect("jobposts.dashboard")
 
 
-@staff_member_required
+@superuser_required
 def applicant_clusters_map(request):
     applicants = Profile.objects.filter(account_type=Profile.AccountType.APPLICANT).select_related("user")
     location_counts = Counter()

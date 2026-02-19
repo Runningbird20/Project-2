@@ -1,0 +1,29 @@
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+from django.urls import reverse
+
+
+class ApplicantClustersMapPermissionTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.superuser = user_model.objects.create_user(
+            username="super_only_map",
+            password="test-password-123",
+            is_superuser=True,
+            is_staff=True,
+        )
+        self.staff_user = user_model.objects.create_user(
+            username="staff_no_map",
+            password="test-password-123",
+            is_staff=True,
+        )
+
+    def test_staff_user_cannot_access_applicant_clusters_map(self):
+        self.client.login(username="staff_no_map", password="test-password-123")
+        response = self.client.get(reverse("accounts.applicant_clusters_map"))
+        self.assertEqual(response.status_code, 302)
+
+    def test_superuser_can_access_applicant_clusters_map(self):
+        self.client.login(username="super_only_map", password="test-password-123")
+        response = self.client.get(reverse("accounts.applicant_clusters_map"))
+        self.assertEqual(response.status_code, 200)
