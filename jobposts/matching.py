@@ -7,6 +7,8 @@ from accounts.models import Profile
 
 from .models import ApplicantJobMatch, JobPost
 
+MIN_MATCH_PERCENT = 50
+
 
 def _skill_set(raw_value):
     if not raw_value:
@@ -16,6 +18,13 @@ def _skill_set(raw_value):
         for token in raw_value.split(",")
         if token.strip()
     }
+
+
+def _skill_overlap_percent(applicant_skills, job_skills):
+    if not applicant_skills or not job_skills:
+        return 0
+    overlap_count = len(applicant_skills.intersection(job_skills))
+    return round((overlap_count / len(job_skills)) * 100)
 
 
 def sync_applicant_job_matches(applicant_user):
@@ -35,8 +44,12 @@ def sync_applicant_job_matches(applicant_user):
     candidate_jobs = JobPost.objects.select_related("owner").exclude(id__in=applied_job_ids)
     for job in candidate_jobs:
         job_skills = _skill_set(job.skills)
+        if not job_skills:
+            continue
+
         overlap = sorted(applicant_skills.intersection(job_skills))
-        if not overlap:
+        match_percent = _skill_overlap_percent(applicant_skills, job_skills)
+        if not overlap or match_percent <= MIN_MATCH_PERCENT:
             continue
 
         matched_job_ids.add(job.id)

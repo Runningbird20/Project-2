@@ -25,6 +25,8 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Count
 from interviews.services import get_employer_interview_context
 
+MIN_MATCH_PERCENT = 50
+
 
 def _skill_set(raw_value):
     if not raw_value:
@@ -136,7 +138,9 @@ def dashboard(request):
             for job, job_skills in job_skill_sets:
                 if (candidate.user_id, job.id) in applied_pairs:
                     continue
-                score = len(candidate_skills.intersection(job_skills))
+                score = _skill_overlap_percent(candidate_skills, job_skills)
+                if score <= MIN_MATCH_PERCENT:
+                    continue
                 if score > best_score:
                     best_score = score
                     best_job = job
@@ -397,7 +401,7 @@ def search(request):
         for post in posts_sequence:
             post_skills = _skill_set(post.skills)
             post.skill_overlap_percent = _skill_overlap_percent(applicant_skills, post_skills)
-            if applicant_skills.intersection(post_skills):
+            if post.skill_overlap_percent > MIN_MATCH_PERCENT:
                 matched_posts.append(post)
             else:
                 other_posts.append(post)

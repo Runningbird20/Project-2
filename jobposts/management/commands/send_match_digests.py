@@ -9,11 +9,20 @@ from accounts.models import Profile
 from apply.models import Application
 from jobposts.models import JobPost
 
+MIN_MATCH_PERCENT = 50
+
 
 def _skill_set(raw_value):
     if not raw_value:
         return set()
     return {token.strip().lower() for token in raw_value.split(",") if token.strip()}
+
+
+def _skill_overlap_percent(applicant_skills, job_skills):
+    if not applicant_skills or not job_skills:
+        return 0
+    overlap_count = len(applicant_skills.intersection(job_skills))
+    return round((overlap_count / len(job_skills)) * 100)
 
 
 class Command(BaseCommand):
@@ -84,7 +93,7 @@ class Command(BaseCommand):
             for job in jobs:
                 if (user.id, job.id) in applied_pairs:
                     continue
-                if user_skills.intersection(job_skill_map.get(job.id, set())):
+                if _skill_overlap_percent(user_skills, job_skill_map.get(job.id, set())) > MIN_MATCH_PERCENT:
                     matched_jobs.append(job)
 
             if not matched_jobs:
@@ -125,7 +134,7 @@ class Command(BaseCommand):
                 user = profile.user
                 if (user.id, job.id) in applied_pairs:
                     continue
-                if applicant_skill_map.get(user.id, set()).intersection(job_skills):
+                if _skill_overlap_percent(applicant_skill_map.get(user.id, set()), job_skills) > MIN_MATCH_PERCENT:
                     employer_matches[job.owner][job].append(user.username)
 
         for employer, job_to_candidates in employer_matches.items():

@@ -475,3 +475,27 @@ class ApplicantMatchingTests(TestCase):
         self.client.get(reverse("jobposts.dashboard"))
         self.client.get(reverse("jobposts.dashboard"))
         self.assertEqual(len(mail.outbox), 1)
+
+    def test_dashboard_ignores_matches_at_or_below_fifty_percent(self):
+        low_overlap_job = JobPost.objects.create(
+            owner=self.employer,
+            title="Platform Engineer",
+            company="Acme",
+            location="Atlanta, GA",
+            pay_range="$100k-$130k",
+            skills="Python, Java, Go, Kubernetes",
+            work_setting="hybrid",
+            description="Build platform tooling",
+        )
+
+        self.client.login(username="applicant_match", password="pass12345")
+        response = self.client.get(reverse("jobposts.dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(low_overlap_job, response.context["recommendations"])
+        self.assertFalse(
+            ApplicantJobMatch.objects.filter(
+                applicant=self.applicant,
+                job=low_overlap_job,
+            ).exists()
+        )
