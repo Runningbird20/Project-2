@@ -53,8 +53,15 @@ def submit_application(request, job_id):
                 subject=f"Application submitted: {job.title}",
                 message=(
                     f"Hi {request.user.username},\n\n"
-                    f"Your application for '{job.title}' at {job.company} was submitted successfully.\n\n"
-                    "You can track status updates in PandaPulse."
+                    f"Thank you for applying to {job.title} at {job.company}. "
+                    "Your application has been successfully submitted.\n\n"
+                    "You can track the status of your application, receive updates, and "
+                    "manage your submissions anytime by logging into your PandaPulse "
+                    "account.\n\n"
+                    "We wish you the best of luck and will notify you as soon as there "
+                    "are any updates.\n\n"
+                    "Best regards,\n"
+                    "The PandaPulse Team\n"
                 ),
                 from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
                 recipient_list=[request.user.email],
@@ -209,9 +216,14 @@ def update_status(request, application_id):
                         subject=f"Application status update: {application.job.title}",
                         message=(
                             f"Hi {application.user.username},\n\n"
-                            f"Your application for '{application.job.title}' at {application.job.company} "
-                            f"is now: {application.get_status_display()}.\n\n"
-                            "Log in to PandaPulse to view details."
+                            "We wanted to let you know that there has been an update to your "
+                            f"application for {application.job.title} at {application.job.company}.\n\n"
+                            f"Current status: {application.get_status_display()}\n\n"
+                            "To view more details and any next steps, please log in to your "
+                            "PandaPulse account. We encourage you to check your dashboard "
+                            "regularly for additional updates.\n\n"
+                            "Wishing you the best,\n"
+                            "The PandaPulse Team\n"
                         ),
                         from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
                         recipient_list=[application.user.email],

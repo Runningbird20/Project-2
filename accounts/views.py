@@ -177,11 +177,20 @@ def forgot_username(request):
         if matches.exists():
             usernames = ", ".join([u.username for u in matches])
             send_mail(
-                subject="Your PandaPulse username reminder",
+                subject="Your PandaPulse Username Request",
                 message=(
-                    "You requested your PandaPulse username.\n\n"
-                    f"Username(s) for this email: {usernames}\n\n"
-                    "If you did not request this, you can ignore this email."
+                    "Hi,\n\n"
+                    "We received a request to retrieve the username associated with this "
+                    "email address for PandaPulse.\n\n"
+                    "Username(s) linked to this email:\n"
+                    f"{usernames}\n\n"
+                    "If you submitted this request, you can use the username above to sign "
+                    "in to your account. If you did not request your username, no action is "
+                    "needed and you may safely ignore this message.\n\n"
+                    "If you continue to experience trouble accessing your account, please "
+                    "contact our support team for assistance.\n\n"
+                    "Thank you,\n"
+                    "The PandaPulse Team\n"
                 ),
                 from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
                 recipient_list=[email],
@@ -250,8 +259,15 @@ def signup(request):
                 subject="Welcome to PandaPulse",
                 message=(
                     f"Hi {user.username},\n\n"
-                    "Your PandaPulse account has been created successfully.\n\n"
-                    "You can now log in and start using the platform."
+                    "Your PandaPulse account has been successfully created, and we are "
+                    "excited to have you on board.\n\n"
+                    "You can now log in to your account and start exploring everything "
+                    "PandaPulse has to offer. Be sure to complete your profile and "
+                    "customize your settings to get the most out of the platform.\n\n"
+                    "If you have any questions or need assistance getting started, our "
+                    "support team is here to help.\n\n"
+                    "Welcome to PandaPulse,\n"
+                    "The PandaPulse Team\n"
                 ),
                 from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
                 recipient_list=[user.email],

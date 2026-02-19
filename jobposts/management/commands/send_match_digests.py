@@ -93,9 +93,11 @@ class Command(BaseCommand):
             lines = [f"- {job.title} at {job.company} ({job.location})" for job in matched_jobs[:20]]
             message = (
                 f"Hi {user.username},\n\n"
-                "Here are job postings that match your skills and that you have not applied to yet:\n\n"
+                "Here are some job postings that match your skills and that you have not applied to yet:\n\n"
                 f"{chr(10).join(lines)}\n\n"
-                "Log in to PandaPulse to review and apply."
+                "Log in to PandaPulse to view full details and apply.\n\n"
+                "Best regards,\n"
+                "The PandaPulse Team"
             )
 
             if dry_run:

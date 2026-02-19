@@ -156,15 +156,20 @@ def notify_booking(slot):
     gcal_url = google_calendar_link(slot)
     if slot.applicant.email:
         send_mail(
-            subject=f"Interview booked: {slot.application.job.title}",
-            message=(
+            subject = f"Interview Scheduled: {slot.application.job.title}"
+            message = (
                 f"Hi {slot.applicant.username},\n\n"
-                "Your interview has been scheduled.\n"
-                f"Role: {slot.application.job.title} at {slot.application.job.company}\n"
-                f"When: {timezone.localtime(slot.start_at).strftime('%b %d, %Y %I:%M %p')} - "
-                f"{timezone.localtime(slot.end_at).strftime('%I:%M %p')}\n"
-                f"Google Calendar: {gcal_url}\n\n"
-                "You can also download the ICS file from your PandaPulse dashboard."
+                "Your interview has been successfully scheduled. Please find the details below:\n\n"
+                f"Position: {slot.application.job.title}\n"
+                f"Company: {slot.application.job.company}\n"
+                f"Date and Time: "
+                f"{timezone.localtime(slot.start_at).strftime('%b %d, %Y %I:%M %p')} - "
+                f"{timezone.localtime(slot.end_at).strftime('%I:%M %p')}\n\n"
+                f"Add to Google Calendar: {gcal_url}\n\n"
+                "You can also download the calendar invitation file from your PandaPulse dashboard.\n\n"
+                "If you need to reschedule or have any questions, please log in to your account for next steps.\n\n"
+                "Best regards,\n"
+                "The PandaPulse Team"
             ),
             from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
             recipient_list=[slot.applicant.email],
@@ -172,14 +177,19 @@ def notify_booking(slot):
         )
     if slot.employer.email:
         send_mail(
-            subject=f"Interview confirmed: {slot.applicant.username}",
-            message=(
+            subject = f"Interview Confirmed: {slot.applicant.username}"
+            message = (
                 f"Hi {slot.employer.username},\n\n"
-                f"{slot.applicant.username} selected an interview slot.\n"
-                f"Role: {slot.application.job.title}\n"
-                f"When: {timezone.localtime(slot.start_at).strftime('%b %d, %Y %I:%M %p')} - "
-                f"{timezone.localtime(slot.end_at).strftime('%I:%M %p')}\n"
-                f"Google Calendar: {gcal_url}"
+                f"{slot.applicant.username} has confirmed their interview by selecting an available time slot.\n\n"
+                f"Position: {slot.application.job.title}\n"
+                f"Date and Time: "
+                f"{timezone.localtime(slot.start_at).strftime('%b %d, %Y %I:%M %p')} - "
+                f"{timezone.localtime(slot.end_at).strftime('%I:%M %p')}\n\n"
+                f"Add to Google Calendar: {gcal_url}\n\n"
+                "You can review the candidate’s application and manage interview details "
+                "from your PandaPulse dashboard.\n\n"
+                "Best regards,\n"
+                "The PandaPulse Team"
             ),
             from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
             recipient_list=[slot.employer.email],

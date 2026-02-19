@@ -64,9 +64,18 @@ def sync_applicant_job_matches(applicant_user):
             send_mail(
                 subject=f"New applicant-job skill match: {job.title}",
                 message=(
-                    f"{applicant_user.username} matched with your role '{job.title}' based on skills: "
-                    f"{matched_skills}.\n\n"
-                    "Log in to PandaPulse to review this applicant."
+                    f"Hi {job.owner.username},\n\n"
+                    f"A new candidate has been identified as a strong match for your role, "
+                    f"{job.title}.\n\n"
+                    f"Applicant: {applicant_user.username}\n"
+                    f"Matched skills: {matched_skills}\n\n"
+                    "Based on the skills listed in their profile, this applicant aligns "
+                    "well with the requirements of your position. We recommend reviewing "
+                    "their profile to determine next steps.\n\n"
+                    "Log in to PandaPulse to view the full application details and connect "
+                    "with the candidate.\n\n"
+                    "Best regards,\n"
+                    "The PandaPulse Team\n"
                 ),
                 from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
                 recipient_list=[job.owner.email],
@@ -79,9 +88,19 @@ def sync_applicant_job_matches(applicant_user):
             send_mail(
                 subject=f"New job match: {job.title}",
                 message=(
-                    f"You matched with '{job.title}' at {job.company} based on skills: "
-                    f"{matched_skills}.\n\n"
-                    "Log in to PandaPulse to review this opportunity."
+                    f"Hi {applicant_user.username},\n\n"
+                    "Great news. A new opportunity has been identified as a strong match "
+                    "for your profile.\n\n"
+                    f"Position: {job.title}\n"
+                    f"Company: {job.company}\n"
+                    f"Matched skills: {matched_skills}\n\n"
+                    "Based on the skills listed in your profile, this role closely aligns "
+                    "with your experience and qualifications. We encourage you to review the "
+                    "job details and consider applying.\n\n"
+                    "Log in to PandaPulse to explore this opportunity and take the next step "
+                    "in your career journey.\n\n"
+                    "Best of luck,\n"
+                    "The PandaPulse Team\n"
                 ),
                 from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
                 recipient_list=[applicant_user.email],

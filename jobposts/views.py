@@ -204,7 +204,14 @@ def create(request):
                             subject=f"Job posted: {post.title}",
                             message=(
                                 f"Hi {request.user.username},\n\n"
-                                f"Your job posting '{post.title}' at {post.company} is now live on PandaPulse."
+                                f"Great news. Your job posting, {post.title} at {post.company}, "
+                                "is now live on PandaPulse and visible to candidates.\n\n"
+                                "You can log in at any time to manage the listing, review "
+                                "applications, and make updates as needed. We recommend checking "
+                                "your dashboard regularly to stay on top of new applicants.\n\n"
+                                "Thank you for choosing PandaPulse to connect with top talent.\n\n"
+                                "Best regards,\n"
+                                "The PandaPulse Team\n"
                             ),
                             from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
                             recipient_list=[request.user.email],
