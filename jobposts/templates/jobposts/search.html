@@ -175,6 +175,13 @@
                       {% if request.user.is_authenticated and not template_data.can_post_job %}
                         <div class="job-post-map-cta">
                           <a class="primary-btn apply-now-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}">Apply Now</a>
+                          {% if request.user.is_superuser %}
+                            <a class="secondary-btn edit-post-btn border-0 btn-compact w-100 mt-2" href="{% url 'jobposts.edit_post' post.id %}">Edit Post</a>
+                          {% endif %}
+                        </div>
+                      {% elif request.user.is_superuser %}
+                        <div class="job-post-map-cta">
+                          <a class="secondary-btn edit-post-btn border-0 btn-compact w-100" href="{% url 'jobposts.edit_post' post.id %}">Edit Post</a>
                         </div>
                       {% endif %}
                     </aside>
@@ -183,6 +190,16 @@
                       <div class="job-post-map-placeholder"></div>
                       <div class="job-post-map-cta">
                         <a class="primary-btn apply-now-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}">Apply Now</a>
+                        {% if request.user.is_superuser %}
+                          <a class="secondary-btn edit-post-btn border-0 btn-compact w-100 mt-2" href="{% url 'jobposts.edit_post' post.id %}">Edit Post</a>
+                        {% endif %}
+                      </div>
+                    </aside>
+                    {% elif request.user.is_superuser %}
+                    <aside class="job-post-map">
+                      <div class="job-post-map-placeholder"></div>
+                      <div class="job-post-map-cta">
+                        <a class="secondary-btn edit-post-btn border-0 btn-compact w-100" href="{% url 'jobposts.edit_post' post.id %}">Edit Post</a>
                       </div>
                     </aside>
                     {% endif %}
@@ -254,6 +271,13 @@
                     {% if request.user.is_authenticated and not template_data.can_post_job %}
                       <div class="job-post-map-cta">
                         <a class="primary-btn apply-now-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}">Apply Now</a>
+                        {% if request.user.is_superuser %}
+                          <a class="secondary-btn edit-post-btn border-0 btn-compact w-100 mt-2" href="{% url 'jobposts.edit_post' post.id %}">Edit Post</a>
+                        {% endif %}
+                      </div>
+                    {% elif request.user.is_superuser %}
+                      <div class="job-post-map-cta">
+                        <a class="secondary-btn edit-post-btn border-0 btn-compact w-100" href="{% url 'jobposts.edit_post' post.id %}">Edit Post</a>
                       </div>
                     {% endif %}
                   </aside>
@@ -262,14 +286,18 @@
                     <div class="job-post-map-placeholder"></div>
                     <div class="job-post-map-cta">
                       <a class="primary-btn apply-now-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}">Apply Now</a>
+                      {% if request.user.is_superuser %}
+                        <a class="secondary-btn edit-post-btn border-0 btn-compact w-100 mt-2" href="{% url 'jobposts.edit_post' post.id %}">Edit Post</a>
+                      {% endif %}
                     </div>
                   </aside>
-                  {% endif %}
-
-                  {% if request.user.is_superuser %} 
+                  {% elif request.user.is_superuser %}
+                  <aside class="job-post-map">
+                    <div class="job-post-map-placeholder"></div>
                     <div class="job-post-map-cta">
                       <a class="secondary-btn edit-post-btn border-0 btn-compact w-100" href="{% url 'jobposts.edit_post' post.id %}">Edit Post</a>
                     </div>
+                  </aside>
                   {% endif %}
                 </div>
               </div>
