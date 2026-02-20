@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-shell candidate-search-page">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-4">
+        <div class="surface-card">
+          <div class="text-uppercase text-muted small mb-2">Company search</div>
+          <h2 class="surface-title mb-3">Find employers</h2>
+
+          <form method="get" class="vstack gap-3">
+            <div>
+              <label class="form-label">Company</label>
+              <input type="text" name="company" class="form-control" placeholder="e.g. Acme, Labs" value="{{ template_data.filters.company }}">
+            </div>
+            <div>
+              <label class="form-label">Culture / Perks</label>
+              <input type="text" name="culture" class="form-control" placeholder="e.g. hybrid, mentorship, stipend" value="{{ template_data.filters.culture }}">
+            </div>
+            <div>
+              <label class="form-label">Location</label>
+              <input type="text" name="location" class="form-control" placeholder="e.g. Atlanta, GA" value="{{ template_data.filters.location }}">
+            </div>
+
+            <div class="candidate-search-filter-actions">
+              <button type="submit" class="primary-btn border-0 w-100">Search</button>
+              <a href="{% url 'accounts.company_search' %}" class="secondary-btn w-100">Reset</a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="col-lg-8">
+        <div class="mb-3">
+          <div class="text-uppercase text-muted small">Results</div>
+          <h3 class="surface-title mb-0">{{ template_data.companies|length }} companies</h3>
+        </div>
+
+        {% if template_data.companies %}
+          <div class="vstack gap-3">
+            {% for company in template_data.companies %}
+              <div class="surface-card">
+                <div class="d-flex justify-content-between flex-wrap gap-2">
+                  <div>
+                    <h4 class="surface-title mb-1">{{ company.company_name|default:company.user.username }}</h4>
+                    {% if company.company_description %}
+                      <p class="mb-2 text-muted">{{ company.company_description|truncatewords:24 }}</p>
+                    {% endif %}
+                    {% if company.company_culture %}
+                      <div class="small text-muted"><b>Culture:</b> {{ company.company_culture|truncatewords:20 }}</div>
+                    {% endif %}
+                    <div class="small text-muted">{{ company.open_roles_count }} open role{{ company.open_roles_count|pluralize }}</div>
+                  </div>
+                  <div class="text-end">
+                    <a class="secondary-btn candidate-action-btn" href="{% url 'accounts.company_profile' company.user.username %}">
+                      View Company
+                    </a>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="surface-card p-5 text-center">
+            <h4 class="surface-title mb-2">No matching companies</h4>
+            <p class="text-muted mb-0">Try widening your filters.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock content %}

@@ -86,9 +86,10 @@
             </div>
 
             <div id="employer_fields">
-              <div class="field-block">{{ template_data.form.company_name.label_tag }} {{ template_data.form.company_name }}</div>
-              <div class="field-block">{{ template_data.form.company_website.label_tag }} {{ template_data.form.company_website }}</div>
-              <div class="field-block">{{ template_data.form.company_description.label_tag }} {{ template_data.form.company_description }}</div>
+              <div class="alert alert-info mb-0">
+                Company details are now managed separately.
+                <a href="{% url 'accounts.company_profile_edit' %}" class="alert-link">Edit Company Profile</a>
+              </div>
             </div>
 
             <div class="form-actions mt-4">

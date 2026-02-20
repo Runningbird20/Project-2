@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="page-shell">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+        <div class="surface-card">
+          <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div>
+              <p class="page-kicker mb-2">Public company profile</p>
+              <h1 class="page-title page-title-sm mb-1">
+                {{ template_data.profile.company_name|default:template_data.company_user.username }}
+              </h1>
+              {% if template_data.profile.company_website %}
+                <p class="mb-0">
+                  <a href="{{ template_data.profile.company_website }}" target="_blank" rel="noopener noreferrer">
+                    {{ template_data.profile.company_website }}
+                  </a>
+                </p>
+              {% endif %}
+            </div>
+            {% if template_data.is_owner %}
+              <a class="secondary-btn" href="{% url 'accounts.company_profile_edit' %}">Edit Company Profile</a>
+            {% endif %}
+          </div>
+
+          <hr>
+
+          <h5 class="surface-title">About</h5>
+          {% if template_data.profile.company_description %}
+            <p style="white-space:pre-wrap;">{{ template_data.profile.company_description }}</p>
+          {% else %}
+            <p class="text-muted">No company description added yet.</p>
+          {% endif %}
+
+          <hr>
+
+          <h5 class="surface-title">Culture</h5>
+          {% if template_data.profile.company_culture %}
+            <p style="white-space:pre-wrap;">{{ template_data.profile.company_culture }}</p>
+          {% else %}
+            <p class="text-muted">No culture details added yet.</p>
+          {% endif %}
+
+          <hr>
+
+          <h5 class="surface-title">Perks</h5>
+          {% if template_data.perks %}
+            <ul class="mb-0">
+              {% for perk in template_data.perks %}
+                <li>{{ perk }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-muted">No perks added yet.</p>
+          {% endif %}
+        </div>
+
+        <div class="surface-card mt-3">
+          <h5 class="surface-title mb-3">Office Map Gallery</h5>
+          {% if template_data.office_jobs %}
+            <div class="row g-3">
+              {% for job in template_data.office_jobs %}
+                <div class="col-md-6">
+                  <div class="border rounded-3 p-3 h-100">
+                    <div class="fw-semibold mb-1">{{ job.title }}</div>
+                    <div class="small text-muted mb-2">{{ job.location }}</div>
+                    <div class="ratio ratio-16x9 mb-2">
+                      <iframe title="Office map for {{ job.title }}" src="{{ job.office_location.osm_embed_url }}" style="border:1px solid #e5e7eb;" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                    </div>
+                    <div class="small text-muted">
+                      {% if job.office_location.full_address %}{{ job.office_location.full_address }} - {% endif %}
+                      <a href="{{ job.office_location.osm_link_url }}" target="_blank" rel="noopener noreferrer">Open in Google Maps</a>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-muted mb-0">No pinned office locations available yet.</p>
+          {% endif %}
+        </div>
+
+        <div class="text-center mt-3">
+          {% if template_data.is_owner %}
+            <a class="secondary-btn" href="{% url 'jobposts.dashboard' %}">Back to Dashboard</a>
+          {% else %}
+            <a class="secondary-btn" href="{% url 'accounts.company_search' %}">Back to Company Search</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock content %}

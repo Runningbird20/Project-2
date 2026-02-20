@@ -442,9 +442,6 @@ class ProfileEditForm(ApplicantAddressFieldsMixin, forms.ModelForm):
             "projects",
             "education",
             "work_experience",
-            "company_name",
-            "company_website",
-            "company_description",
             "visible_to_recruiters",
             "show_headline",
             "show_skills",
@@ -467,9 +464,6 @@ class ProfileEditForm(ApplicantAddressFieldsMixin, forms.ModelForm):
             "projects": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
             "education": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "work_experience": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
-            "company_name": forms.TextInput(attrs={"class": "form-control"}),
-            "company_website": forms.URLInput(attrs={"class": "form-control"}),
-            "company_description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "visible_to_recruiters": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "show_headline": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "show_skills": forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -489,9 +483,6 @@ class ProfileEditForm(ApplicantAddressFieldsMixin, forms.ModelForm):
             "show_links": "Show links",
             "hide_email_from_employers": "Hide email from employers",
             "location": "Company Address",
-            "company_name": "Company Name",
-            "company_website": "Company Website",
-            "company_description": "Company Description",
         }
 
     def clean(self):
@@ -501,8 +492,6 @@ class ProfileEditForm(ApplicantAddressFieldsMixin, forms.ModelForm):
         if not acct and self.instance and self.instance.pk:
             acct = self.instance.account_type
             cleaned["account_type"] = acct
-        if acct == Profile.AccountType.EMPLOYER and not cleaned.get("company_name"):
-            self.add_error("company_name", "Company name is required for employers.")
         if acct == Profile.AccountType.APPLICANT:
             cleaned["location"] = self._build_applicant_location(require_full=False)
         elif acct == Profile.AccountType.EMPLOYER:
@@ -511,3 +500,41 @@ class ProfileEditForm(ApplicantAddressFieldsMixin, forms.ModelForm):
 
     def clean_skills(self):
         return normalize_skills_csv(self.cleaned_data.get("skills", ""))
+
+
+class CompanyProfileForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = [
+            "company_name",
+            "company_website",
+            "company_description",
+            "company_culture",
+            "company_perks",
+        ]
+        widgets = {
+            "company_name": forms.TextInput(attrs={"class": "form-control"}),
+            "company_website": forms.URLInput(attrs={"class": "form-control"}),
+            "company_description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "company_culture": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "company_perks": forms.Textarea(
+                attrs={
+                    "class": "form-control",
+                    "rows": 3,
+                    "placeholder": "One perk per line (e.g. 401k match, stipend, PTO)",
+                }
+            ),
+        }
+        labels = {
+            "company_name": "Company Name",
+            "company_website": "Company Website",
+            "company_description": "Company Description",
+            "company_culture": "Company Culture",
+            "company_perks": "Perks",
+        }
+
+    def clean_company_name(self):
+        value = (self.cleaned_data.get("company_name") or "").strip()
+        if not value:
+            raise forms.ValidationError("Company name is required for employers.")
+        return value
