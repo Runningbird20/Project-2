@@ -46,6 +46,8 @@ class Profile(models.Model):
     company_name = models.CharField(max_length=120, blank=True)
     company_website = models.URLField(blank=True)
     company_description = models.TextField(blank=True)
+    company_culture = models.TextField(blank=True)
+    company_perks = models.TextField(blank=True)
 
     visible_to_recruiters = models.BooleanField(
         default=True,

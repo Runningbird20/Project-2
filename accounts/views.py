@@ -24,7 +24,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from map.services import OfficeLocationGeocodingError, geocode_office_address
 from project2.skills import COMMON_SKILLS
 
-from .forms import CustomErrorList, ProfileEditForm, SignupWithProfileForm
+from .forms import CompanyProfileForm, CustomErrorList, ProfileEditForm, SignupWithProfileForm
 from .models import Profile, SavedCandidateSearch
 from jobposts.models import JobPost
 
@@ -50,6 +50,13 @@ def _is_employer(user):
     return Profile.objects.filter(
         user=user,
         account_type=Profile.AccountType.EMPLOYER,
+    ).exists()
+
+
+def _is_applicant(user):
+    return Profile.objects.filter(
+        user=user,
+        account_type=Profile.AccountType.APPLICANT,
     ).exists()
 
 
@@ -345,8 +352,6 @@ def edit_profile(request, username=None):
 
                 if prof.account_type == Profile.AccountType.EMPLOYER:
                     prof.headline = prof.skills = prof.education = prof.work_experience = ""
-                else:
-                    prof.company_name = prof.company_website = prof.company_description = ""
 
                 prof.save()
 
@@ -394,8 +399,6 @@ def edit_user(request, user_id):
 
                 if prof.account_type == Profile.AccountType.EMPLOYER:
                     prof.headline = prof.skills = prof.education = prof.work_experience = ""
-                else:
-                    prof.company_name = prof.company_website = prof.company_description = ""
 
                 prof.save()
 
@@ -508,6 +511,117 @@ def candidate_search(request):
         request,
         "accounts/candidate_search.html",
         {"template_data": {"title": "Candidate Search", "candidates": candidates, "filters": {"skills": skills, "location": location, "projects": projects}}},
+    )
+
+
+@login_required
+def company_profile_edit(request):
+    if not _is_employer(request.user):
+        return HttpResponseForbidden("Only employers can edit company profiles.")
+
+    profile, _ = Profile.objects.get_or_create(user=request.user)
+    if request.method == "POST":
+        form = CompanyProfileForm(request.POST, instance=profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Company profile updated successfully!")
+            return redirect("accounts.company_profile_edit")
+    else:
+        form = CompanyProfileForm(instance=profile)
+
+    return render(
+        request,
+        "accounts/company_profile_edit.html",
+        {"template_data": {"title": "Edit Company Profile", "form": form}},
+    )
+
+
+@login_required
+def company_profile(request, username):
+    User = get_user_model()
+    company_user = get_object_or_404(User, username=username)
+    profile, _ = Profile.objects.get_or_create(user=company_user)
+
+    is_owner = request.user == company_user
+    if profile.account_type != Profile.AccountType.EMPLOYER:
+        raise Http404("Company profile not available.")
+    if not is_owner and not _is_applicant(request.user):
+        return HttpResponseForbidden("Only applicants can view company profiles.")
+
+    office_jobs = (
+        JobPost.objects.filter(owner=company_user, office_location__isnull=False)
+        .select_related("office_location")
+        .order_by("-created_at")
+    )
+    perks = [perk.strip() for perk in (profile.company_perks or "").splitlines() if perk.strip()]
+
+    return render(
+        request,
+        "accounts/company_profile.html",
+        {
+            "template_data": {
+                "title": f"{profile.company_name or company_user.username} Company Profile",
+                "company_user": company_user,
+                "profile": profile,
+                "is_owner": is_owner,
+                "perks": perks,
+                "office_jobs": office_jobs,
+            }
+        },
+    )
+
+
+@login_required
+def company_search(request):
+    if not _is_applicant(request.user):
+        return HttpResponseForbidden("Only applicants can access company search.")
+
+    qs = Profile.objects.filter(account_type=Profile.AccountType.EMPLOYER).select_related("user").order_by("company_name", "user__username")
+
+    company = request.GET.get("company", "").strip()
+    culture = request.GET.get("culture", "").strip()
+    location = request.GET.get("location", "").strip()
+
+    if company:
+        qs = qs.filter(
+            Q(company_name__icontains=company)
+            | Q(user__username__icontains=company)
+            | Q(company_description__icontains=company)
+        )
+    if culture:
+        qs = qs.filter(
+            Q(company_culture__icontains=culture)
+            | Q(company_perks__icontains=culture)
+            | Q(company_description__icontains=culture)
+        )
+    if location:
+        qs = qs.filter(
+            Q(location__icontains=location)
+            | Q(city__icontains=location)
+            | Q(state__icontains=location)
+            | Q(user__job_posts__location__icontains=location)
+            | Q(user__job_posts__office_location__city__icontains=location)
+            | Q(user__job_posts__office_location__state__icontains=location)
+        )
+
+    companies = list(qs.distinct())
+    for company_profile in companies:
+        company_profile.open_roles_count = JobPost.objects.filter(owner=company_profile.user).count()
+
+    return render(
+        request,
+        "accounts/company_search.html",
+        {
+            "template_data": {
+                "title": "Company Search",
+                "companies": companies,
+                "filters": {
+                    "company": company,
+                    "culture": culture,
+                    "location": location,
+                },
+            }
+        },
     )
 
 

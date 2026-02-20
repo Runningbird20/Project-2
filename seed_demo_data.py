@@ -45,12 +45,28 @@ COMPANY_NAMES = [
     "SignalBridge", "Granite Digital",
 ]
 
+COMPANY_PREFIXES = [
+    "North", "South", "East", "West", "Summit", "Bright", "Blue", "Green", "Silver",
+    "Golden", "Rapid", "Prime", "Quantum", "Nimbus", "Pioneer", "Urban", "Metro",
+]
+
+COMPANY_ROOTS = [
+    "Harbor", "Bridge", "Labs", "Works", "Systems", "Digital", "Cloud", "Forge",
+    "Motion", "Orbit", "Pixel", "Core", "Logic", "Scale", "Trail", "Pulse", "Matrix",
+]
+
+COMPANY_SUFFIXES = ["Inc", "Labs", "Tech", "Group", "Co", "Systems"]
+
 STREET_NAMES = [
     "Peachtree", "Main", "Broad", "Pine", "Oak", "Maple", "Lake",
-    "Cedar", "Willow", "Highland", "Park", "Washington",
+    "Cedar", "Willow", "Highland", "Park", "Washington", "Market",
+    "Sunset", "Riverside", "Liberty", "Union", "King", "Madison",
+    "Lakeview", "Magnolia", "Elm", "Monroe", "Jefferson", "Hill",
 ]
 
 STREET_SUFFIXES = ["St", "Ave", "Blvd", "Rd", "Ln", "Way", "Dr"]
+
+UNIT_LABELS = ["Suite", "Floor", "Unit"]
 
 US_CITIES = [
     ("Atlanta", "GA", "30303", 33.7490, -84.3880),
@@ -61,10 +77,50 @@ US_CITIES = [
     ("Boston", "MA", "02108", 42.3601, -71.0589),
     ("Miami", "FL", "33101", 25.7617, -80.1918),
     ("Phoenix", "AZ", "85004", 33.4484, -112.0740),
+    ("San Francisco", "CA", "94103", 37.7749, -122.4194),
+    ("New York", "NY", "10001", 40.7128, -74.0060),
+    ("Los Angeles", "CA", "90012", 34.0522, -118.2437),
+    ("Portland", "OR", "97204", 45.5152, -122.6784),
+    ("Nashville", "TN", "37203", 36.1627, -86.7816),
+    ("Raleigh", "NC", "27601", 35.7796, -78.6382),
+    ("Minneapolis", "MN", "55401", 44.9778, -93.2650),
+    ("Salt Lake City", "UT", "84101", 40.7608, -111.8910),
+    ("Charlotte", "NC", "28202", 35.2271, -80.8431),
+    ("San Diego", "CA", "92101", 32.7157, -117.1611),
 ]
 
 WORK_SETTINGS = ["remote", "onsite", "hybrid"]
 COMPANY_SIZES = ["small", "mid_size", "large", "startup", "enterprise"]
+
+COMPANY_BLURBS = [
+    "builds software products used by teams around the world.",
+    "ships cloud infrastructure for fast-growing businesses.",
+    "creates AI-powered tools that improve developer productivity.",
+    "helps enterprises modernize internal platforms and workflows.",
+    "builds secure data products for regulated industries.",
+    "develops customer-facing web platforms at scale.",
+]
+
+COMPANY_CULTURES = [
+    "Ownership-minded team with strong mentorship and clear growth paths.",
+    "Collaborative, low-ego culture with emphasis on quality and shipping fast.",
+    "Remote-friendly culture focused on transparency and continuous learning.",
+    "Product-driven engineering culture with weekly demos and customer feedback loops.",
+    "Inclusive team environment with strong documentation and async collaboration.",
+]
+
+PERK_POOL = [
+    "401(k) match",
+    "Home office stipend",
+    "Learning budget",
+    "Flexible PTO",
+    "Parental leave",
+    "Commuter benefits",
+    "Wellness stipend",
+    "Health, dental, vision",
+    "Annual team offsite",
+    "Performance bonus",
+]
 
 
 def parse_args():
@@ -93,7 +149,11 @@ def random_address():
     city, state, zip_code, base_lat, base_lon = random.choice(US_CITIES)
     line_1 = f"{random.randint(100, 9999)} {random.choice(STREET_NAMES)} {random.choice(STREET_SUFFIXES)}"
     line_2 = ""
+    if random.random() < 0.45:
+        line_2 = f"{random.choice(UNIT_LABELS)} {random.randint(2, 25)}{random.choice(['', 'A', 'B'])}"
     full = f"{line_1}, {city}, {state} {zip_code}, United States"
+    if line_2:
+        full = f"{line_1}, {line_2}, {city}, {state} {zip_code}, United States"
     latitude = round(base_lat + random.uniform(-0.09, 0.09), 6)
     longitude = round(base_lon + random.uniform(-0.09, 0.09), 6)
     return {
@@ -107,6 +167,23 @@ def random_address():
         "latitude": latitude,
         "longitude": longitude,
     }
+
+
+def random_company_name():
+    if random.random() < 0.55:
+        return random.choice(COMPANY_NAMES)
+    return f"{random.choice(COMPANY_PREFIXES)} {random.choice(COMPANY_ROOTS)} {random.choice(COMPANY_SUFFIXES)}"
+
+
+def random_company_website(company_name):
+    compact = "".join(ch for ch in company_name.lower() if ch.isalnum())
+    suffix = random.choice([".com", ".io", ".tech", ".co"])
+    return f"https://www.{compact}{suffix}"
+
+
+def random_company_perks():
+    picks = random.sample(PERK_POOL, random.randint(3, 5))
+    return "\n".join(picks)
 
 
 def ensure_profile(user, account_type, **updates):
@@ -129,15 +206,23 @@ def create_employers(prefix, count, password):
         if User.objects.filter(username=username).exists():
             continue
         user = User.objects.create_user(username=username, email=email, password=password)
-        company_name = random.choice(COMPANY_NAMES)
+        company_name = random_company_name()
         address = random_address()
         ensure_profile(
             user,
             Profile.AccountType.EMPLOYER,
             company_name=company_name,
-            company_website=f"https://www.{company_name.lower().replace(' ', '')}.com",
-            company_description=f"{company_name} is hiring across engineering teams.",
+            company_website=random_company_website(company_name),
+            company_description=f"{company_name} {random.choice(COMPANY_BLURBS)}",
+            company_culture=random.choice(COMPANY_CULTURES),
+            company_perks=random_company_perks(),
             location=address["full"],
+            address_line_1=address["line_1"],
+            address_line_2=address["line_2"],
+            city=address["city"],
+            state=address["state"],
+            postal_code=address["postal_code"],
+            country=address["country"],
             headline="",
             skills="",
             education="",
@@ -175,9 +260,17 @@ def create_applicants(prefix, count, password):
             work_experience="2+ years building and shipping software products.",
             projects="Internal tools, APIs, and automation projects.",
             location=address["full"],
+            address_line_1=address["line_1"],
+            address_line_2=address["line_2"],
+            city=address["city"],
+            state=address["state"],
+            postal_code=address["postal_code"],
+            country=address["country"],
             company_name="",
             company_website="",
             company_description="",
+            company_culture="",
+            company_perks="",
             visible_to_recruiters=True,
         )
         created.append(user)
