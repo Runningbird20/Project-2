@@ -20,6 +20,19 @@ from .services import (
 )
 from interviews.services import get_applicant_interview_context
 
+def _benefits_score_from_company_perks(company_perks_text):
+    perks_text = (company_perks_text or "").strip()
+    if not perks_text:
+        return 5
+    tokens = [
+        token.strip()
+        for token in perks_text.replace("\n", ",").replace(";", ",").split(",")
+        if token.strip()
+    ]
+    if not tokens:
+        return 5
+    return min(10, max(6, len(tokens)))
+
 @login_required
 def submit_application(request, job_id):
     """Handles the submission of a job application."""
@@ -117,6 +130,38 @@ def application_status(request):
         user=request.user,
         archived_by_applicant=False,
     ).select_related("job")
+    received_offers = Application.objects.filter(
+        user=request.user,
+        status__in=("offer", "closed"),
+    ).select_related("job", "job__owner").order_by("-responded_at", "-applied_at")
+    received_offer_rows = []
+    for offer in received_offers:
+        salary_value = offer.job.salary_max or offer.job.salary_min or 0
+        salary_display = (
+            f"${salary_value:,}" if salary_value else (offer.job.pay_range or "Not specified")
+        )
+        try:
+            owner_profile = offer.job.owner.profile if offer.job.owner else None
+        except Profile.DoesNotExist:
+            owner_profile = None
+        benefits_score = _benefits_score_from_company_perks(
+            getattr(owner_profile, "company_perks", "")
+        )
+        received_offer_rows.append(
+            {
+                "application_id": offer.id,
+                "company": offer.job.company,
+                "title": offer.job.title,
+                "received_at": offer.responded_at or offer.applied_at,
+                "salary_value": salary_value,
+                "salary_display": salary_display,
+                "work_setting": offer.job.work_setting,
+                "work_setting_label": offer.job.get_work_setting_display(),
+                "visa": "yes" if offer.job.visa_sponsorship else "no",
+                "visa_label": "Yes" if offer.job.visa_sponsorship else "No",
+                "benefits_score": benefits_score,
+            }
+        )
     archived_applications = Application.objects.filter(
         user=request.user,
         archived_by_applicant=True,
@@ -175,6 +220,7 @@ def application_status(request):
         "apply/status.html",
         {
             "applications": active_applications,
+            "received_offer_rows": received_offer_rows,
             "archived_applications": archived_applications,
             "matched_jobs": matched_jobs,
             "activity_events": activity_events,

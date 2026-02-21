@@ -1275,6 +1275,81 @@ html.dark-mode #interviewPromptModal .btn-close {
   filter: invert(1) grayscale(100%) brightness(200%);
 }
 
+.offer-compare-panel {
+  background: rgba(248, 250, 252, 0.9);
+  border-color: #d8dee8 !important;
+}
+
+.offer-compare-table,
+.offer-results-table {
+  --bs-table-bg: transparent;
+  --bs-table-border-color: #d8dee8;
+}
+
+.offer-compare-table thead th,
+.offer-results-table thead th {
+  color: #5b6475;
+  font-size: 0.8rem;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.offer-readonly-value {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.offer-weight-input {
+  font-weight: 600;
+}
+
+html.dark-mode .offer-compare-panel {
+  background: rgba(15, 23, 36, 0.85);
+  border-color: #39485f !important;
+}
+
+html.dark-mode .offer-compare-table,
+html.dark-mode .offer-results-table {
+  --bs-table-bg: transparent;
+  --bs-table-striped-bg: rgba(30, 45, 67, 0.45);
+  --bs-table-hover-bg: rgba(42, 63, 92, 0.55);
+  --bs-table-border-color: #39485f;
+  color: #e6edf8;
+}
+
+html.dark-mode .offer-compare-table > :not(caption) > * > *,
+html.dark-mode .offer-results-table > :not(caption) > * > * {
+  background-color: transparent !important;
+  color: #e6edf8;
+  border-color: #39485f;
+}
+
+html.dark-mode .offer-compare-table thead th,
+html.dark-mode .offer-results-table thead th {
+  background-color: rgba(24, 36, 56, 0.9) !important;
+  color: #b8c6dc;
+}
+
+html.dark-mode .offer-compare-table tbody tr:hover > *,
+html.dark-mode .offer-results-table tbody tr:hover > * {
+  background-color: rgba(42, 63, 92, 0.4) !important;
+}
+
+html.dark-mode .offer-readonly-value {
+  color: #e6edf8;
+}
+
+html.dark-mode .offer-weight-input {
+  background-color: rgba(17, 24, 35, 0.95);
+  border-color: #3b4a62;
+  color: #edf2ff;
+}
+
+html.dark-mode .offer-weight-input:focus {
+  border-color: #9ca3af;
+  box-shadow: 0 0 0 0.15rem rgba(156, 163, 175, 0.3);
+}
+
 #applyModal {
   position: fixed;
   inset: 0;
