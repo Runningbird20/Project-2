@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-shell">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-9">
+        <div class="surface-card">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+            <div>
+              <p class="page-kicker mb-2">Offer workflow</p>
+              <h1 class="page-title page-title-sm mb-1">Customize Offer Letter</h1>
+              <p class="text-muted mb-0">
+                {{ template_data.application.user.get_full_name|default:template_data.application.user.username }}
+                - {{ template_data.job.title }} at {{ template_data.job.company }}
+              </p>
+            </div>
+            <a href="{% url 'apply:employer_pipeline' template_data.job.id %}" class="secondary-btn btn-compact">Back to Pipeline</a>
+          </div>
+
+          <form method="post" class="vstack gap-3">
+            {% csrf_token %}
+            <div>
+              <label class="form-label fw-semibold" for="offer_letter_title">Letter Title</label>
+              <input
+                id="offer_letter_title"
+                name="offer_letter_title"
+                type="text"
+                class="form-control"
+                required
+                value="{{ template_data.application.offer_letter_title }}"
+              >
+            </div>
+
+            <div>
+              <label class="form-label fw-semibold" for="offer_letter_body">Letter Body</label>
+              <textarea
+                id="offer_letter_body"
+                name="offer_letter_body"
+                rows="8"
+                class="form-control"
+                required
+              >{{ template_data.application.offer_letter_body }}</textarea>
+            </div>
+
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold" for="offer_compensation">Compensation</label>
+                <input
+                  id="offer_compensation"
+                  name="offer_compensation"
+                  type="text"
+                  class="form-control"
+                  value="{{ template_data.application.offer_compensation }}"
+                >
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold" for="offer_start_date">Start Date</label>
+                <input
+                  id="offer_start_date"
+                  name="offer_start_date"
+                  type="text"
+                  class="form-control"
+                  value="{{ template_data.application.offer_start_date }}"
+                >
+              </div>
+            </div>
+
+            <div>
+              <label class="form-label fw-semibold" for="offer_response_deadline">Response Deadline</label>
+              <input
+                id="offer_response_deadline"
+                name="offer_response_deadline"
+                type="text"
+                class="form-control"
+                value="{{ template_data.application.offer_response_deadline }}"
+              >
+            </div>
+
+            <div>
+              <label class="form-label fw-semibold" for="offer_additional_terms">Additional Terms</label>
+              <textarea
+                id="offer_additional_terms"
+                name="offer_additional_terms"
+                rows="5"
+                class="form-control"
+              >{{ template_data.application.offer_additional_terms }}</textarea>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="primary-btn border-0">Save Offer Letter</button>
+              <a href="{% url 'apply:offer_letter' template_data.application.id %}" class="secondary-btn">Preview Letter</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -52,6 +52,10 @@
             <div class="d-grid gap-2">
               {% if app.resume_file %}<a href="{{ app.resume_file.url }}" target="_blank" class="secondary-btn btn-compact">View Resume</a>{% endif %}
               <a href="{% url 'accounts.profile_with_id' app.user.id %}" class="secondary-btn btn-compact">View Applicant Profile</a>
+              {% if app.status == 'offer' or app.status == 'closed' %}
+              <a href="{% url 'apply:customize_offer_letter' app.id %}" class="primary-btn btn-compact border-0">Customize Offer Letter</a>
+              <a href="{% url 'apply:offer_letter' app.id %}" class="secondary-btn btn-compact">Preview Offer Letter</a>
+              {% endif %}
             </div>
           </div>
           {% empty %}
@@ -117,11 +121,32 @@
   </div>
 </div>
 
+<div class="modal fade" id="offerPromptModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow rounded-4">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold">Customize Offer Letter</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-0 pb-3 px-4">
+        <p class="mb-0 text-muted" id="offerPromptText">
+          Applicant moved to Offer. Do you want to customize the offer letter now?
+        </p>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button type="button" class="secondary-btn btn-compact border-0" data-bs-dismiss="modal">Later</button>
+        <a href="#" class="primary-btn btn-compact border-0" id="setOfferLetterNowBtn">Customize Now</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 let pendingUpdate = null;
 let draggedCard = null;
 const rejectionModal = new bootstrap.Modal(document.getElementById('rejectionModal'));
 const interviewPromptModal = new bootstrap.Modal(document.getElementById('interviewPromptModal'));
+const offerPromptModal = new bootstrap.Modal(document.getElementById('offerPromptModal'));
 
 document.addEventListener('DOMContentLoaded', function () {
   const urlParams = new URLSearchParams(window.location.search);
@@ -129,9 +154,14 @@ document.addEventListener('DOMContentLoaded', function () {
   const oldStatus = urlParams.get('old_status');
   const setupInterviewAppId = urlParams.get('setup_interview_app');
   const setupInterviewName = urlParams.get('setup_interview_name');
+  const setupOfferAppId = urlParams.get('setup_offer_app');
+  const setupOfferName = urlParams.get('setup_offer_name');
 
   if (setupInterviewAppId) {
     showInterviewPrompt(setupInterviewAppId, setupInterviewName);
+  }
+  if (setupOfferAppId) {
+    showOfferPrompt(setupOfferAppId, setupOfferName);
   }
   if (undoAppId && oldStatus) {
     showUndoToast(undoAppId, oldStatus);
@@ -164,6 +194,12 @@ function executeStatusUpdate(appId, newStatus, previousStatus, isUndo, applicant
         params.set('setup_interview_name', applicantName);
       }
     }
+    if (newStatus === 'offer') {
+      params.set('setup_offer_app', appId);
+      if (applicantName) {
+        params.set('setup_offer_name', applicantName);
+      }
+    }
     window.location.href = `${currentUrl}?${params.toString()}`;
   });
 }
@@ -191,6 +227,16 @@ function showInterviewPrompt(appId, applicantName) {
     ? `${applicantName} is now in Interview. Would you like to propose a few interview date/time options now?`
     : 'Applicant moved to Interview. Would you like to add a few date/time options now?';
   interviewPromptModal.show();
+}
+
+function showOfferPrompt(appId, applicantName) {
+  const promptText = document.getElementById('offerPromptText');
+  const setupBtn = document.getElementById('setOfferLetterNowBtn');
+  setupBtn.setAttribute('href', `/apply/offer-letter/${encodeURIComponent(appId)}/customize/`);
+  promptText.textContent = applicantName
+    ? `${applicantName} is now in Offer. Do you want to customize and send the offer letter now?`
+    : 'Applicant moved to Offer. Do you want to customize and send the offer letter now?';
+  offerPromptModal.show();
 }
 
 document.getElementById('confirmRejection').addEventListener('click', () => {

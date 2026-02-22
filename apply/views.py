@@ -11,6 +11,7 @@ from django.http import JsonResponse, HttpResponseForbidden, HttpResponse, Http4
 from django.views.decorators.http import require_POST
 import json
 import csv
+from datetime import timedelta
 from django.utils import timezone
 from accounts.models import Profile
 from .services import (
@@ -32,6 +33,57 @@ def _benefits_score_from_company_perks(company_perks_text):
     if not tokens:
         return 5
     return min(10, max(6, len(tokens)))
+
+
+def _default_offer_letter_title(application):
+    return f"Offer for {application.job.title} at {application.job.company}"
+
+
+def _default_offer_letter_body(application):
+    owner_name = "Hiring Team"
+    if application.job.owner:
+        owner_name = application.job.owner.get_full_name() or application.job.owner.username
+    return (
+        f"Dear {application.user.get_full_name() or application.user.username},\n\n"
+        f"We are pleased to offer you the position of {application.job.title} at {application.job.company}. "
+        "We are excited about the skills and experience you would bring to our team.\n\n"
+        "Please review the details below and contact us if you have any questions.\n\n"
+        "Sincerely,\n"
+        f"{owner_name}"
+    )
+
+
+def _default_offer_compensation(application):
+    if application.job.salary_max:
+        return f"${application.job.salary_max:,}"
+    if application.job.salary_min:
+        return f"${application.job.salary_min:,}"
+    return application.job.pay_range or "Compensation details to be provided."
+
+
+def _default_offer_response_deadline():
+    return (timezone.now() + timedelta(days=7)).strftime("%B %d, %Y")
+
+
+def _ensure_offer_defaults(application):
+    changed_fields = []
+    if not application.offer_letter_title:
+        application.offer_letter_title = _default_offer_letter_title(application)
+        changed_fields.append("offer_letter_title")
+    if not application.offer_letter_body:
+        application.offer_letter_body = _default_offer_letter_body(application)
+        changed_fields.append("offer_letter_body")
+    if not application.offer_compensation:
+        application.offer_compensation = _default_offer_compensation(application)
+        changed_fields.append("offer_compensation")
+    if not application.offer_start_date:
+        application.offer_start_date = "To be discussed with recruiter"
+        changed_fields.append("offer_start_date")
+    if not application.offer_response_deadline:
+        application.offer_response_deadline = _default_offer_response_deadline()
+        changed_fields.append("offer_response_deadline")
+    if changed_fields:
+        application.save(update_fields=changed_fields)
 
 @login_required
 def submit_application(request, job_id):
@@ -255,6 +307,8 @@ def update_status(request, application_id):
                 application.archived_by_employer = False
                 application.auto_rejected_for_timeout = False
             application.save()
+            if new_status == "offer":
+                _ensure_offer_defaults(application)
 
             if application.user.email:
                 try:
@@ -384,6 +438,70 @@ def export_applicants_csv(request, job_id):
         ])
 
     return response
+
+
+@login_required
+def customize_offer_letter(request, application_id):
+    application = get_object_or_404(
+        Application.objects.select_related("job", "user", "job__owner"),
+        id=application_id,
+    )
+    if application.job.owner != request.user:
+        return HttpResponseForbidden("Unauthorized")
+
+    if application.status not in ("offer", "closed"):
+        messages.warning(request, "Move the applicant to Offer before customizing the letter.")
+        return redirect("apply:employer_pipeline", job_id=application.job.id)
+
+    _ensure_offer_defaults(application)
+
+    if request.method == "POST":
+        application.offer_letter_title = request.POST.get("offer_letter_title", "").strip()
+        application.offer_letter_body = request.POST.get("offer_letter_body", "").strip()
+        application.offer_compensation = request.POST.get("offer_compensation", "").strip()
+        application.offer_start_date = request.POST.get("offer_start_date", "").strip()
+        application.offer_response_deadline = request.POST.get("offer_response_deadline", "").strip()
+        application.offer_additional_terms = request.POST.get("offer_additional_terms", "").strip()
+        application.save(
+            update_fields=[
+                "offer_letter_title",
+                "offer_letter_body",
+                "offer_compensation",
+                "offer_start_date",
+                "offer_response_deadline",
+                "offer_additional_terms",
+            ]
+        )
+
+        if application.user.email:
+            try:
+                send_mail(
+                    subject=f"Your offer details were updated: {application.job.title}",
+                    message=(
+                        f"Hi {application.user.username},\n\n"
+                        f"{application.job.company} updated your offer details for {application.job.title}.\n"
+                        "Log in to PandaPulse to review the latest offer letter.\n\n"
+                        "Best,\n"
+                        "PandaPulse Team"
+                    ),
+                    from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
+                    recipient_list=[application.user.email],
+                    fail_silently=True,
+                )
+            except Exception:
+                pass
+
+        messages.success(request, "Offer letter updated.")
+        return redirect("apply:employer_pipeline", job_id=application.job.id)
+
+    template_data = {
+        "title": "Customize Offer Letter",
+        "application": application,
+        "job": application.job,
+    }
+    return render(request, "apply/customize_offer_letter.html", {"template_data": template_data})
+
+
 @login_required
 def offer_letter(request, application_id):
     application = get_object_or_404(
@@ -404,7 +522,10 @@ def offer_letter(request, application_id):
         raise Http404("Offer letter not available.")
 
     applicant_profile, _ = Profile.objects.get_or_create(user=application.user)
-    recruiter_profile, _ = Profile.objects.get_or_create(user=application.job.owner)
+    if application.job.owner:
+        recruiter_profile, _ = Profile.objects.get_or_create(user=application.job.owner)
+    else:
+        recruiter_profile = applicant_profile
 
     template_data = {
         "title": "Offer Letter",
@@ -415,6 +536,12 @@ def offer_letter(request, application_id):
         "is_applicant": is_applicant,
         "is_recruiter": is_recruiter,
         "today": timezone.now(),
+        "offer_title": application.offer_letter_title or _default_offer_letter_title(application),
+        "offer_body": application.offer_letter_body or _default_offer_letter_body(application),
+        "offer_compensation": application.offer_compensation or _default_offer_compensation(application),
+        "offer_start_date": application.offer_start_date or "To be discussed with recruiter",
+        "offer_response_deadline": application.offer_response_deadline or _default_offer_response_deadline(),
+        "offer_additional_terms": application.offer_additional_terms,
     }
 
     return render(request, "apply/offer_letter.html", {"template_data": template_data})
