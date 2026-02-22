@@ -5,3 +5,6 @@ Password: Pass12345!
 
 Feel free to change number of employers, applicants, and jobs to fit your needs.
 Open server in one Terminal + run command in Terminal 2 + reload page.
+
+Command to delete spawned profiles:
+python seed_demo_data.py --clear-only

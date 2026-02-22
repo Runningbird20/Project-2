@@ -14,7 +14,7 @@ from map.forms import OfficeLocationForm
 from map.models import OfficeLocation
 from map.services import OfficeLocationGeocodingError, geocode_office_address
 from .forms import JobPostForm
-from .models import JobPost
+from .models import ApplicantJobMatch, JobPost
 from .matching import sync_applicant_job_matches
 from django.views.decorators.http import require_POST
 from apply.models import Application
@@ -51,6 +51,12 @@ def _skill_list(raw_value):
     return ordered
 
 
+def _ordered_overlap_skills(job_skills_raw, candidate_skills_raw):
+    job_skills = _skill_list(job_skills_raw)
+    candidate_skill_set = _skill_set(candidate_skills_raw)
+    return [skill for skill in job_skills if skill.lower() in candidate_skill_set]
+
+
 def _skill_overlap_percent(applicant_skills, job_skills):
     if not applicant_skills or not job_skills:
         return 0
@@ -83,6 +89,16 @@ def dashboard(request):
     # --- APPLICANT LOGIC ---
     if profile.account_type == Profile.AccountType.APPLICANT:
         recommendations = get_job_recommendations(profile)
+        match_map = {
+            match.job_id: match.matched_skills
+            for match in ApplicantJobMatch.objects.filter(
+                applicant=request.user,
+                job_id__in=[job.id for job in recommendations],
+            )
+        }
+        for job in recommendations:
+            raw = match_map.get(job.id, "")
+            job.why_matched_skills = [token.strip() for token in raw.split(",") if token.strip()]
         
         apps = request.user.application_set.all() 
         apps_sent_count = apps.count()
@@ -146,10 +162,12 @@ def dashboard(request):
                     best_job = job
 
             if best_job:
+                overlap_skills = _ordered_overlap_skills(best_job.skills, candidate.skills)
                 candidate_matches.append({
                     "candidate": candidate,
                     "job": best_job,
                     "score": best_score,
+                    "overlap_skills": overlap_skills,
                 })
     
         saved_searches = request.user.saved_searches.all()
