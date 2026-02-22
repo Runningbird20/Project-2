@@ -177,11 +177,7 @@ def dashboard(request):
                     "candidate": candidate,
                     "job": best_job,
                     "score": best_score,
-<<<<<<< HEAD
-                    "matched_skills": best_matched_skills,
-=======
                     "overlap_skills": overlap_skills,
->>>>>>> 37173b365c8ab928ed30a6776643feb5ff0f4067
                 })
     
         saved_searches = request.user.saved_searches.all()
