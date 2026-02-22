@@ -297,11 +297,102 @@
           <div class="tab-pane fade" id="tab-tools" role="tabpanel" aria-labelledby="tab-tools-btn" tabindex="0">
             <div class="surface-card">
               <h3 class="surface-title mb-2">More Tools</h3>
-              <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                <p class="text-muted mb-0">This section will include career tools such as saved searches, alerts, and resume insights.</p>
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                <p class="text-muted mb-0">Compare only offers received from employers in your dashboard.</p>
                 <div class="form-check form-switch mb-0">
                   <input class="form-check-input" type="checkbox" id="applicantDarkModeToggle" data-darkmode-toggle>
                   <label class="form-check-label" for="applicantDarkModeToggle">Dark mode</label>
+                </div>
+              </div>
+
+              <div class="border rounded-4 p-3 p-md-4 offer-compare-panel">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                  <h4 class="surface-title mb-0">Offer Comparison Tool</h4>
+                  <span class="small text-muted">{{ received_offer_rows|length }} received offer{{ received_offer_rows|length|pluralize }}</span>
+                </div>
+
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="preferredWorkModel">Preferred Work Model</label>
+                    <select id="preferredWorkModel" class="form-select">
+                      <option value="no_preference">No preference</option>
+                      <option value="remote">Remote</option>
+                      <option value="hybrid">Hybrid</option>
+                      <option value="onsite">On-site</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6 d-flex align-items-end">
+                    <div class="form-check mb-2">
+                      <input class="form-check-input" type="checkbox" id="visaRequired">
+                      <label class="form-check-label" for="visaRequired">I require visa sponsorship</label>
+                    </div>
+                  </div>
+                </div>
+                <div class="row g-3 mb-3">
+                  <div class="col-12">
+                    <h6 class="surface-title mb-2">Comparison Weights</h6>
+                  </div>
+                  <div class="col-sm-6 col-lg-3">
+                    <label class="form-label mb-1" for="weightSalary">Salary Weight</label>
+                    <input type="number" id="weightSalary" class="form-control form-control-sm offer-weight-input" min="0" step="1" value="40">
+                  </div>
+                  <div class="col-sm-6 col-lg-3">
+                    <label class="form-label mb-1" for="weightLocation">Location Weight</label>
+                    <input type="number" id="weightLocation" class="form-control form-control-sm offer-weight-input" min="0" step="1" value="20">
+                  </div>
+                  <div class="col-sm-6 col-lg-3">
+                    <label class="form-label mb-1" for="weightVisa">Visa Weight</label>
+                    <input type="number" id="weightVisa" class="form-control form-control-sm offer-weight-input" min="0" step="1" value="25">
+                  </div>
+                  <div class="col-sm-6 col-lg-3">
+                    <label class="form-label mb-1" for="weightBenefits">Benefits Weight</label>
+                    <input type="number" id="weightBenefits" class="form-control form-control-sm offer-weight-input" min="0" step="1" value="15">
+                  </div>
+                </div>
+                <small class="text-muted d-block mb-3" id="weightSummaryText">Weights are normalized automatically.</small>
+
+                <div class="vstack gap-2 mb-3" id="offerRows">
+                  {% for offer in received_offer_rows %}
+                  <div
+                    class="offer-row border rounded-4 p-3"
+                    data-offer-id="{{ offer.application_id }}"
+                    data-salary="{{ offer.salary_value }}"
+                    data-model="{{ offer.work_setting }}"
+                    data-visa="{{ offer.visa }}"
+                    data-benefits="{{ offer.benefits_score }}"
+                  >
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+                      <div>
+                        <div class="fw-semibold offer-name">{{ offer.company }} - {{ offer.title }}</div>
+                        <div class="small text-muted">Received {{ offer.received_at|date:"M j, Y" }}</div>
+                      </div>
+                      <div class="offer-total-score small fw-semibold"></div>
+                    </div>
+                    <div class="row g-2 small">
+                      <div class="col-sm-6 col-lg-3">
+                        <div class="text-muted">Salary</div>
+                        <div class="offer-readonly-value">{{ offer.salary_display }}</div>
+                      </div>
+                      <div class="col-sm-6 col-lg-3">
+                        <div class="text-muted">Work Model</div>
+                        <div class="offer-readonly-value">{{ offer.work_setting_label }}</div>
+                      </div>
+                      <div class="col-sm-6 col-lg-3">
+                        <div class="text-muted">Visa</div>
+                        <div class="offer-readonly-value">{{ offer.visa_label }}</div>
+                      </div>
+                      <div class="col-sm-6 col-lg-3">
+                        <div class="text-muted">Benefits</div>
+                        <div class="offer-readonly-value">{{ offer.benefits_score }}/10</div>
+                      </div>
+                    </div>
+                    <div class="small text-muted mt-2 offer-match-meta"></div>
+                  </div>
+                  {% empty %}
+                  <div id="noOffersRow" class="border rounded-4 p-3 text-muted">
+                    No offers received yet. Offers will appear here once an employer moves your application to Offer or Closed.
+                  </div>
+                  {% endfor %}
                 </div>
               </div>
             </div>
@@ -348,10 +439,202 @@
       } catch (e) {}
     }
 
+    function parseNumber(value) {
+      var n = Number(value);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function locationScore(preference, offerModel) {
+      if (!preference || preference === "no_preference") return 100;
+      if (preference === offerModel) return 100;
+      if (
+        (preference === "remote" && offerModel === "hybrid") ||
+        (preference === "hybrid" && (offerModel === "remote" || offerModel === "onsite")) ||
+        (preference === "onsite" && offerModel === "hybrid")
+      ) {
+        return 65;
+      }
+      return 25;
+    }
+
+    function visaScore(visaRequired, visaPolicy) {
+      if (!visaRequired) return 100;
+      if (visaPolicy === "yes") return 100;
+      if (visaPolicy === "unknown") return 40;
+      return 0;
+    }
+
+    function collectOfferRows() {
+      return Array.prototype.slice.call(document.querySelectorAll("#offerRows .offer-row"));
+    }
+
+    function weightValue(id, fallback) {
+      var el = document.getElementById(id);
+      if (!el) return fallback;
+      return Math.max(0, parseNumber(el.value));
+    }
+
+    function weightInputElements() {
+      return [
+        document.getElementById("weightSalary"),
+        document.getElementById("weightLocation"),
+        document.getElementById("weightVisa"),
+        document.getElementById("weightBenefits")
+      ].filter(Boolean);
+    }
+
+    function enforceWeightCap(changedInput) {
+      var inputs = weightInputElements();
+      if (!inputs.length) return;
+
+      inputs.forEach(function (input) {
+        var current = Math.max(0, parseNumber(input.value));
+        input.value = String(current);
+      });
+
+      if (!changedInput) return;
+
+      var othersTotal = inputs.reduce(function (sum, input) {
+        if (input === changedInput) return sum;
+        return sum + Math.max(0, parseNumber(input.value));
+      }, 0);
+      var maxForChanged = Math.max(0, 100 - othersTotal);
+      var changedValue = Math.max(0, parseNumber(changedInput.value));
+      if (changedValue > maxForChanged) {
+        changedInput.value = String(maxForChanged);
+      }
+    }
+
+    function normalizedWeights() {
+      var rawSalary = weightValue("weightSalary", 40);
+      var rawLocation = weightValue("weightLocation", 20);
+      var rawVisa = weightValue("weightVisa", 25);
+      var rawBenefits = weightValue("weightBenefits", 15);
+      var rawTotal = rawSalary + rawLocation + rawVisa + rawBenefits;
+      if (rawTotal <= 0) {
+        return { salary: 0.4, location: 0.2, visa: 0.25, benefits: 0.15 };
+      }
+      return {
+        salary: rawSalary / rawTotal,
+        location: rawLocation / rawTotal,
+        visa: rawVisa / rawTotal,
+        benefits: rawBenefits / rawTotal
+      };
+    }
+
+    function renderWeightSummary(weights) {
+      var node = document.getElementById("weightSummaryText");
+      if (!node) return;
+      var rawSalary = weightValue("weightSalary", 40);
+      var rawLocation = weightValue("weightLocation", 20);
+      var rawVisa = weightValue("weightVisa", 25);
+      var rawBenefits = weightValue("weightBenefits", 15);
+      var rawTotal = rawSalary + rawLocation + rawVisa + rawBenefits;
+      var remaining = Math.max(0, 100 - rawTotal);
+      node.textContent =
+        "Total entered: " + rawTotal.toFixed(0) + "/100 (remaining " + remaining.toFixed(0) + "). " +
+        "Weighted score: Salary " + (weights.salary * 100).toFixed(0) + "%, " +
+        "Location " + (weights.location * 100).toFixed(0) + "%, " +
+        "Visa " + (weights.visa * 100).toFixed(0) + "%, " +
+        "Benefits " + (weights.benefits * 100).toFixed(0) + "%";
+    }
+
+    function renderOfferComparison() {
+      var rows = collectOfferRows();
+      var rowsContainer = document.getElementById("offerRows");
+      if (!rowsContainer) return;
+      var weights = normalizedWeights();
+      renderWeightSummary(weights);
+
+      if (!rows.length) {
+        return;
+      }
+
+      var preferredModel = document.getElementById("preferredWorkModel").value;
+      var needsVisa = document.getElementById("visaRequired").checked;
+      var salaryValues = rows.map(function (row) {
+        return parseNumber(row.dataset.salary);
+      });
+      var maxSalary = Math.max.apply(null, salaryValues.concat([0]));
+
+      var scored = rows.map(function (row, idx) {
+        var nameNode = row.querySelector(".offer-name");
+        var name = nameNode ? nameNode.textContent.trim() : ("Offer " + (idx + 1));
+        var salary = parseNumber(row.dataset.salary);
+        var model = row.dataset.model || "onsite";
+        var visa = row.dataset.visa || "no";
+        var benefits = parseNumber(row.dataset.benefits);
+        benefits = Math.max(1, Math.min(10, benefits));
+
+        var salaryComponent = maxSalary > 0 ? (salary / maxSalary) * 100 : 0;
+        var locationComponent = locationScore(preferredModel, model);
+        var visaComponent = visaScore(needsVisa, visa);
+        var benefitsComponent = (benefits / 10) * 100;
+        var total =
+          (salaryComponent * weights.salary) +
+          (locationComponent * weights.location) +
+          (visaComponent * weights.visa) +
+          (benefitsComponent * weights.benefits);
+
+        return {
+          row: row,
+          name: name,
+          total: total,
+          salary: salaryComponent,
+          location: locationComponent,
+          visa: visaComponent,
+          benefits: benefitsComponent
+        };
+      });
+
+      scored.sort(function (a, b) { return b.total - a.total; });
+      scored.forEach(function (item, idx) {
+        var scoreEl = item.row.querySelector(".offer-total-score");
+        var metaEl = item.row.querySelector(".offer-match-meta");
+        if (scoreEl) {
+          if (idx === 0) {
+            scoreEl.innerHTML = 'Match Score: ' + item.total.toFixed(1) + ' <span class="badge bg-success-subtle text-success">Top</span>';
+          } else {
+            scoreEl.textContent = "Match Score: " + item.total.toFixed(1);
+          }
+        }
+        if (metaEl) {
+          metaEl.textContent =
+            "Salary " + item.salary.toFixed(0) +
+            " | Location " + item.location.toFixed(0) +
+            " | Visa " + item.visa.toFixed(0) +
+            " | Benefits " + item.benefits.toFixed(0);
+        }
+      });
+      scored.forEach(function (item) {
+        rowsContainer.appendChild(item.row);
+      });
+    }
+
+    function initOfferComparisonTool() {
+      var tableBody = document.getElementById("offerRows");
+      if (!tableBody) return;
+
+      document.getElementById("preferredWorkModel").addEventListener("change", renderOfferComparison);
+      document.getElementById("visaRequired").addEventListener("change", renderOfferComparison);
+      ["weightSalary", "weightLocation", "weightVisa", "weightBenefits"].forEach(function (id) {
+        var input = document.getElementById(id);
+        if (!input) return;
+        input.addEventListener("input", function () {
+          enforceWeightCap(input);
+          renderOfferComparison();
+        });
+      });
+
+      enforceWeightCap(null);
+      renderOfferComparison();
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
       activateTabFromQuery();
       bindInterviewMonthLinks();
       restoreScrollAfterMonthChange();
+      initOfferComparisonTool();
     });
   })();
 </script>
