@@ -42,6 +42,12 @@ class Application(models.Model):
     rejected_at = models.DateTimeField(blank=True, null=True)
     archived_by_applicant = models.BooleanField(default=False)
     archived_by_employer = models.BooleanField(default=False)
+    offer_letter_title = models.CharField(max_length=200, blank=True)
+    offer_letter_body = models.TextField(blank=True)
+    offer_compensation = models.CharField(max_length=200, blank=True)
+    offer_start_date = models.CharField(max_length=120, blank=True)
+    offer_response_deadline = models.CharField(max_length=120, blank=True)
+    offer_additional_terms = models.TextField(blank=True)
 
     class Meta:
         unique_together = ("user", "job")

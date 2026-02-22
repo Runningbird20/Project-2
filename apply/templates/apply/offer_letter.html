@@ -28,10 +28,8 @@
           <p class="mb-3">
             Dear <b>{{ template_data.application.user.get_full_name|default:template_data.application.user.username }}</b>,
           </p>
-          <p class="mb-3">
-            Congratulations. We are pleased to offer you the position of
-            <b>{{ template_data.job.title }}</b> with <b>{{ template_data.job.company }}</b>.
-          </p>
+          <h4 class="surface-title mb-3">{{ template_data.offer_title }}</h4>
+          <p class="mb-3" style="white-space: pre-wrap;">{{ template_data.offer_body }}</p>
 
           <div class="row g-3 my-4">
             <div class="col-md-6">
@@ -41,16 +39,14 @@
                 {% if template_data.job.location %}
                   <div class="text-muted small">Location: {{ template_data.job.location }}</div>
                 {% endif %}
+                <div class="text-muted small">Start Date: {{ template_data.offer_start_date }}</div>
               </div>
             </div>
             <div class="col-md-6">
               <div class="surface-card py-3 h-100">
                 <div class="text-uppercase small text-muted">Compensation</div>
-                {% if template_data.job.salary_range %}
-                  <div class="fw-semibold">{{ template_data.job.salary_range }}</div>
-                {% else %}
-                  <div class="text-muted">Compensation details to be provided.</div>
-                {% endif %}
+                <div class="fw-semibold">{{ template_data.offer_compensation }}</div>
+                <div class="text-muted small">Response Deadline: {{ template_data.offer_response_deadline }}</div>
               </div>
             </div>
           </div>
@@ -63,9 +59,14 @@
           <h5 class="surface-title mt-4">Offer Details</h5>
           <ul class="mb-4">
             <li>This offer is contingent on completion of required onboarding steps.</li>
-            <li>Start date and reporting details will be confirmed by the hiring team.</li>
-            <li>Please reply by the date communicated by your recruiter.</li>
+            <li>Start date and reporting details are shown above.</li>
+            <li>Please reply by {{ template_data.offer_response_deadline }}.</li>
           </ul>
+
+          {% if template_data.offer_additional_terms %}
+            <h5 class="surface-title mt-4">Additional Terms</h5>
+            <p style="white-space: pre-wrap;">{{ template_data.offer_additional_terms }}</p>
+          {% endif %}
 
           <p class="mb-4">
             If you have questions, please contact
@@ -77,6 +78,7 @@
             {% if template_data.is_applicant %}
               <a class="secondary-btn" href="{% url 'apply:application_status' %}">Back to tracker</a>
             {% else %}
+              <a class="secondary-btn" href="{% url 'apply:customize_offer_letter' template_data.application.id %}">Customize Letter</a>
               <a class="secondary-btn" href="{% url 'apply:employer_pipeline' template_data.job.id %}">Back to pipeline</a>
             {% endif %}
           </div>
