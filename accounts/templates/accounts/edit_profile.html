@@ -18,7 +18,7 @@
             <div class="field-block">{{ template_data.form.profile_picture.label_tag }} {{ template_data.form.profile_picture }}</div>
             <div class="field-block">{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</div>
 
-            <div class="field-block">
+            <div class="field-block" id="applicant_address_fields">
               <div class="border rounded-4 p-3 bg-light-subtle map-pin-card">
                 <div class="text-uppercase text-muted small mb-2">Address</div>
                 <div class="row g-3">
@@ -108,12 +108,16 @@
   const select = document.getElementById('id_account_type');
   const applicant = document.getElementById('applicant_fields');
   const employer = document.getElementById('employer_fields');
+  const applicantAddress = document.getElementById('applicant_address_fields');
   if (!select) return;
 
   function refresh() {
     const isEmployer = select.value === 'EMPLOYER';
     applicant.style.display = isEmployer ? 'none' : 'block';
     employer.style.display = isEmployer ? 'block' : 'none';
+    if (applicantAddress) {
+      applicantAddress.style.display = isEmployer ? 'none' : 'block';
+    }
   }
 
   select.addEventListener('change', refresh);

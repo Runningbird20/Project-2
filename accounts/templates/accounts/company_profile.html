@@ -54,6 +54,15 @@
           {% else %}
             <p class="text-muted">No perks added yet.</p>
           {% endif %}
+
+          <hr>
+
+          <h5 class="surface-title">Company HQ</h5>
+          {% if template_data.profile.city and template_data.profile.state %}
+            <p class="mb-0">{{ template_data.profile.city }}, {{ template_data.profile.state }}</p>
+          {% else %}
+            <p class="text-muted mb-0">No headquarters location added yet.</p>
+          {% endif %}
         </div>
 
         <div class="surface-card mt-3">

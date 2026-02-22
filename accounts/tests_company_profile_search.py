@@ -95,8 +95,37 @@ class CompanyProfileAndSearchTests(TestCase):
                 "company_description": "Updated description",
                 "company_culture": "Collaborative",
                 "company_perks": "Medical",
+                "address_line_1": "",
+                "address_line_2": "",
+                "city": "",
+                "state": "",
+                "postal_code": "",
+                "country": "United States",
             },
         )
         self.assertEqual(response.status_code, 302)
         self.employer_profile.refresh_from_db()
         self.assertEqual(self.employer_profile.company_name, "Acme Labs Updated")
+
+    def test_employer_can_set_company_hq_in_company_profile(self):
+        self.client.login(username="recruiter1", password="pass12345")
+        response = self.client.post(
+            reverse("accounts.company_profile_edit"),
+            {
+                "company_name": "Acme Labs",
+                "company_website": "",
+                "company_description": "Builds AI tools.",
+                "company_culture": "Remote-first and learning-focused.",
+                "company_perks": "401k match\nHome office stipend",
+                "address_line_1": "75 5th St NW",
+                "address_line_2": "",
+                "city": "Atlanta",
+                "state": "GA",
+                "postal_code": "30308",
+                "country": "United States",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.employer_profile.refresh_from_db()
+        self.assertEqual(self.employer_profile.city, "Atlanta")
+        self.assertEqual(self.employer_profile.state, "GA")

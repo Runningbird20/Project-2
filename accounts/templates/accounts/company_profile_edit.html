@@ -20,6 +20,37 @@
             <div>{{ template_data.form.company_culture.label_tag }} {{ template_data.form.company_culture }}{{ template_data.form.company_culture.errors }}</div>
             <div>{{ template_data.form.company_perks.label_tag }} {{ template_data.form.company_perks }}{{ template_data.form.company_perks.errors }}</div>
 
+            <div class="border rounded-4 p-3 bg-light-subtle map-pin-card">
+              <div class="text-uppercase text-muted small mb-2">Company HQ</div>
+              <div class="row g-3">
+                <div class="col-12">
+                  {{ template_data.form.address_line_1.label_tag }} {{ template_data.form.address_line_1 }}
+                  {{ template_data.form.address_line_1.errors }}
+                </div>
+                <div class="col-12">
+                  {{ template_data.form.address_line_2.label_tag }} {{ template_data.form.address_line_2 }}
+                  {{ template_data.form.address_line_2.errors }}
+                </div>
+                <div class="col-md-5">
+                  {{ template_data.form.city.label_tag }} {{ template_data.form.city }}
+                  {{ template_data.form.city.errors }}
+                </div>
+                <div class="col-md-3">
+                  {{ template_data.form.state.label_tag }} {{ template_data.form.state }}
+                  {{ template_data.form.state.errors }}
+                </div>
+                <div class="col-md-4">
+                  {{ template_data.form.postal_code.label_tag }} {{ template_data.form.postal_code }}
+                  {{ template_data.form.postal_code.errors }}
+                </div>
+                <div class="col-md-6">
+                  {{ template_data.form.country.label_tag }} {{ template_data.form.country }}
+                  {{ template_data.form.country.errors }}
+                </div>
+              </div>
+              <div class="form-text mt-2">Headquarters shown on your company profile. Job post office locations are managed per post.</div>
+            </div>
+
             <div class="form-actions mt-2">
               <button type="submit" class="primary-btn border-0">Save Company Profile</button>
               <a class="secondary-btn" href="{% url 'jobposts.dashboard' %}">Back to Dashboard</a>

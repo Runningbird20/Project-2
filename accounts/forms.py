@@ -111,7 +111,7 @@ class ApplicantAddressFieldsMixin:
         city = (self.cleaned_data.get("city") or "").strip()
         state = (self.cleaned_data.get("state") or "").strip()
         postal_code = _normalize_us_postal_code(self.cleaned_data.get("postal_code"))
-        country = (self.cleaned_data.get("country") or "").strip() or "United States"
+        country = (self.cleaned_data.get("country") or "").strip()
         zip5_match = re.match(r"^(\d{5})", postal_code)
         zip5 = zip5_match.group(1) if zip5_match else ""
         mapped_city_state = ZIP_CITY_STATE_OVERRIDES.get(zip5)
@@ -140,6 +140,9 @@ class ApplicantAddressFieldsMixin:
                     self.add_error(field_name, "This field is required.")
             if any(self.errors.get(field_name) for field_name in required_fields):
                 return ""
+
+            if not country:
+                country = "United States"
 
             self.cleaned_data["city"] = city
             self.cleaned_data["state"] = state
@@ -546,14 +549,48 @@ class ProfileEditForm(ApplicantAddressFieldsMixin, forms.ModelForm):
         if acct == Profile.AccountType.APPLICANT:
             cleaned["location"] = self._build_applicant_location(require_full=False)
         elif acct == Profile.AccountType.EMPLOYER:
-            cleaned["location"] = self._build_applicant_location(require_full=False)
+            # Employer HQ is managed in Company Profile, not Profile Edit.
+            # Keep existing values so account updates here do not clear HQ fields.
+            cleaned["location"] = (self.instance.location or "")
+            cleaned["address_line_1"] = (self.instance.address_line_1 or "")
+            cleaned["address_line_2"] = (self.instance.address_line_2 or "")
+            cleaned["city"] = (self.instance.city or "")
+            cleaned["state"] = (self.instance.state or "")
+            cleaned["postal_code"] = (self.instance.postal_code or "")
+            cleaned["country"] = (self.instance.country or "United States")
         return cleaned
 
     def clean_skills(self):
         return normalize_skills_csv(self.cleaned_data.get("skills", ""))
 
 
-class CompanyProfileForm(forms.ModelForm):
+class CompanyProfileForm(ApplicantAddressFieldsMixin, forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["country"].initial = "United States"
+        if self.instance and self.instance.pk and not self.is_bound:
+            if any(
+                [
+                    self.instance.address_line_1,
+                    self.instance.address_line_2,
+                    self.instance.city,
+                    self.instance.state,
+                    self.instance.postal_code,
+                    self.instance.country,
+                ]
+            ):
+                self.fields["address_line_1"].initial = self.instance.address_line_1
+                self.fields["address_line_2"].initial = self.instance.address_line_2
+                self.fields["city"].initial = self.instance.city
+                self.fields["state"].initial = self.instance.state
+                self.fields["postal_code"].initial = self.instance.postal_code
+                self.fields["country"].initial = self.instance.country or "United States"
+            else:
+                parsed = _parse_location_parts(self.instance.location)
+                for key in ["address_line_1", "address_line_2", "city", "state", "postal_code", "country"]:
+                    if parsed.get(key):
+                        self.fields[key].initial = parsed[key]
+
     class Meta:
         model = Profile
         fields = [
@@ -562,6 +599,12 @@ class CompanyProfileForm(forms.ModelForm):
             "company_description",
             "company_culture",
             "company_perks",
+            "address_line_1",
+            "address_line_2",
+            "city",
+            "state",
+            "postal_code",
+            "country",
         ]
         widgets = {
             "company_name": forms.TextInput(attrs={"class": "form-control"}),
@@ -575,6 +618,42 @@ class CompanyProfileForm(forms.ModelForm):
                     "placeholder": "One perk per line (e.g. 401k match, stipend, PTO)",
                 }
             ),
+            "address_line_1": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "e.g. 75 5th St NW",
+                }
+            ),
+            "address_line_2": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Suite, floor, unit (optional)",
+                }
+            ),
+            "city": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "e.g. Atlanta",
+                }
+            ),
+            "state": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "e.g. GA",
+                }
+            ),
+            "postal_code": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "e.g. 30308",
+                }
+            ),
+            "country": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "e.g. United States",
+                }
+            ),
         }
         labels = {
             "company_name": "Company Name",
@@ -582,6 +661,12 @@ class CompanyProfileForm(forms.ModelForm):
             "company_description": "Company Description",
             "company_culture": "Company Culture",
             "company_perks": "Perks",
+            "address_line_1": "Address Line 1",
+            "address_line_2": "Address Line 2",
+            "city": "City",
+            "state": "State",
+            "postal_code": "ZIP",
+            "country": "Country",
         }
 
     def clean_company_name(self):
@@ -589,3 +674,27 @@ class CompanyProfileForm(forms.ModelForm):
         if not value:
             raise forms.ValidationError("Company name is required for employers.")
         return value
+
+    def clean(self):
+        cleaned = super().clean()
+        address_line_1 = (cleaned.get("address_line_1") or "").strip()
+        address_line_2 = (cleaned.get("address_line_2") or "").strip()
+        city = (cleaned.get("city") or "").strip()
+        state = (cleaned.get("state") or "").strip()
+        postal_code = (cleaned.get("postal_code") or "").strip()
+        country = (cleaned.get("country") or "").strip()
+
+        # HQ is optional for company profile. If only default country is present,
+        # treat HQ as empty instead of forcing all fields.
+        if not any([address_line_1, address_line_2, city, state, postal_code]) and country.lower() in {"", "united states"}:
+            cleaned["country"] = ""
+
+        cleaned["location"] = self._build_applicant_location(require_full=False)
+        return cleaned
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.location = self.cleaned_data.get("location", "")
+        if commit:
+            instance.save()
+        return instance

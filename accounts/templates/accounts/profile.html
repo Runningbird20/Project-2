@@ -16,7 +16,7 @@
                 <h1 class="page-title page-title-sm mb-1">{{ template_data.viewed_user.get_full_name|default:template_data.viewed_user.username }}</h1>
                 <p class="surface-copy mb-1">{{ template_data.profile.get_account_type_display }}</p>
                 {% if template_data.is_own_profile %}
-                  {% if template_data.profile.location %}<p class="small text-muted mb-1">{{ template_data.profile.location }}</p>{% endif %}
+                  {% if template_data.profile.account_type == "APPLICANT" and template_data.profile.location %}<p class="small text-muted mb-1">{{ template_data.profile.location }}</p>{% endif %}
                 {% else %}
                   {% if template_data.profile.location_city_state %}<p class="small text-muted mb-1">{{ template_data.profile.location_city_state }}</p>{% endif %}
                 {% endif %}
