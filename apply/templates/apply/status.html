@@ -90,9 +90,11 @@
                         </p>
                         {% endif %}
                         {% if application.status == 'rejected' %}
-                        <div class="alert alert-danger rounded-4 mb-0">
+                        <div class="alert alert-danger rounded-4 mb-0 offer-rejection-alert">
                           <strong>Update on your application.</strong>
-                          {% if application.auto_rejected_for_timeout %}
+                          {% if application.rejected_offer_by_applicant %}
+                            You declined the offer from {{ application.job.company }}.
+                          {% elif application.auto_rejected_for_timeout %}
                             This application was automatically closed because the employer did not respond within 30 days.
                           {% else %}
                             We moved forward with other candidates at {{ application.job.company }}.
@@ -102,7 +104,7 @@
                           </div>
                           <form method="post" action="{% url 'apply:archive_application' application.id %}" class="mt-2">
                             {% csrf_token %}
-                            <button type="submit" class="secondary-btn btn-compact border-0">Archive now</button>
+                            <button type="submit" class="secondary-btn btn-compact border-0 offer-archive-btn">Archive now</button>
                           </form>
                         </div>
                         {% else %}
@@ -121,6 +123,12 @@
                         {% if application.status == 'offer' or application.status == 'closed' %}
                         <div class="form-actions mt-3">
                           <a class="primary-btn btn-compact" href="{% url 'apply:offer_letter' application.id %}">View Offer Letter</a>
+                          {% if application.status == 'offer' %}
+                          <form method="post" action="{% url 'apply:reject_offer' application.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="danger-btn btn-compact border-0">Reject Offer</button>
+                          </form>
+                          {% endif %}
                         </div>
                         {% endif %}
                         {% endif %}

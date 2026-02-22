@@ -278,6 +278,21 @@
                         <span class="me-1" aria-hidden="true">&#9679;</span>
                         Matched {{ match.job.title }}
                       </div>
+                      <div class="small mt-2">
+                        <span class="badge bg-info-subtle text-info-emphasis">
+                          Why matched: {{ match.score }}% skill overlap
+                        </span>
+                      </div>
+                      {% if match.matched_skills %}
+                        <div class="small text-muted mt-1">
+                          Shared skills: {{ match.matched_skills|join:", " }}
+                        </div>
+                      {% endif %}
+                      {% if not match.matched_skills %}
+                        <div class="small text-muted mt-1">
+                          Shared skills identified in role requirements.
+                        </div>
+                      {% endif %}
                     </div>
                     <div class="form-actions">
                       <a href="{% url 'accounts.public_profile' match.candidate.user.username %}" class="secondary-btn btn-compact">View Profile</a>
@@ -342,6 +357,9 @@
                   <div>
                     <div class="fw-semibold">{{ app.user.get_full_name|default:app.user.username }}</div>
                     <div class="small text-muted">{{ app.job.title }}</div>
+                    {% if app.rejected_offer_by_applicant %}
+                      <div class="small text-warning offer-rejected-by-applicant-label">Offer rejected by applicant</div>
+                    {% endif %}
                   </div>
                   <a href="{% url 'accounts.profile_with_id' app.user.id %}" class="secondary-btn btn-compact">View Profile</a>
                 </div>

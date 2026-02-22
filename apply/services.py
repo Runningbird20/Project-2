@@ -30,6 +30,7 @@ def enforce_employer_response_deadline():
         status="rejected",
         rejected_at=timezone.now(),
         auto_rejected_for_timeout=True,
+        rejected_offer_by_applicant=False,
     )
 
 

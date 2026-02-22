@@ -14,5 +14,6 @@ urlpatterns = [
     path('pipeline/<int:job_id>/export/', views.export_applicants_csv, name='export_applicants_csv'),
     path('offer-letter/<int:application_id>/', views.offer_letter, name='offer_letter'),
     path('offer-letter/<int:application_id>/customize/', views.customize_offer_letter, name='customize_offer_letter'),
+    path('offer-letter/<int:application_id>/reject/', views.reject_offer, name='reject_offer'),
 
 ]
