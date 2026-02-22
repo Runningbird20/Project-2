@@ -85,14 +85,21 @@ class Profile(models.Model):
             return ""
         parts = [part.strip() for part in raw.split(",") if part.strip()]
         if len(parts) < 2:
-            return raw
-        city = parts[-2]
-        region = parts[-1]
+            return ""
+
+        last_part = parts[-1]
+        has_explicit_country = not any(ch.isdigit() for ch in last_part) and len(last_part) > 2
+        if has_explicit_country and len(parts) >= 3:
+            city = parts[-3]
+            region = parts[-2]
+        else:
+            city = parts[-2]
+            region = parts[-1]
+
         match = re.match(r"^([A-Za-z]{2})(?:\s+\d{5}(?:-\d{4})?)?$", region)
         if match:
             return f"{city}, {match.group(1).upper()}"
-        region_first_token = region.split()[0] if region.split() else region
-        return f"{city}, {region_first_token}"
+        return ""
 
     @property
     def full_address(self):

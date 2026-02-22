@@ -289,28 +289,12 @@
                         <span class="me-1" aria-hidden="true">&#9679;</span>
                         Matched {{ match.job.title }}
                       </div>
-<<<<<<< HEAD
-                      <div class="small mt-2">
-                        <span class="badge bg-info-subtle text-info-emphasis">
-                          Why matched: {{ match.score }}% skill overlap
-                        </span>
-                      </div>
-                      {% if match.matched_skills %}
-                        <div class="small text-muted mt-1">
-                          Shared skills: {{ match.matched_skills|join:", " }}
-                        </div>
-                      {% endif %}
-                      {% if not match.matched_skills %}
-                        <div class="small text-muted mt-1">
-                          Shared skills identified in role requirements.
-=======
                       {% if match.overlap_skills %}
                         <div class="small text-muted mt-2">Why matched</div>
                         <div class="d-flex flex-wrap gap-1 mt-1">
                           {% for skill in match.overlap_skills %}
                             <span class="badge bg-success-subtle text-success">{{ skill }}</span>
                           {% endfor %}
->>>>>>> 37173b365c8ab928ed30a6776643feb5ff0f4067
                         </div>
                       {% endif %}
                     </div>

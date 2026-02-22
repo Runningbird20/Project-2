@@ -9,6 +9,45 @@ from django.utils.safestring import mark_safe
 from .models import Profile
 from project2.skills import normalize_skills_csv
 
+ZIP_CITY_STATE_OVERRIDES = {
+    "02108": ("Boston", "MA"),
+    "10001": ("New York", "NY"),
+    "10018": ("New York", "NY"),
+    "27601": ("Raleigh", "NC"),
+    "28202": ("Charlotte", "NC"),
+    "30303": ("Atlanta", "GA"),
+    "30308": ("Atlanta", "GA"),
+    "33101": ("Miami", "FL"),
+    "37203": ("Nashville", "TN"),
+    "55401": ("Minneapolis", "MN"),
+    "60601": ("Chicago", "IL"),
+    "78701": ("Austin", "TX"),
+    "78704": ("Austin", "TX"),
+    "80202": ("Denver", "CO"),
+    "84101": ("Salt Lake City", "UT"),
+    "85004": ("Phoenix", "AZ"),
+    "90012": ("Los Angeles", "CA"),
+    "92101": ("San Diego", "CA"),
+    "94103": ("San Francisco", "CA"),
+    "97204": ("Portland", "OR"),
+    "98101": ("Seattle", "WA"),
+    "98104": ("Seattle", "WA"),
+}
+
+
+def _normalize_us_postal_code(raw_postal):
+    postal = (raw_postal or "").strip()
+    if not postal:
+        return ""
+    match = re.match(r"^(\d{5})(?:[-\s]?(\d{4}))?$", postal)
+    if not match:
+        return postal
+    base = match.group(1)
+    suffix = match.group(2)
+    if suffix:
+        return f"{base}-{suffix}"
+    return base
+
 
 def _split_state_and_postal(raw_region):
     region = (raw_region or "").strip()
@@ -71,8 +110,15 @@ class ApplicantAddressFieldsMixin:
         address_line_2 = (self.cleaned_data.get("address_line_2") or "").strip()
         city = (self.cleaned_data.get("city") or "").strip()
         state = (self.cleaned_data.get("state") or "").strip()
-        postal_code = (self.cleaned_data.get("postal_code") or "").strip()
+        postal_code = _normalize_us_postal_code(self.cleaned_data.get("postal_code"))
         country = (self.cleaned_data.get("country") or "").strip() or "United States"
+        zip5_match = re.match(r"^(\d{5})", postal_code)
+        zip5 = zip5_match.group(1) if zip5_match else ""
+        mapped_city_state = ZIP_CITY_STATE_OVERRIDES.get(zip5)
+        if mapped_city_state:
+            city, state = mapped_city_state
+        elif len(state) == 2:
+            state = state.upper()
 
         has_any = any([address_line_1, address_line_2, city, state, postal_code, country])
         if require_full and not any([address_line_1, city, state, postal_code]):
@@ -94,6 +140,11 @@ class ApplicantAddressFieldsMixin:
                     self.add_error(field_name, "This field is required.")
             if any(self.errors.get(field_name) for field_name in required_fields):
                 return ""
+
+            self.cleaned_data["city"] = city
+            self.cleaned_data["state"] = state
+            self.cleaned_data["postal_code"] = postal_code
+            self.cleaned_data["country"] = country
 
             parts = [address_line_1]
             if address_line_2:
