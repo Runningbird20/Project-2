@@ -146,11 +146,14 @@ def dashboard(request):
 
         for candidate in applicant_profiles:
             candidate_skills = _skill_set(candidate.skills)
+            candidate_skill_list = _skill_list(candidate.skills)
+            candidate_skill_map = {skill.lower(): skill for skill in candidate_skill_list}
             if not candidate_skills:
                 continue
 
             best_job = None
             best_score = 0
+            best_matched_skills = []
             for job, job_skills in job_skill_sets:
                 if (candidate.user_id, job.id) in applied_pairs:
                     continue
@@ -158,8 +161,15 @@ def dashboard(request):
                 if score <= MIN_MATCH_PERCENT:
                     continue
                 if score > best_score:
+                    job_skill_list = _skill_list(job.skills)
+                    matched_skills = [
+                        candidate_skill_map.get(skill.lower(), skill)
+                        for skill in job_skill_list
+                        if skill.lower() in candidate_skills
+                    ]
                     best_score = score
                     best_job = job
+                    best_matched_skills = matched_skills
 
             if best_job:
                 overlap_skills = _ordered_overlap_skills(best_job.skills, candidate.skills)

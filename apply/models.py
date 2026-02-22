@@ -42,6 +42,7 @@ class Application(models.Model):
     rejected_at = models.DateTimeField(blank=True, null=True)
     archived_by_applicant = models.BooleanField(default=False)
     archived_by_employer = models.BooleanField(default=False)
+    rejected_offer_by_applicant = models.BooleanField(default=False)
     offer_letter_title = models.CharField(max_length=200, blank=True)
     offer_letter_body = models.TextField(blank=True)
     offer_compensation = models.CharField(max_length=200, blank=True)

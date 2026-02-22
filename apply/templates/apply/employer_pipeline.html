@@ -39,6 +39,11 @@
             <div class="small text-muted mb-2">
               Auto-archives on {{ app.auto_archive_on|date:"M j, Y" }}.
             </div>
+            {% if app.rejected_offer_by_applicant %}
+            <div class="small text-warning mb-2 offer-rejected-by-applicant-label">
+              Offer rejected by applicant.
+            </div>
+            {% endif %}
             {% if app.auto_rejected_for_timeout %}
             <div class="small text-danger mb-2">
               Auto-rejected after no employer response for 30 days.
@@ -46,7 +51,7 @@
             {% endif %}
             <form method="post" action="{% url 'apply:archive_rejected_applicant' app.id %}" class="mb-2">
               {% csrf_token %}
-              <button type="submit" class="secondary-btn btn-compact border-0 w-100">Archive Rejected Applicant</button>
+              <button type="submit" class="secondary-btn btn-compact border-0 w-100 offer-archive-employer-btn">Archive Rejected Applicant</button>
             </form>
             {% endif %}
             <div class="d-grid gap-2">

@@ -307,11 +307,13 @@ def update_status(request, application_id):
             if new_status == "rejected":
                 application.rejected_at = timezone.now()
                 application.auto_rejected_for_timeout = False
+                application.rejected_offer_by_applicant = False
             else:
                 application.rejected_at = None
                 application.archived_by_applicant = False
                 application.archived_by_employer = False
                 application.auto_rejected_for_timeout = False
+                application.rejected_offer_by_applicant = False
             application.save()
             if new_status == "offer":
                 _ensure_offer_defaults(application)
@@ -420,6 +422,56 @@ def archive_rejected_applicant(request, application_id):
     application.save(update_fields=["archived_by_employer"])
     messages.success(request, "Rejected applicant archived.")
     return redirect("apply:employer_pipeline", job_id=application.job.id)
+
+
+@login_required
+@require_POST
+def reject_offer(request, application_id):
+    application = get_object_or_404(
+        Application.objects.select_related("job", "job__owner"),
+        id=application_id,
+        user=request.user,
+    )
+    if application.status not in ("offer", "closed"):
+        messages.warning(request, "You can only reject active offers.")
+        return redirect("apply:application_status")
+
+    application.status = "rejected"
+    application.rejected_at = timezone.now()
+    application.responded_at = timezone.now()
+    application.auto_rejected_for_timeout = False
+    application.rejected_offer_by_applicant = True
+    application.archived_by_applicant = False
+    application.archived_by_employer = False
+    application.save(
+        update_fields=[
+            "status",
+            "rejected_at",
+            "responded_at",
+            "auto_rejected_for_timeout",
+            "rejected_offer_by_applicant",
+            "archived_by_applicant",
+            "archived_by_employer",
+        ]
+    )
+
+    if application.job.owner and application.job.owner.email:
+        try:
+            send_mail(
+                subject=f"Offer declined: {application.job.title}",
+                message=(
+                    f"{application.user.get_full_name() or application.user.username} declined the offer "
+                    f"for {application.job.title} at {application.job.company}."
+                ),
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
+                recipient_list=[application.job.owner.email],
+                fail_silently=True,
+            )
+        except Exception:
+            pass
+
+    messages.success(request, "Offer rejected. This will be reflected in the employer pipeline.")
+    return redirect("apply:application_status")
 
 @login_required
 def export_applicants_csv(request, job_id):

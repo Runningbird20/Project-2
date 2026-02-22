@@ -1017,6 +1017,67 @@ html.dark-mode .status-rejected {
   background-color: rgba(107, 114, 128, 0.08);
 }
 
+.offer-rejection-alert {
+  border-color: #f2b5b9;
+  background: #fff2f3;
+  color: #5e1b21;
+}
+
+.offer-rejected-by-applicant-label {
+  color: #8b5e00 !important;
+  font-weight: 600;
+}
+
+html.dark-mode .offer-rejection-alert {
+  border-color: #7f1d1d;
+  background: rgba(88, 28, 34, 0.45);
+  color: #ffd4d8;
+}
+
+html.dark-mode .offer-rejection-alert strong {
+  color: #ffe8eb;
+}
+
+html.dark-mode .offer-rejected-by-applicant-label {
+  color: #ffd166 !important;
+}
+
+.offer-archive-btn {
+  border-color: #8b2026;
+  color: #8b2026;
+}
+
+html.dark-mode .offer-archive-btn {
+  background: #2a3b58;
+  color: #e6edf8;
+  border-color: #4a5d7d;
+}
+
+html.dark-mode .offer-archive-btn:hover,
+html.dark-mode .offer-archive-btn:focus {
+  background: #8eb9ff;
+  color: #0b1526;
+  border-color: #8eb9ff;
+}
+
+.offer-archive-employer-btn {
+  border-color: #8b2026;
+  color: #8b2026;
+}
+
+html.dark-mode .offer-archive-employer-btn {
+  background: #2a3b58;
+  color: #e6edf8;
+  border-color: #4a5d7d;
+}
+
+html.dark-mode .offer-archive-employer-btn:hover,
+html.dark-mode .offer-archive-employer-btn:focus {
+  background: #8eb9ff;
+  color: #0b1526;
+  border-color: #8eb9ff;
+}
+
 .job-post-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 200px;
