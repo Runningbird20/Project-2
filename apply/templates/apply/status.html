@@ -349,6 +349,7 @@
                     <input type="number" id="weightBenefits" class="form-control form-control-sm offer-weight-input" min="0" step="1" value="15">
                   </div>
                 </div>
+                <small class="text-muted d-block mb-3" id="weightSummaryText">Weights are normalized automatically.</small>
 
                 <div class="vstack gap-2 mb-3" id="offerRows">
                   {% for offer in received_offer_rows %}
@@ -365,6 +366,7 @@
                         <div class="fw-semibold offer-name">{{ offer.company }} - {{ offer.title }}</div>
                         <div class="small text-muted">Received {{ offer.received_at|date:"M j, Y" }}</div>
                       </div>
+                      <div class="offer-total-score small fw-semibold"></div>
                     </div>
                     <div class="row g-2 small">
                       <div class="col-sm-6 col-lg-3">
@@ -384,22 +386,13 @@
                         <div class="offer-readonly-value">{{ offer.benefits_score }}/10</div>
                       </div>
                     </div>
+                    <div class="small text-muted mt-2 offer-match-meta"></div>
                   </div>
                   {% empty %}
                   <div id="noOffersRow" class="border rounded-4 p-3 text-muted">
                     No offers received yet. Offers will appear here once an employer moves your application to Offer or Closed.
                   </div>
                   {% endfor %}
-                </div>
-
-                <div class="border rounded-4 p-3">
-                  <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h5 class="surface-title mb-0">Comparison Results</h5>
-                    <small class="text-muted" id="weightSummaryText">Weights are normalized automatically.</small>
-                  </div>
-                  <div id="offerResultsRows" class="vstack gap-2">
-                    <div class="text-muted small">No received offers available to compare.</div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -481,6 +474,37 @@
       return Math.max(0, parseNumber(el.value));
     }
 
+    function weightInputElements() {
+      return [
+        document.getElementById("weightSalary"),
+        document.getElementById("weightLocation"),
+        document.getElementById("weightVisa"),
+        document.getElementById("weightBenefits")
+      ].filter(Boolean);
+    }
+
+    function enforceWeightCap(changedInput) {
+      var inputs = weightInputElements();
+      if (!inputs.length) return;
+
+      inputs.forEach(function (input) {
+        var current = Math.max(0, parseNumber(input.value));
+        input.value = String(current);
+      });
+
+      if (!changedInput) return;
+
+      var othersTotal = inputs.reduce(function (sum, input) {
+        if (input === changedInput) return sum;
+        return sum + Math.max(0, parseNumber(input.value));
+      }, 0);
+      var maxForChanged = Math.max(0, 100 - othersTotal);
+      var changedValue = Math.max(0, parseNumber(changedInput.value));
+      if (changedValue > maxForChanged) {
+        changedInput.value = String(maxForChanged);
+      }
+    }
+
     function normalizedWeights() {
       var rawSalary = weightValue("weightSalary", 40);
       var rawLocation = weightValue("weightLocation", 20);
@@ -501,7 +525,14 @@
     function renderWeightSummary(weights) {
       var node = document.getElementById("weightSummaryText");
       if (!node) return;
+      var rawSalary = weightValue("weightSalary", 40);
+      var rawLocation = weightValue("weightLocation", 20);
+      var rawVisa = weightValue("weightVisa", 25);
+      var rawBenefits = weightValue("weightBenefits", 15);
+      var rawTotal = rawSalary + rawLocation + rawVisa + rawBenefits;
+      var remaining = Math.max(0, 100 - rawTotal);
       node.textContent =
+        "Total entered: " + rawTotal.toFixed(0) + "/100 (remaining " + remaining.toFixed(0) + "). " +
         "Weighted score: Salary " + (weights.salary * 100).toFixed(0) + "%, " +
         "Location " + (weights.location * 100).toFixed(0) + "%, " +
         "Visa " + (weights.visa * 100).toFixed(0) + "%, " +
@@ -510,13 +541,12 @@
 
     function renderOfferComparison() {
       var rows = collectOfferRows();
-      var resultsBody = document.getElementById("offerResultsRows");
-      if (!resultsBody) return;
+      var rowsContainer = document.getElementById("offerRows");
+      if (!rowsContainer) return;
       var weights = normalizedWeights();
       renderWeightSummary(weights);
 
       if (!rows.length) {
-        resultsBody.innerHTML = '<div class="text-muted small">No received offers available to compare.</div>';
         return;
       }
 
@@ -547,6 +577,7 @@
           (benefitsComponent * weights.benefits);
 
         return {
+          row: row,
           name: name,
           total: total,
           salary: salaryComponent,
@@ -557,24 +588,27 @@
       });
 
       scored.sort(function (a, b) { return b.total - a.total; });
-
-      resultsBody.innerHTML = scored.map(function (item, idx) {
-        var leadTag = idx === 0 ? ' <span class="badge bg-success-subtle text-success">Top</span>' : "";
-        return (
-          '<div class="border rounded-4 p-3">' +
-            '<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">' +
-              '<div class="fw-semibold">' + item.name + leadTag + "</div>" +
-              '<div class="fw-semibold">Total: ' + item.total.toFixed(1) + "</div>" +
-            "</div>" +
-            '<div class="row g-2 small">' +
-              '<div class="col-sm-6 col-lg-3"><div class="text-muted">Salary</div><div>' + item.salary.toFixed(0) + "</div></div>" +
-              '<div class="col-sm-6 col-lg-3"><div class="text-muted">Location</div><div>' + item.location.toFixed(0) + "</div></div>" +
-              '<div class="col-sm-6 col-lg-3"><div class="text-muted">Visa</div><div>' + item.visa.toFixed(0) + "</div></div>" +
-              '<div class="col-sm-6 col-lg-3"><div class="text-muted">Benefits</div><div>' + item.benefits.toFixed(0) + "</div></div>" +
-            "</div>" +
-          "</div>"
-        );
-      }).join("");
+      scored.forEach(function (item, idx) {
+        var scoreEl = item.row.querySelector(".offer-total-score");
+        var metaEl = item.row.querySelector(".offer-match-meta");
+        if (scoreEl) {
+          if (idx === 0) {
+            scoreEl.innerHTML = 'Match Score: ' + item.total.toFixed(1) + ' <span class="badge bg-success-subtle text-success">Top</span>';
+          } else {
+            scoreEl.textContent = "Match Score: " + item.total.toFixed(1);
+          }
+        }
+        if (metaEl) {
+          metaEl.textContent =
+            "Salary " + item.salary.toFixed(0) +
+            " | Location " + item.location.toFixed(0) +
+            " | Visa " + item.visa.toFixed(0) +
+            " | Benefits " + item.benefits.toFixed(0);
+        }
+      });
+      scored.forEach(function (item) {
+        rowsContainer.appendChild(item.row);
+      });
     }
 
     function initOfferComparisonTool() {
@@ -586,9 +620,13 @@
       ["weightSalary", "weightLocation", "weightVisa", "weightBenefits"].forEach(function (id) {
         var input = document.getElementById(id);
         if (!input) return;
-        input.addEventListener("input", renderOfferComparison);
+        input.addEventListener("input", function () {
+          enforceWeightCap(input);
+          renderOfferComparison();
+        });
       });
 
+      enforceWeightCap(null);
       renderOfferComparison();
     }
 
