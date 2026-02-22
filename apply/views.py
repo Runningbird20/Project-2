@@ -263,6 +263,12 @@ def application_status(request):
         .select_related("job")
         .order_by("-score", "-updated_at")
     )
+    for match in matched_jobs:
+        match.matched_skills_list = [
+            token.strip()
+            for token in (match.matched_skills or "").split(",")
+            if token.strip()
+        ]
     interview_context = get_applicant_interview_context(
         request.user,
         month_key=request.GET.get("interview_month"),

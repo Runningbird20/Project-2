@@ -29,7 +29,18 @@
           <tbody>
             {% for job in recommendations %}
             <tr>
-              <td class="ps-4 py-3"><div class="fw-bold">{{ job.title }}</div><div class="small text-muted">{{ job.company }}</div></td>
+              <td class="ps-4 py-3">
+                <div class="fw-bold">{{ job.title }}</div>
+                <div class="small text-muted">{{ job.company }}</div>
+                {% if job.why_matched_skills %}
+                  <div class="small text-muted mt-2">Why matched</div>
+                  <div class="d-flex flex-wrap gap-1 mt-1">
+                    {% for skill in job.why_matched_skills %}
+                      <span class="badge bg-success-subtle text-success">{{ skill }}</span>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </td>
               <td class="small text-muted">{{ job.location }}</td>
               <td class="text-end pe-4"><a href="{% url 'jobposts.detail' job.id %}" class="secondary-btn">View details</a></td>
             </tr>
@@ -278,6 +289,7 @@
                         <span class="me-1" aria-hidden="true">&#9679;</span>
                         Matched {{ match.job.title }}
                       </div>
+<<<<<<< HEAD
                       <div class="small mt-2">
                         <span class="badge bg-info-subtle text-info-emphasis">
                           Why matched: {{ match.score }}% skill overlap
@@ -291,6 +303,14 @@
                       {% if not match.matched_skills %}
                         <div class="small text-muted mt-1">
                           Shared skills identified in role requirements.
+=======
+                      {% if match.overlap_skills %}
+                        <div class="small text-muted mt-2">Why matched</div>
+                        <div class="d-flex flex-wrap gap-1 mt-1">
+                          {% for skill in match.overlap_skills %}
+                            <span class="badge bg-success-subtle text-success">{{ skill }}</span>
+                          {% endfor %}
+>>>>>>> 37173b365c8ab928ed30a6776643feb5ff0f4067
                         </div>
                       {% endif %}
                     </div>

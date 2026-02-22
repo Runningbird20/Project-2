@@ -681,5 +681,9 @@ def applicant_clusters_map(request):
     return render(
         request,
         "accounts/applicant_clusters_map.html",
-        {"template_data": template_data, "clusters": clusters},
+        {
+            "template_data": template_data,
+            "clusters": clusters,
+            "google_maps_api_key": getattr(settings, "GOOGLE_MAPS_API_KEY", ""),
+        },
     )
