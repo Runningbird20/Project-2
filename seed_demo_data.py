@@ -68,25 +68,29 @@ STREET_SUFFIXES = ["St", "Ave", "Blvd", "Rd", "Ln", "Way", "Dr"]
 
 UNIT_LABELS = ["Suite", "Floor", "Unit"]
 
-US_CITIES = [
-    ("Atlanta", "GA", "30303", 33.7490, -84.3880),
-    ("Austin", "TX", "78701", 30.2672, -97.7431),
-    ("Seattle", "WA", "98101", 47.6062, -122.3321),
-    ("Denver", "CO", "80202", 39.7392, -104.9903),
-    ("Chicago", "IL", "60601", 41.8781, -87.6298),
-    ("Boston", "MA", "02108", 42.3601, -71.0589),
-    ("Miami", "FL", "33101", 25.7617, -80.1918),
-    ("Phoenix", "AZ", "85004", 33.4484, -112.0740),
-    ("San Francisco", "CA", "94103", 37.7749, -122.4194),
-    ("New York", "NY", "10001", 40.7128, -74.0060),
-    ("Los Angeles", "CA", "90012", 34.0522, -118.2437),
-    ("Portland", "OR", "97204", 45.5152, -122.6784),
-    ("Nashville", "TN", "37203", 36.1627, -86.7816),
-    ("Raleigh", "NC", "27601", 35.7796, -78.6382),
-    ("Minneapolis", "MN", "55401", 44.9778, -93.2650),
-    ("Salt Lake City", "UT", "84101", 40.7608, -111.8910),
-    ("Charlotte", "NC", "28202", 35.2271, -80.8431),
-    ("San Diego", "CA", "92101", 32.7157, -117.1611),
+US_ZIP_INDEX = [
+    ("30303", "Atlanta", "GA", 33.7490, -84.3880),
+    ("30308", "Atlanta", "GA", 33.7715, -84.3856),
+    ("78701", "Austin", "TX", 30.2672, -97.7431),
+    ("78704", "Austin", "TX", 30.2465, -97.7602),
+    ("98101", "Seattle", "WA", 47.6062, -122.3321),
+    ("98104", "Seattle", "WA", 47.6026, -122.3282),
+    ("80202", "Denver", "CO", 39.7392, -104.9903),
+    ("60601", "Chicago", "IL", 41.8864, -87.6186),
+    ("02108", "Boston", "MA", 42.3588, -71.0637),
+    ("33101", "Miami", "FL", 25.7617, -80.1918),
+    ("85004", "Phoenix", "AZ", 33.4510, -112.0685),
+    ("94103", "San Francisco", "CA", 37.7725, -122.4091),
+    ("10001", "New York", "NY", 40.7506, -73.9972),
+    ("10018", "New York", "NY", 40.7547, -73.9925),
+    ("90012", "Los Angeles", "CA", 34.0614, -118.2365),
+    ("97204", "Portland", "OR", 45.5190, -122.6765),
+    ("37203", "Nashville", "TN", 36.1522, -86.7896),
+    ("27601", "Raleigh", "NC", 35.7796, -78.6382),
+    ("55401", "Minneapolis", "MN", 44.9833, -93.2676),
+    ("84101", "Salt Lake City", "UT", 40.7549, -111.8986),
+    ("28202", "Charlotte", "NC", 35.2271, -80.8431),
+    ("92101", "San Diego", "CA", 32.7157, -117.1611),
 ]
 
 WORK_SETTINGS = ["remote", "onsite", "hybrid"]
@@ -137,6 +141,11 @@ def parse_args():
         action="store_true",
         help="Delete previously generated users/job posts for this prefix before creating new data.",
     )
+    parser.add_argument(
+        "--clear-only",
+        action="store_true",
+        help="Delete previously generated users/job posts for this prefix and exit without creating new data.",
+    )
     return parser.parse_args()
 
 
@@ -146,7 +155,7 @@ def pick_skills(min_count=3, max_count=7):
 
 
 def random_address():
-    city, state, zip_code, base_lat, base_lon = random.choice(US_CITIES)
+    zip_code, city, state, base_lat, base_lon = random.choice(US_ZIP_INDEX)
     line_1 = f"{random.randint(100, 9999)} {random.choice(STREET_NAMES)} {random.choice(STREET_SUFFIXES)}"
     line_2 = ""
     if random.random() < 0.45:
@@ -337,8 +346,9 @@ def clear_seed_data(prefix):
     user_ids = list(users.values_list("id", flat=True))
 
     # Remove jobs owned by seeded users first (cascades office locations).
-    JobPost.objects.filter(owner_id__in=user_ids).delete()
-    users.delete()
+    deleted_jobs, _ = JobPost.objects.filter(owner_id__in=user_ids).delete()
+    deleted_users, _ = users.delete()
+    return deleted_users, deleted_jobs
 
 
 def main():
@@ -346,8 +356,13 @@ def main():
     random.seed()
 
     with transaction.atomic():
-        if args.clear_prefix:
-            clear_seed_data(args.prefix)
+        if args.clear_prefix or args.clear_only:
+            deleted_users, deleted_jobs = clear_seed_data(args.prefix)
+            print(f"Deleted users: {deleted_users}")
+            print(f"Deleted jobs/related rows: {deleted_jobs}")
+            if args.clear_only:
+                print(f"Cleanup complete for prefix: {args.prefix}_*")
+                return
 
         employers = create_employers(args.prefix, args.employers, args.password)
         applicants = create_applicants(args.prefix, args.applicants, args.password)

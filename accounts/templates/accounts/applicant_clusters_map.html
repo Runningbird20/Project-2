@@ -49,41 +49,58 @@
 
 {% block extra_scripts %}
 {% if clusters %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+{% if google_maps_api_key %}
 <script>
-(function () {
+function initApplicantClustersMap() {
   const dataElement = document.getElementById('applicant-clusters-data');
   if (!dataElement) return;
 
   const clusters = JSON.parse(dataElement.textContent);
   if (!clusters.length) return;
 
-  const map = L.map('applicantClustersMap');
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
-
-  const bounds = [];
-  clusters.forEach((cluster) => {
-    const radius = Math.min(28, 8 + cluster.count * 2);
-    const marker = L.circleMarker([cluster.latitude, cluster.longitude], {
-      radius: radius,
-      color: '#1d2433',
-      weight: 1.2,
-      fillColor: '#1d2433',
-      fillOpacity: 0.25
-    }).addTo(map);
-    marker.bindPopup(
-      '<strong>' + cluster.location + '</strong><br>' +
-      cluster.count + ' applicant' + (cluster.count === 1 ? '' : 's')
-    );
-    bounds.push([cluster.latitude, cluster.longitude]);
+  const mapEl = document.getElementById('applicantClustersMap');
+  const map = new google.maps.Map(mapEl, {
+    center: { lat: clusters[0].latitude, lng: clusters[0].longitude },
+    zoom: 5,
+    mapTypeControl: false,
+    streetViewControl: false,
+    fullscreenControl: true,
   });
 
-  map.fitBounds(bounds, { padding: [28, 28] });
+  const infoWindow = new google.maps.InfoWindow();
+  const bounds = new google.maps.LatLngBounds();
+
+  clusters.forEach((cluster) => {
+    const marker = new google.maps.Marker({
+      position: { lat: cluster.latitude, lng: cluster.longitude },
+      map: map,
+      title: cluster.location,
+      label: String(cluster.count),
+    });
+    marker.addListener('click', () => {
+      infoWindow.setContent(
+        '<div style="min-width:180px">' +
+          '<strong>' + cluster.location + '</strong><br>' +
+          cluster.count + ' applicant' + (cluster.count === 1 ? '' : 's') +
+        '</div>'
+      );
+      infoWindow.open({ map: map, anchor: marker });
+    });
+    bounds.extend(marker.getPosition());
+  });
+
+  map.fitBounds(bounds, 28);
+}
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key|urlencode }}&callback=initApplicantClustersMap"></script>
+{% else %}
+<script>
+(function () {
+  const mapContainer = document.getElementById('applicantClustersMap');
+  if (!mapContainer) return;
+  mapContainer.innerHTML = '<div class="d-flex h-100 align-items-center justify-content-center text-muted">Google Maps is not configured. Set GOOGLE_MAPS_API_KEY to enable this map.</div>';
 })();
 </script>
+{% endif %}
 {% endif %}
 {% endblock extra_scripts %}

@@ -13,9 +13,10 @@ MIN_MATCH_PERCENT = 50
 def _skill_set(raw_value):
     if not raw_value:
         return set()
+    normalized = str(raw_value).replace(";", ",").replace("\n", ",")
     return {
         token.strip().lower()
-        for token in raw_value.split(",")
+        for token in normalized.split(",")
         if token.strip()
     }
 
@@ -49,7 +50,7 @@ def sync_applicant_job_matches(applicant_user):
 
         overlap = sorted(applicant_skills.intersection(job_skills))
         match_percent = _skill_overlap_percent(applicant_skills, job_skills)
-        if not overlap or match_percent <= MIN_MATCH_PERCENT:
+        if not overlap or match_percent < MIN_MATCH_PERCENT:
             continue
 
         matched_job_ids.add(job.id)
