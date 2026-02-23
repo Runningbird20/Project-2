@@ -79,9 +79,11 @@ function initApplicantClustersMap() {
     });
     marker.addListener('click', () => {
       infoWindow.setContent(
-        '<div style="min-width:180px">' +
-          '<strong>' + cluster.location + '</strong><br>' +
-          cluster.count + ' applicant' + (cluster.count === 1 ? '' : 's') +
+        '<div class="map-popup-card">' +
+          '<div class="map-popup-title">' + cluster.location + '</div>' +
+          '<div class="map-popup-meta">' +
+            cluster.count + ' applicant' + (cluster.count === 1 ? '' : 's') +
+          '</div>' +
         '</div>'
       );
       infoWindow.open({ map: map, anchor: marker });
