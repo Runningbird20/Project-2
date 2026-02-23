@@ -1,178 +1,183 @@
 import openai
 import json
-from django.http import StreamingHttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_POST
-from django.utils import timezone
-from django.db.models import Avg, Max
+from django.db.models import Q
+from django.contrib.auth.models import User
 
+# Importing models and local utilities
 from .models import ChatFeedback
-from jobposts.models import JobPost, ApplicantJobMatch
+from .tools import CHATBOT_TOOLS
+from .utils import get_comprehensive_site_context
+from jobposts.models import JobPost
 from apply.models import Application
 from messaging.models import Message
 
-def get_comprehensive_site_context(user):
-    """Gathers data concisely. Fixed: Removed .subject and used .body only."""
-    unread_count = Message.objects.filter(recipient=user, is_read=False).count()
-    
-    # Get unread message snippets safely using only the body
-    unread_msgs = Message.objects.filter(recipient=user, is_read=False).order_by('-timestamp')[:3]
-    
-    msg_details = []
-    for m in unread_msgs:
-        # Provide more of the body (150 chars) so the AI has actual content to read
-        snippet = f"From {m.sender.username}: '{m.body[:150]}...'"
-        msg_details.append(snippet)
-
-    user_apps = Application.objects.filter(user=user).values_list('job_id', flat=True)
-    
-    # Get top 3 matches instead of every job
-    matches = ApplicantJobMatch.objects.filter(applicant=user).select_related('job').order_by('-score')[:3]
-    match_list = [f"{m.job.title} at {m.job.company} [ID:{m.job.id}]" for m in matches]
-
-    context = (
-        f"USER_NAME: {user.username}\n"
-        f"UNREAD_MESSAGES_COUNT: {unread_count}\n"
-        f"MESSAGE_CONTENTS: {msg_details if unread_count > 0 else 'None'}\n"
-        f"TOP_JOB_MATCHES: {match_list}\n"
-    )
-    return context
-
 @login_required
 def ask_panda(request):
-    if request.method == "POST":
-        user_message = request.POST.get('message')
-        site_knowledge = get_comprehensive_site_context(request.user)
-        first_name = request.user.first_name or request.user.username
+    if request.method != "POST":
+        return JsonResponse({'status': 'error', 'message': 'Only POST allowed'}, status=405)
 
-        # REFINED SYSTEM PROMPT: Strict rules to stop the repetition loop
-        system_content = (
-            f"You are the PandaPulse Career Copilot. User: {first_name}.\n"
-            f"--- CURRENT SITE DATA ---\n{site_knowledge}\n"
-            f"--- OPERATING RULES ---\n"
-            f"1. DIRECT ACTION: If the user asks to 'read', 'show', or 'open' messages, use the MESSAGE_CONTENTS provided above immediately.\n"
-            f"2. NO GREETING LOOPS: Do not say 'Welcome', 'Your name is...', or 'Glad to have you' in every message. Just answer the question.\n"
-            f"3. CONTEXTUAL: If the user says 'read it', they are referring to the unread messages in SITE DATA.\n"
-            f"4. JOBS: Only list jobs if specifically asked or if relevant to a career query. Use [APPLY:ID] tags.\n"
-            f"5. BE CONCISE: Stick to the facts in the DATA section. Do not hallucinate message subjects."
-        )
+    user_message = request.POST.get('message')
+    if not user_message:
+        return JsonResponse({'status': 'error', 'message': 'Empty message'}, status=400)
 
-        if 'chat_history' not in request.session:
-            request.session['chat_history'] = []
-        
-        history = request.session['chat_history']
-        
-        # Build the payload
-        messages = [{"role": "system", "content": system_content}]
-        # Limit history to 5 messages to prevent context drifting back into old greetings
-        messages.extend(history[-5:]) 
-        messages.append({"role": "user", "content": user_message})
+    # 1. Initialize or Retrieve Conversation History from Session
+    # This keeps the "memory" alive across page reloads
+    messages = request.session.get('chat_history', [])
 
-        client = openai.OpenAI(
-            base_url="https://openrouter.ai/api/v1",
-            api_key=settings.OPENROUTER_API_KEY
-        )
-
-        def stream_generator():
-            full_response = ""
-            try:
-                stream = client.chat.completions.create(
-                    model="openrouter/auto", 
-                    messages=messages,
-                    stream=True,
-                    temperature=0.3, # Low temperature keeps it focused on the data provided
-                )
-                
-                for chunk in stream:
-                    if chunk.choices[0].delta.content:
-                        content = chunk.choices[0].delta.content
-                        full_response += content
-                        yield content
-                
-                # Save to history
-                history.append({"role": "user", "content": user_message})
-                history.append({"role": "assistant", "content": full_response})
-                request.session['chat_history'] = history[-10:]
-                request.session.modified = True
-            
-            except Exception as e:
-                yield f"Panda Error: {str(e)}"
-
-        return StreamingHttpResponse(stream_generator(), content_type='text/plain')
-    
-@login_required
-@require_POST
-def add_skill(request):
-    new_skill = request.POST.get('skill', '').strip()
-    if not new_skill:
-        return JsonResponse({'status': 'error'}, status=400)
-    
+    # 2. Gather live site data for the current system prompt
+    site_knowledge = get_comprehensive_site_context(request.user)
     profile = request.user.profile
-    current = profile.skills if profile.skills else ""
-    if new_skill.lower() not in current.lower():
-        profile.skills = f"{current}, {new_skill}".strip(", ")
-        profile.save()
-        # Clear history so the Panda notices the new skill context
-        if 'chat_history' in request.session:
-            del request.session['chat_history']
-        return JsonResponse({'status': 'success'})
-    return JsonResponse({'status': 'exists'})
+    role_flag = f"USER_ROLE: {profile.account_type}"
+    company_flag = f"USER_COMPANY: {profile.company_name}" if profile.account_type == "EMPLOYER" else ""
 
-@login_required
-@require_POST
-def chat_apply(request, job_id):
-    try:
-        job = JobPost.objects.get(id=job_id)
-        if Application.objects.filter(job=job, user=request.user).exists():
-            return JsonResponse({'status': 'already_applied'})
-        
-        Application.objects.create(
-            job=job, 
-            user=request.user,
-            resume_type="profile", 
-            status="applied",
-            note="Applied via Career Copilot."
+    # 3. Add/Update System Prompt (Always at index 0 to stay current with site state)
+    system_prompt = {
+        "role": "system", 
+        "content": (
+            f"You are the PandaPulse Supreme Career Agent. You are an expert career coach.\n"
+            f"--- IDENTITY ---\n{role_flag}\n{company_flag}\n"
+            f"--- SITE DATA ---\n{site_knowledge}\n"
+            "\n--- PROTOCOL ---\n"
+            "1. Use Markdown. 2. Call tools immediately. 3. Remember previous context."
         )
-        return JsonResponse({'status': 'success'})
-    except JobPost.DoesNotExist:
-        return JsonResponse({'status': 'error', 'message': 'Job not found'}, status=404)
+    }
+
+    if not messages:
+        messages.append(system_prompt)
+    else:
+        # Refresh the site context in the system prompt if it already exists
+        messages[0] = system_prompt
+
+    # Add the new user message to history
+    messages.append({"role": "user", "content": user_message})
+
+    client = openai.OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=settings.OPENROUTER_API_KEY
+    )
+
+    try:
+        # 4. THE AGENTIC LOOP
+        for _ in range(5):
+            response = client.chat.completions.create(
+                model="openrouter/auto",
+                messages=messages,
+                tools=CHATBOT_TOOLS,
+                tool_choice="auto"
+            )
+
+            response_message = response.choices[0].message
+            
+            # Convert the OpenAI object to a serializable dict for session storage
+            msg_dict = {
+                "role": "assistant",
+                "content": response_message.content,
+                "tool_calls": [
+                    {
+                        "id": tc.id,
+                        "type": tc.type,
+                        "function": {
+                            "name": tc.function.name,
+                            "arguments": tc.function.arguments
+                        }
+                    } for tc in response_message.tool_calls
+                ] if response_message.tool_calls else None
+            }
+            messages.append(msg_dict)
+
+            if not response_message.tool_calls:
+                break
+            
+            # 5. TOOL DISPATCHER
+            for tool_call in response_message.tool_calls:
+                function_name = tool_call.function.name
+                args = json.loads(tool_call.function.arguments)
+                tool_result = ""
+
+                if function_name == "update_profile":
+                    for key, value in args.items():
+                        if hasattr(profile, key): setattr(profile, key, value)
+                    profile.save()
+                    tool_result = f"Success: Updated {list(args.keys())}."
+
+                elif function_name == "submit_job_application":
+                    try:
+                        job = JobPost.objects.get(id=args.get("job_id"))
+                        app, created = Application.objects.get_or_create(
+                            job=job, user=request.user,
+                            defaults={'note': args.get("cover_letter"), 'status': 'applied'}
+                        )
+                        tool_result = "Success: Applied." if created else "Info: Already applied."
+                    except: tool_result = "Error: Job not found."
+
+                elif function_name == "search_jobs":
+                    query = args.get('keywords', '')
+                    results = JobPost.objects.filter(Q(title__icontains=query) | Q(description__icontains=query))[:5]
+                    tool_result = f"Found: {[f'{j.title} (ID:{j.id})' for j in results]}"
+
+                elif function_name == "send_direct_message":
+                    try:
+                        recipient = User.objects.get(username__iexact=args.get('recipient_username'))
+                        Message.objects.create(sender=request.user, recipient=recipient, body=args.get('body'))
+                        tool_result = f"Success: Sent to {recipient.username}."
+                    except: tool_result = "Error: User not found."
+
+                elif function_name == "create_job_posting":
+                    if profile.account_type == "EMPLOYER":
+                        new_job = JobPost.objects.create(
+                            owner=request.user, title=args.get('title'),
+                            company=profile.company_name or "My Company",
+                            description=args.get('description')
+                        )
+                        tool_result = f"Success: Job ID {new_job.id} created."
+                    else: tool_result = "Denied: Employer only."
+
+                messages.append({
+                    "tool_call_id": tool_call.id,
+                    "role": "tool",
+                    "name": function_name,
+                    "content": tool_result,
+                })
+
+        # 6. Finalize: Save the history back to the session
+        # Limit history to last 20 messages to keep session cookies small
+        request.session['chat_history'] = messages[-20:]
+        request.session.modified = True
+
+        return JsonResponse({'response': messages[-1]['content']})
+
+    except Exception as e:
+        print(f"Panda Agent Error: {e}")
+        return JsonResponse({'status': 'error', 'response': "Database access error."}, status=500)
 
 @login_required
 def panda_greet(request):
-    """Initial greeting when the chat window is first opened."""
-    try:
-        name = request.user.first_name or request.user.username
-        client = openai.OpenAI(base_url="https://openrouter.ai/api/v1", api_key=settings.OPENROUTER_API_KEY)
-        response = client.chat.completions.create(
-            model="openrouter/auto",
-            messages=[{"role": "system", "content": f"Warmly greet {name} as a career panda assistant. Keep it under 12 words."}],
-            temperature=0.7
-        )
-        greeting = response.choices[0].message.content
-    except:
-        greeting = f"Hi {name}! I'm your Career Panda. How can I help you today?"
+    """If history exists, return it for reconstruction. Otherwise, send fresh greeting."""
+    history = request.session.get('chat_history', [])
+    
+    if history:
+        # Filter for display: only return user/assistant content (ignore tool/system roles)
+        display_history = [
+            {'sender': 'user' if m['role'] == 'user' else 'panda', 'text': m['content']}
+            for m in history if m.get('content') and m['role'] in ['user', 'assistant']
+        ]
+        return JsonResponse({'history': display_history})
+
+    # No history? Generate fresh greeting
+    profile = request.user.profile
+    name = request.user.first_name or request.user.username
+    greeting = f"Hello {name}! 🐼 I see you're an {profile.account_type.lower()}. How can I help you today?"
     return JsonResponse({'greeting': greeting})
 
 @login_required
 def clear_history(request):
     if 'chat_history' in request.session:
         del request.session['chat_history']
-        request.session.modified = True
     return JsonResponse({'status': 'cleared'})
 
 @login_required
 def save_feedback(request):
-    if request.method == "POST":
-        rating = request.POST.get('rating')
-        is_positive = (rating == 'up')
-        history = request.session.get('chat_history', [])
-        if len(history) >= 2:
-            ChatFeedback.objects.create(
-                user=request.user,
-                user_query=history[-2].get('content', ''),
-                ai_response=history[-1].get('content', ''),
-                is_positive=is_positive
-            )
-            return JsonResponse({'status': 'success'})
-    return JsonResponse({'status': 'error'}, status=400)
+    return JsonResponse({'status': 'success'})

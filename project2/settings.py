@@ -30,8 +30,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-+z*$czjy+qza6+nog8@p^22s4mr&nxca@r1t^hq$g8&hksx*m#'
-
+SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -70,7 +69,7 @@ MIDDLEWARE = [
     'accounts.middleware.UpdateLastActivityMiddleware',
 ]
 
-OPENROUTER_API_KEY = "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"
+OPENROUTER_API_KEY = env('OPENROUTER_API_KEY', default='')
 
 ROOT_URLCONF = 'project2.urls'
 
