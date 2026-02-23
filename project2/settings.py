@@ -70,7 +70,7 @@ MIDDLEWARE = [
     'accounts.middleware.UpdateLastActivityMiddleware',
 ]
 
-OPENROUTER_API_KEY = "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"
+OPENROUTER_API_KEY = "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"
 
 ROOT_URLCONF = 'project2.urls'
 
