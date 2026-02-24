@@ -39,15 +39,9 @@
             {% if user.is_authenticated %}
               <a class="nav-link site-link" href="{% url 'pulses:feed' %}">Pulses</a>
             {% endif %}
-<<<<<<< HEAD
-            <a class="nav-link site-link" href="{% url 'jobposts.search' %}">
-              {% if can_post_job %}Candidate Search{% else %}Open Positions{% endif %}
-            </a>
-=======
             {% if not can_post_job or user.is_staff %}
               <a class="nav-link site-link" href="{% url 'jobposts.search' %}">Open Positions</a>
             {% endif %}
->>>>>>> parent of ec6bc89 (merge conflicts)
             {% if user.is_authenticated %}
               {% if can_post_job %}
                 <a class="nav-link site-link" href="{% url 'accounts.company_profile_edit' %}">Company Profile</a>
@@ -60,10 +54,6 @@
               <a class="nav-link site-link" href="{% url 'accounts.login' %}">Login</a>
               <a class="site-cta" href="{% url 'accounts.signup' %}">Get Started</a>
             {% endif %}
-            <button type="button" class="theme-toggle-btn ms-lg-2" id="globalThemeToggle" aria-label="Toggle color theme" aria-pressed="false">
-              <i class="bi bi-moon-stars-fill"></i>
-              <span class="theme-toggle-label">Dark</span>
-            </button>
           </div>
         </div>
       </div>
@@ -119,46 +109,9 @@
     <script src="{% static 'mascot/panda.js' %}"></script>
     <script>
       (function () {
-        function syncThemeControls(isDark) {
-          document.querySelectorAll("[data-darkmode-toggle]").forEach(function (toggle) {
-            toggle.checked = isDark;
-          });
-          var globalToggle = document.getElementById("globalThemeToggle");
-          if (!globalToggle) return;
-          var icon = globalToggle.querySelector("i");
-          var label = globalToggle.querySelector(".theme-toggle-label");
-          globalToggle.setAttribute("aria-pressed", isDark ? "true" : "false");
-          if (icon) {
-            icon.className = isDark ? "bi bi-sun-fill" : "bi bi-moon-stars-fill";
-          }
-          if (label) {
-            label.textContent = isDark ? "Light" : "Dark";
-          }
-        }
-
         function applyTheme(mode) {
           var isDark = mode === "dark";
           document.documentElement.classList.toggle("dark-mode", isDark);
-<<<<<<< HEAD
-          try { localStorage.setItem("site-theme", isDark ? "dark" : "light"); } catch (e) {}
-          syncThemeControls(isDark);
-        }
-        document.addEventListener("DOMContentLoaded", function () {
-          var mode = localStorage.getItem("site-theme") === "dark" ? "dark" : "light";
-          applyTheme(mode);
-
-          var globalToggle = document.getElementById("globalThemeToggle");
-          if (globalToggle) {
-            globalToggle.addEventListener("click", function () {
-              var nextMode = document.documentElement.classList.contains("dark-mode") ? "light" : "dark";
-              applyTheme(nextMode);
-            });
-          }
-
-          document.querySelectorAll("[data-darkmode-toggle]").forEach(function (toggle) {
-            toggle.addEventListener("change", function () {
-              applyTheme(toggle.checked ? "dark" : "light");
-=======
           try {
             localStorage.setItem("site-theme", isDark ? "dark" : "light");
           } catch (e) {}
@@ -182,7 +135,6 @@
           document.querySelectorAll("[data-darkmode-toggle]").forEach(function (toggle) {
             toggle.addEventListener("change", function () {
               applyTheme(this.checked ? "dark" : "light");
->>>>>>> parent of ec6bc89 (merge conflicts)
             });
           });
         });
