@@ -23,6 +23,12 @@ def ask_panda(request):
     if not user_message:
         return JsonResponse({'status': 'error', 'message': 'Empty message'}, status=400)
 
+    if not settings.OPENROUTER_API_KEY:
+        return JsonResponse({
+            'status': 'error',
+            'response': "Panda Assistant is not configured yet. Add OPENROUTER_API_KEY to your .env and restart the server."
+        }, status=200)
+
     # 1. Initialize or Retrieve Conversation History from Session
     # This keeps the "memory" alive across page reloads
     messages = request.session.get('chat_history', [])
@@ -151,7 +157,10 @@ def ask_panda(request):
 
     except Exception as e:
         print(f"Panda Agent Error: {e}")
-        return JsonResponse({'status': 'error', 'response': "Database access error."}, status=500)
+        return JsonResponse({
+            'status': 'error',
+            'response': f"Assistant error: {str(e)}"
+        }, status=500)
 
 @login_required
 def panda_greet(request):

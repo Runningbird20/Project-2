@@ -43,20 +43,17 @@
 </section>
 
 {% if user.is_authenticated %}
-<div id="chatbot-widget" style="position:fixed;right:24px;bottom:24px;z-index:1050;">
-  <button id="chatbot-toggle" class="primary-btn btn-compact" type="button" style="min-width:0;border-radius:999px;padding:.7rem .95rem;">
-    Panda Assistant
-  </button>
-  <div id="chatbot-panel" class="card shadow-sm mt-2" style="width:340px;max-width:calc(100vw - 32px);display:none;">
-    <div class="card-header d-flex justify-content-between align-items-center py-2">
-      <strong style="font-size:.95rem;">Panda Assistant</strong>
-      <button id="chatbot-close" class="btn btn-sm btn-outline-secondary" type="button">Close</button>
+<div id="chatbot-widget">
+  <div id="chatbot-panel" class="chatbot-panel">
+    <div class="chatbot-header">
+      <strong class="chatbot-title">Panda Assistant</strong>
+      <button id="chatbot-close" class="chatbot-close-btn" type="button" aria-label="Close assistant">Close</button>
     </div>
-    <div id="chatbot-messages" class="card-body" style="height:320px;overflow:auto;background:#fff;"></div>
-    <div class="card-footer p-2">
-      <form id="chatbot-form" class="d-flex gap-2">
-        <input id="chatbot-input" class="form-control form-control-sm" type="text" placeholder="Ask about jobs, profile updates, and more" />
-        <button class="btn btn-sm btn-dark" type="submit">Send</button>
+    <div id="chatbot-messages" class="chatbot-messages"></div>
+    <div class="chatbot-footer">
+      <form id="chatbot-form" class="chatbot-form">
+        <input id="chatbot-input" class="form-control chatbot-input" type="text" placeholder="Ask about jobs, profile updates, and more" />
+        <button class="chatbot-send-btn" type="submit">Send</button>
       </form>
     </div>
   </div>
@@ -72,13 +69,13 @@ document.addEventListener("DOMContentLoaded", function () {
   }));
 
   const panel = document.getElementById("chatbot-panel");
-  const toggle = document.getElementById("chatbot-toggle");
+  const mascot = document.getElementById("panda-mascot");
   const closeBtn = document.getElementById("chatbot-close");
   const form = document.getElementById("chatbot-form");
   const input = document.getElementById("chatbot-input");
   const messages = document.getElementById("chatbot-messages");
 
-  if (!panel || !toggle || !closeBtn || !form || !input || !messages) return;
+  if (!panel || !mascot || !closeBtn || !form || !input || !messages) return;
 
   function getCookie(name) {
     const parts = (`; ${document.cookie}`).split(`; ${name}=`);
@@ -88,12 +85,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function addMessage(sender, text) {
     const row = document.createElement("div");
-    row.className = sender === "user" ? "text-end mb-2" : "text-start mb-2";
+    row.className = `chatbot-message-row ${sender === "user" ? "is-user" : "is-panda"}`;
     const bubble = document.createElement("div");
     bubble.className = sender === "user"
-      ? "d-inline-block px-2 py-1 rounded text-white bg-dark"
-      : "d-inline-block px-2 py-1 rounded border";
-    bubble.style.maxWidth = "90%";
+      ? "chatbot-message chatbot-message-user"
+      : "chatbot-message chatbot-message-panda";
     bubble.textContent = text || "";
     row.appendChild(bubble);
     messages.appendChild(row);
@@ -108,15 +104,45 @@ document.addEventListener("DOMContentLoaded", function () {
       headers: { "X-CSRFToken": getCookie("csrftoken") },
       body
     });
-    if (!res.ok) throw new Error("Request failed");
-    const data = await res.json();
+    let data = {};
+    try {
+      data = await res.json();
+    } catch (err) {
+      data = {};
+    }
+    if (!res.ok) {
+      throw new Error(data.response || data.message || "Request failed");
+    }
     addMessage("panda", data.response || "No response.");
   }
 
-  toggle.addEventListener("click", async function () {
-    const hidden = panel.style.display === "none";
-    panel.style.display = hidden ? "block" : "none";
-    if (!hidden || messages.dataset.loaded === "1") return;
+  function clamp(n, min, max) {
+    return Math.max(min, Math.min(max, n));
+  }
+
+  function setPanelPosition() {
+    const mascotRect = mascot.getBoundingClientRect();
+    const panelWidth = panel.offsetWidth || 340;
+    const panelHeight = panel.offsetHeight || 420;
+    const gap = 12;
+    const viewportPadding = 12;
+
+    let left = mascotRect.left + mascotRect.width - panelWidth;
+    let top = mascotRect.top - panelHeight - gap;
+
+    if (top < viewportPadding) {
+      top = mascotRect.bottom + gap;
+    }
+
+    left = clamp(left, viewportPadding, window.innerWidth - panelWidth - viewportPadding);
+    top = clamp(top, viewportPadding, window.innerHeight - panelHeight - viewportPadding);
+
+    panel.style.left = `${left}px`;
+    panel.style.top = `${top}px`;
+  }
+
+  async function ensureHistoryLoaded() {
+    if (messages.dataset.loaded === "1") return;
     try {
       const res = await fetch("{% url 'chatbot:panda_greet' %}");
       const data = await res.json();
@@ -129,10 +155,29 @@ document.addEventListener("DOMContentLoaded", function () {
     } catch (err) {
       addMessage("panda", "Chatbot is unavailable right now.");
     }
+  }
+
+  window.addEventListener("panda:activate", async function (event) {
+    event.preventDefault();
+    const hidden = panel.style.display === "none";
+    if (!hidden) {
+      panel.style.display = "none";
+      return;
+    }
+    panel.style.display = "block";
+    setPanelPosition();
+    await ensureHistoryLoaded();
+    input.focus();
   });
 
   closeBtn.addEventListener("click", function () {
     panel.style.display = "none";
+  });
+
+  window.addEventListener("resize", function () {
+    if (panel.style.display !== "none") {
+      setPanelPosition();
+    }
   });
 
   form.addEventListener("submit", async function (event) {
@@ -144,7 +189,7 @@ document.addEventListener("DOMContentLoaded", function () {
     try {
       await postMessage(text);
     } catch (err) {
-      addMessage("panda", "I could not process that request.");
+      addMessage("panda", err.message || "I could not process that request.");
     }
   });
 });

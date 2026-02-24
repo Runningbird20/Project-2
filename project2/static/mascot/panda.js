@@ -169,6 +169,11 @@
     if (wrap) {
       wrap.addEventListener("click", () => {
         if (moving || dragging) return;
+
+        const chatbotEvent = new CustomEvent("panda:activate", { cancelable: true });
+        const handled = !window.dispatchEvent(chatbotEvent);
+        if (handled) return;
+
         const lines = [
           "Need help? Check Job Search 👀",
           "Tip: keep your profile public for recruiters!",
@@ -303,3 +308,4 @@
     });
   })();
   
+
