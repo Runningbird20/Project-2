@@ -10,3 +10,4 @@ GOOGLE_APP_PASSWORD=abcd abcd abcd abcd
 DEFAULT_FROM_EMAIL=example@gmail.com
 
 GOOGLE_MAPS_API_KEY=examplekey
+OPENROUTER_API_KEY=examplekey
