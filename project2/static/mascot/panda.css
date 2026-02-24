@@ -90,7 +90,8 @@
     opacity: 0;
     transform: translateY(6px) scale(0.98);
     transition: opacity .18s ease, transform .18s ease;
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: pointer;
     white-space: normal;
   }
   

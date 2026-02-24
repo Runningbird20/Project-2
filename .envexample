@@ -6,5 +6,7 @@ EMAIL_USE_SSL=false
 EMAIL_TIMEOUT=20
 
 EMAIL_HOST_USER=example@gmail.com
+# Google App Password (16 chars). Spaces/hyphens are okay; app strips them.
+# Do NOT use your normal Gmail password.
 GOOGLE_APP_PASSWORD=abcd abcd abcd abcd
 DEFAULT_FROM_EMAIL=example@gmail.com

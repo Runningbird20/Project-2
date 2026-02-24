@@ -1,5 +1,6 @@
 import csv
 from collections import Counter
+from smtplib import SMTPAuthenticationError
 
 from django.conf import settings
 from django.contrib import messages
@@ -305,6 +306,12 @@ def signup(request):
                 from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
                 recipient_list=[user.email],
                 fail_silently=False,
+            )
+        except SMTPAuthenticationError:
+            messages.warning(
+                request,
+                "Account confirmation email could not be sent: Gmail authentication failed. "
+                "Use a valid 16-character Google App Password (not your normal Gmail password).",
             )
         except Exception as exc:
             if settings.DEBUG:

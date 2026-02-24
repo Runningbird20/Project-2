@@ -159,25 +159,32 @@ document.addEventListener("DOMContentLoaded", function () {
 
   window.addEventListener("panda:activate", async function (event) {
     event.preventDefault();
-    const hidden = panel.style.display === "none";
-    if (!hidden) {
-      panel.style.display = "none";
+    const isOpen = panel.classList.contains("is-open");
+    if (isOpen) {
+      panel.classList.remove("is-open");
       return;
     }
-    panel.style.display = "block";
     setPanelPosition();
+    panel.classList.add("is-open");
     await ensureHistoryLoaded();
     input.focus();
   });
 
   closeBtn.addEventListener("click", function () {
-    panel.style.display = "none";
+    panel.classList.remove("is-open");
   });
 
   window.addEventListener("resize", function () {
-    if (panel.style.display !== "none") {
+    if (panel.classList.contains("is-open")) {
       setPanelPosition();
     }
+  });
+
+  document.addEventListener("click", function (event) {
+    if (!panel.classList.contains("is-open")) return;
+    if (panel.contains(event.target)) return;
+    if (mascot.contains(event.target)) return;
+    panel.classList.remove("is-open");
   });
 
   form.addEventListener("submit", async function (event) {

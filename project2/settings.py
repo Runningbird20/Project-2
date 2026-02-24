@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'apply',
     'jobposts',
     'map',
+    'chatbot',
     'messaging',
     'interviews',
     'pulses',
@@ -85,11 +86,8 @@ MIDDLEWARE = [
     'accounts.middleware.UpdateLastActivityMiddleware',
 ]
 
-<<<<<<< HEAD
 OPENROUTER_API_KEY = _env('OPENROUTER_API_KEY', '').strip()
 
-=======
->>>>>>> 4830808bec08e39248dac37fb97ed775a850c899
 ROOT_URLCONF = 'project2.urls'
 
 TEMPLATES = [
@@ -169,8 +167,11 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Email configuration.
-# Default to SMTP so confirmation emails are actually delivered unless overridden.
-EMAIL_BACKEND = _env('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+smtp_backend = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_BACKEND = _env('EMAIL_BACKEND', '').strip()
+if not EMAIL_BACKEND:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' if DEBUG else smtp_backend
+
 EMAIL_HOST = _env('EMAIL_HOST', 'smtp.gmail.com').strip()
 EMAIL_PORT = int(_env('EMAIL_PORT', '587'))
 EMAIL_HOST_USER = _env('EMAIL_HOST_USER', 'pandapulse.donotreply@gmail.com').strip()
@@ -183,7 +184,21 @@ EMAIL_TIMEOUT = int(_env('EMAIL_TIMEOUT', '20'))
 DEFAULT_FROM_EMAIL = _env('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER).strip()
 GOOGLE_MAPS_API_KEY = _env('GOOGLE_MAPS_API_KEY', '').strip()
 
-if EMAIL_BACKEND == 'django.core.mail.backends.smtp.EmailBackend' and (not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD):
+_placeholder_users = {'example@gmail.com', 'your-email@gmail.com'}
+_placeholder_passwords = {'abcdabcdabcdabcd', 'yourapppassword', 'changeme'}
+if (
+    DEBUG
+    and EMAIL_BACKEND == smtp_backend
+    and (
+        not EMAIL_HOST_USER
+        or not EMAIL_HOST_PASSWORD
+        or EMAIL_HOST_USER.lower() in _placeholder_users
+        or EMAIL_HOST_PASSWORD.lower() in _placeholder_passwords
+    )
+):
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+if not DEBUG and EMAIL_BACKEND == smtp_backend and (not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD):
     raise ImproperlyConfigured(
         "SMTP email requires EMAIL_HOST_USER and EMAIL_HOST_PASSWORD (or GOOGLE_APP_PASSWORD)."
     )
