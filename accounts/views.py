@@ -22,6 +22,8 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import ensure_csrf_cookie
 
+from django.core.mail import EmailMessage
+
 from map.services import OfficeLocationGeocodingError, geocode_office_address
 from project2.skills import COMMON_SKILLS
 
@@ -694,3 +696,48 @@ def applicant_clusters_map(request):
             "google_maps_api_key": getattr(settings, "GOOGLE_MAPS_API_KEY", ""),
         },
     )
+
+
+
+@login_required
+def email_candidate(request, candidate_id):
+    if not _is_employer(request.user):
+        return HttpResponseForbidden("Only employers can email candidates.")
+    
+    candidate = get_object_or_404(Profile, id=candidate_id)
+
+    # Candidate must have email visible
+    if candidate.hide_email_from_employers:
+        return HttpResponseForbidden("This candidate has chosen not to receive emails from employers.")
+    
+    # Candidate must have an email address
+    if not candidate.user.email: 
+        return HttpResponseForbidden("This candidate does not have an email address on file.") 
+
+    if request.method == "POST":
+        subject = request.POST.get("subject")
+        message = request.POST.get("message")
+
+        if not subject or not message:
+            messages.error(request, "Subject and message are required.")
+            return redirect("accounts.email_candidate", candidate_id=candidate_id)
+
+
+
+        email = EmailMessage(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,  # must match Gmail account
+            [candidate.user.email],
+            reply_to=[request.user.email],  # employer’s email
+        )
+        email.send(fail_silently=False)
+
+
+        messages.success(request, "Your email has been sent.")
+        return redirect("accounts.candidate_search")
+
+    return render(request, "accounts/email_candidate.html", {
+        "candidate": candidate
+    })
+
