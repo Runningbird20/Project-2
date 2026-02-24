@@ -93,6 +93,10 @@
               </div>
             </div>
             {% endif %}
+            <div class="form-actions mt-1">
+              <button type="submit" class="primary-btn border-0 w-100">Apply Filters</button>
+              <a href="{% url 'jobposts.search' %}" class="secondary-btn w-100">Reset</a>
+            </div>
           </form>
         </div>
       </div>
@@ -359,25 +363,6 @@ function toggleResumeUpload(selectElement, postId) {
 (function () {
   const form = document.getElementById('job-search-filters');
   if (!form) return;
-
-  let debounceTimer = null;
-
-  const submitSoon = function () {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(function () {
-      form.submit();
-    }, 350);
-  };
-
-  form.querySelectorAll('input[type="text"], input[type="number"]').forEach(function (el) {
-    el.addEventListener('input', submitSoon);
-  });
-
-  form.querySelectorAll('select, input[type="checkbox"]').forEach(function (el) {
-    el.addEventListener('change', function () {
-      form.submit();
-    });
-  });
 
   function syncResultsScrollHeight() {
     const resultsScroll = document.querySelector('.job-search-page .job-results-scroll');
