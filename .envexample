@@ -11,3 +11,4 @@ DEFAULT_FROM_EMAIL=example@gmail.com
 
 GOOGLE_MAPS_API_KEY=examplekey
 OPENROUTER_API_KEY=examplekey
+
