@@ -169,6 +169,14 @@
     if (wrap) {
       wrap.addEventListener("click", () => {
         if (moving || dragging) return;
+<<<<<<< HEAD
+
+        const chatbotEvent = new CustomEvent("panda:activate", { cancelable: true });
+        const handled = !window.dispatchEvent(chatbotEvent);
+        if (handled) return;
+
+=======
+>>>>>>> 4830808bec08e39248dac37fb97ed775a850c899
         const lines = [
           "Need help? Check Job Search 👀",
           "Tip: keep your profile public for recruiters!",
@@ -302,4 +310,9 @@
       savePos();
     });
   })();
+<<<<<<< HEAD
   
+
+=======
+  
+>>>>>>> 4830808bec08e39248dac37fb97ed775a850c899
