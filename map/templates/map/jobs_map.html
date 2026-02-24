@@ -157,13 +157,13 @@
 
     function markerPopupHtml(job) {
       return `
-        <div style="min-width:220px">
-          <div style="font-weight:700">${job.title}</div>
-          <div style="color:#555">${job.company}</div>
-          <div style="font-size:12px;color:#666;margin-top:4px">${job.location}</div>
-          <div style="font-size:12px;color:#666">${job.full_address || ''}</div>
-          <div style="font-size:12px;color:#666">${job.distance_miles} mi away</div>
-          <a href="${job.detail_url}" style="display:inline-block;margin-top:8px">View posting</a>
+        <div class="map-popup-card">
+          <div class="map-popup-title">${job.title}</div>
+          <div class="map-popup-company">${job.company}</div>
+          <div class="map-popup-meta">${job.location}</div>
+          <div class="map-popup-meta">${job.full_address || ''}</div>
+          <div class="map-popup-meta">${job.distance_miles} mi away</div>
+          <a href="${job.detail_url}" class="d-inline-block mt-2">View posting</a>
         </div>
       `;
     }

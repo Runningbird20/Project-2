@@ -1,278 +1,180 @@
 /* static/mascot/panda.css */
 
-:root {
-    --panda-size: 75px;
+:root{
+    --panda-size: 65px;
     --panda-z: 9999;
-    --panda-shadow: 0 12px 40px rgba(0,0,0,0.12);
+    --panda-shadow: 0 10px 25px rgba(0,0,0,.18);
   
-    /* Modern Glassmorphism Variables */
-    --panda-bubble-bg: rgba(255, 255, 255, 0.85);
-    --panda-bubble-border: rgba(255, 255, 255, 0.4);
-    --panda-bubble-color: #1a1a1b;
-    --panda-bubble-radius: 20px;
-    --panda-gap: 15px;
+    /* bubble sizing + spacing */
+    --panda-gap: 10px;                 /* distance between panda and bubble */
+    --panda-bubble-bg: rgba(0,0,0,.82);
+    --panda-bubble-color: #fff;
+    --panda-bubble-radius: 12px;
   
-    /* Typography & Sizing */
-    --panda-bubble-font: 14px;
-    --panda-bubble-pad-y: 14px;
-    --panda-bubble-pad-x: 20px;
-    --panda-bubble-maxw: 320px;
-
-    /* Chat Window Specific */
-    --chat-width: 380px;
-    --chat-height: 550px;
-    --accent-color: #6c5ce7;
-    --user-msg-bg: #6c5ce7;
-    --panda-msg-bg: #f1f2f6;
-}
-
-/* ===============================
-   Panda Mascot (The Trigger)
-=================================*/
-#panda-mascot {
+    /* ✅ smaller bubble */
+    --panda-bubble-font: 12px;
+    --panda-bubble-pad-y: 10px;
+    --panda-bubble-pad-x: 30px;
+    --panda-bubble-maxw: 350px;        /* smaller max width */
+  }
+  
+  /* ===============================
+     Panda Container (floating)
+  =================================*/
+  #panda-mascot {
     position: fixed;
-    right: 25px;
-    bottom: 25px;
+    right: 18px;
+    bottom: 18px;
     z-index: var(--panda-z);
+  
+    /* IMPORTANT: bubble anchors relative to this */
     pointer-events: none;
-    user-select: none;
-}
-
-#panda-mascot .panda-wrap {
+  }
+  
+  /* Wrapper so bubble can position relative to panda */
+  #panda-mascot .panda-wrap {
     width: var(--panda-size);
     height: var(--panda-size);
-    border-radius: 50%;
+    border-radius: 999px;
     overflow: visible;
     box-shadow: var(--panda-shadow);
-    background: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    background: transparent;
+    border: none;
+    transform: translate3d(0,0,0);
+  
     pointer-events: auto;
     cursor: grab;
     touch-action: none;
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
-}
-
-#panda-mascot.dragging .panda-wrap {
+  
+    transition: filter .18s ease, transform .18s ease;
+  }
+  
+  /* hover glow */
+  #panda-mascot .panda-wrap:hover {
+    filter: drop-shadow(0 0 10px rgba(255,255,255,.18))
+            drop-shadow(0 10px 18px rgba(13,110,253,.18));
+  }
+  
+  #panda-mascot.dragging .panda-wrap {
     cursor: grabbing;
-    transform: scale(1.1);
-    box-shadow: 0 25px 55px rgba(0,0,0,0.25);
-    transition: none; 
-}
-
-#panda-mascot img {
-    width: 85%;
-    height: 85%;
+    filter: drop-shadow(0 0 10px rgba(255,255,255,.22))
+            drop-shadow(0 14px 22px rgba(13,110,253,.22));
+  }
+  
+  #panda-mascot img {
+    width: 100%;
+    height: 100%;
     object-fit: contain;
-    pointer-events: none;
-}
-
-/* ===============================
-   Draggable & Resizable Chat Window
-=================================*/
-#chat-container {
-    position: fixed;
-    right: 25px;
-    bottom: 110px; 
-    width: var(--chat-width);
-    height: var(--chat-height);
-    display: none; 
-    flex-direction: column;
-    z-index: calc(var(--panda-z) - 1);
-    
-    background: var(--panda-bubble-bg);
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    border: 1px solid var(--panda-bubble-border);
-    border-radius: 24px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-    overflow: hidden;
-    touch-action: none; 
-}
-
-/* Chat Body (The Scrollable Area) */
-#chat-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--accent-color) transparent;
-}
-
-/* ===============================
-   Message Bubble Styling
-=================================*/
-.chat-message {
-    max-width: 85%;
-    padding: 12px 16px;
-    border-radius: 18px;
-    font-size: 0.95rem;
-    line-height: 1.5;
-    word-wrap: break-word;
-    position: relative;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-}
-
-.user-message {
-    align-self: flex-end;
-    background-color: var(--user-msg-bg);
-    color: white;
-    border-bottom-right-radius: 4px;
-}
-
-.panda-message {
-    align-self: flex-start;
-    background-color: var(--panda-msg-bg);
-    color: var(--panda-bubble-color);
-    border-bottom-left-radius: 4px;
-}
-
-/* Markdown Rendering Spacing */
-.panda-message p { margin-bottom: 10px; }
-.panda-message p:last-child { margin-bottom: 0; }
-.panda-message ul, .panda-message ol { padding-left: 22px; margin-bottom: 10px; }
-.panda-message li { margin-bottom: 5px; }
-.panda-message strong { color: #000; font-weight: 700; }
-
-/* ===============================
-   Chat Header & Resizer
-=================================*/
-.chat-header {
-    padding: 18px 20px;
-    background: rgba(255, 255, 255, 0.3);
-    border-bottom: 1px solid var(--panda-bubble-border);
-    cursor: grab;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-shrink: 0;
-}
-
-/* Visual Resizer Grip */
-.chat-resizer {
-    width: 20px;
-    height: 20px;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  
+  /* ===============================
+     ✅ Speech Bubble: anchored to panda (no fixed translateX)
+  =================================*/
+  #panda-mascot .panda-bubble {
     position: absolute;
-    right: 0;
-    bottom: 0;
-    cursor: nwse-resize;
-    z-index: 10002;
-    background: linear-gradient(135deg, 
-        transparent 50%, 
-        rgba(0, 0, 0, 0.05) 50%, 
-        rgba(0, 0, 0, 0.05) 60%, 
-        transparent 60%, 
-        transparent 70%, 
-        rgba(0, 0, 0, 0.05) 70%, 
-        rgba(0, 0, 0, 0.05) 80%, 
-        transparent 80%);
-    transition: background-color 0.2s;
-}
-
-.chat-resizer:hover {
-    background-color: rgba(108, 92, 231, 0.1);
-}
-
-/* ===============================
-   Animations & States
-=================================*/
-#panda-mascot.idle .panda-wrap { animation: panda-float 3.5s ease-in-out infinite; }
-#panda-mascot.blink img { animation: panda-blink 6s infinite; }
-
-#panda-mascot.celebrate .panda-wrap { 
-    animation: panda-celebrate 0.5s ease infinite; 
-    border: 2px solid var(--accent-color);
-}
-
-@keyframes panda-celebrate {
-    0%, 100% { transform: translateY(0) scale(1.1); }
-    50% { transform: translateY(-20px) scale(1.1); }
-}
-
-@keyframes panda-float { 
-    0%, 100% { transform: translateY(0); } 
-    50% { transform: translateY(-10px); } 
-}
-
-@keyframes panda-blink { 
-    0%, 90%, 100% { transform: scaleY(1); } 
-    93%, 97% { transform: scaleY(0.1); } 
-}
-
-/* ===============================
-   Confetti Elements
-=================================*/
-#panda-confetti {
-    position: fixed;
-    inset: 0;
-    z-index: 10001; 
-    pointer-events: none;
-}
-
-.panda-confetti-piece {
-    position: absolute;
-    top: -10px;
-    width: 8px;
-    height: 8px;
-    border-radius: 2px;
-    animation: confetti-fall 3s linear forwards;
-}
-
-@keyframes confetti-fall {
-    to { 
-        transform: translateY(110vh) rotate(720deg); 
-        opacity: 0; 
-    }
-}
-
-/* ===============================
-   Speech Bubble & Thinking
-=================================*/
-#panda-mascot .panda-bubble {
-    position: absolute;
-    bottom: calc(var(--panda-size) + 10px);
-    right: 0;
+    bottom: calc(var(--panda-size) - 6px);  /* bubble sits above panda */
+    right: calc(100% + var(--panda-gap));   /* default: bubble on LEFT side */
+    /* If you want it slightly higher/lower, tweak bottom */
+  
     max-width: var(--panda-bubble-maxw);
     padding: var(--panda-bubble-pad-y) var(--panda-bubble-pad-x);
     border-radius: var(--panda-bubble-radius);
     background: var(--panda-bubble-bg);
-    backdrop-filter: blur(12px);
-    border: 1px solid var(--panda-bubble-border);
     color: var(--panda-bubble-color);
     font-size: var(--panda-bubble-font);
-    font-weight: 500;
+    line-height: 1.2;
     box-shadow: var(--panda-shadow);
+  
     opacity: 0;
-    transform: translateY(15px) scale(0.95);
-    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    transform: translateY(6px) scale(0.98);
+    transition: opacity .18s ease, transform .18s ease;
     pointer-events: none;
-}
-
-#panda-mascot .panda-bubble.show {
+    white-space: normal;
+  }
+  
+  /* show state */
+  #panda-mascot .panda-bubble.show {
     opacity: 1;
     transform: translateY(0) scale(1);
-}
-
-.panda-thinking {
-    display: flex;
-    gap: 4px;
-    justify-content: center;
-    padding: 5px;
-}
-.panda-thinking span {
-    width: 6px; height: 6px;
-    background: var(--accent-color);
-    border-radius: 50%;
-    animation: thinking-bounce 1.4s infinite ease-in-out;
-}
-.panda-thinking span:nth-child(2) { animation-delay: 0.2s; }
-.panda-thinking span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes thinking-bounce {
-    0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
-    40% { transform: scale(1); opacity: 1; }
-}
+  }
+  
+  /* Tail points toward panda (default left bubble) */
+  #panda-mascot .panda-bubble::after {
+    content: "";
+    position: absolute;
+    right: -8px;                    /* tail on right edge pointing to panda */
+    bottom: 12px;
+    width: 0;
+    height: 0;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    border-left: 8px solid var(--panda-bubble-bg);
+  }
+  
+  /* ===============================
+     ✅ Bubble Flip (RIGHT side)
+     JS toggles: #panda-mascot.bubble-right
+  =================================*/
+  #panda-mascot.bubble-right .panda-bubble {
+    right: auto;
+    left: calc(100% + var(--panda-gap));
+  }
+  
+  #panda-mascot.bubble-right .panda-bubble::after {
+    right: auto;
+    left: -8px;
+    border-left: none;
+    border-right: 8px solid var(--panda-bubble-bg);
+  }
+  
+  /* ===============================
+     Animations
+  =================================*/
+  #panda-mascot.idle .panda-wrap { animation: panda-bob 1.9s ease-in-out infinite; }
+  #panda-mascot.blink img        { animation: panda-blink 5.2s infinite; }
+  #panda-mascot.moving .panda-wrap { animation: panda-walk 0.55s ease-in-out infinite; }
+  #panda-mascot.celebrate .panda-wrap { animation: panda-celebrate 0.45s ease-in-out infinite; }
+  
+  @keyframes panda-bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+  @keyframes panda-walk { 0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(-2px) rotate(-1.5deg)} }
+  @keyframes panda-celebrate { 0%,100%{transform:translateY(0) rotate(0) scale(1)} 50%{transform:translateY(-6px) rotate(2deg) scale(1.04)} }
+  @keyframes panda-blink { 0%,92%,100%{transform:scaleY(1)} 94%{transform:scaleY(.92)} 96%{transform:scaleY(1)} }
+  
+  /* ===============================
+     Confetti
+  =================================*/
+  #panda-confetti {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--panda-z) - 1);
+    pointer-events: none;
+    overflow: hidden;
+  }
+  
+  .panda-confetti-piece {
+    position: absolute;
+    top: -12px;
+    width: 10px;
+    height: 14px;
+    opacity: 0.9;
+    border-radius: 2px;
+    animation: panda-confetti-fall linear forwards;
+  }
+  
+  @keyframes panda-confetti-fall {
+    to { transform: translateY(calc(100vh + 40px)) rotate(720deg); opacity: 0.95; }
+  }
+  
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    #panda-mascot.idle .panda-wrap,
+    #panda-mascot.moving .panda-wrap,
+    #panda-mascot.celebrate .panda-wrap,
+    #panda-mascot.blink img { animation: none !important; }
+  
+    #panda-mascot .panda-wrap,
+    #panda-mascot .panda-bubble { transition: none !important; }
+  }
+  

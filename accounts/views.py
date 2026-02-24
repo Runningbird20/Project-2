@@ -15,7 +15,7 @@ from django.core.validators import validate_email
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Count, Q
-from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse, JsonResponse
+from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
@@ -687,25 +687,3 @@ def applicant_clusters_map(request):
             "google_maps_api_key": getattr(settings, "GOOGLE_MAPS_API_KEY", ""),
         },
     )
-
-@login_required
-def update_bio_ajax(request):
-    """
-    Endpoint for the AI Panda to save suggested bios directly to the 
-    user's profile via an AJAX POST request.
-    """
-    if request.method == "POST":
-        new_bio = request.POST.get('bio')
-        
-        if not new_bio:
-            return JsonResponse({'status': 'failed', 'error': 'No content provided'}, status=400)
-            
-        try:
-            profile, _ = Profile.objects.get_or_create(user=request.user)
-            profile.bio = new_bio.strip()
-            profile.save()
-            return JsonResponse({'status': 'success'})
-        except Exception as e:
-            return JsonResponse({'status': 'failed', 'error': str(e)}, status=500)
-            
-    return JsonResponse({'status': 'failed', 'message': 'Invalid request method'}, status=405)
