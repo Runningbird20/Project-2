@@ -54,6 +54,14 @@
               <a class="nav-link site-link" href="{% url 'accounts.login' %}">Login</a>
               <a class="site-cta" href="{% url 'accounts.signup' %}">Get Started</a>
             {% endif %}
+            <div class="nav-theme-toggle">
+              <input class="nav-theme-toggle-input" type="checkbox" id="headerDarkModeToggle" data-darkmode-toggle>
+              <label class="nav-theme-toggle-track" for="headerDarkModeToggle" aria-label="Toggle light and dark mode">
+                <span class="nav-theme-icon nav-theme-sun"><i class="bi bi-sun-fill"></i></span>
+                <span class="nav-theme-icon nav-theme-moon"><i class="bi bi-moon-stars-fill"></i></span>
+                <span class="nav-theme-thumb"></span>
+              </label>
+            </div>
           </div>
         </div>
       </div>
