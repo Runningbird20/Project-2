@@ -69,7 +69,6 @@ INSTALLED_APPS = [
     'apply',
     'jobposts',
     'map',
-    'chatbot',
     'messaging',
     'interviews',
     'pulses',
@@ -86,8 +85,11 @@ MIDDLEWARE = [
     'accounts.middleware.UpdateLastActivityMiddleware',
 ]
 
+<<<<<<< HEAD
 OPENROUTER_API_KEY = _env('OPENROUTER_API_KEY', '').strip()
 
+=======
+>>>>>>> 4830808bec08e39248dac37fb97ed775a850c899
 ROOT_URLCONF = 'project2.urls'
 
 TEMPLATES = [
