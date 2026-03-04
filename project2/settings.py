@@ -190,7 +190,7 @@ EMAIL_PORT = int(_env('EMAIL_PORT', '587'))
 EMAIL_HOST_USER = _env('EMAIL_HOST_USER', 'pandapulse.donotreply@gmail.com').strip()
 raw_google_app_password = _env('GOOGLE_APP_PASSWORD', '').strip()
 raw_email_password = _env('EMAIL_HOST_PASSWORD', '').strip()
-EMAIL_HOST_PASSWORD = (raw_google_app_password or raw_email_password).replace(' ', '').replace('-', '')
+EMAIL_HOST_PASSWORD = (raw_google_app_password or raw_email_password).replace(' ', ' ').replace('-', ' ')
 EMAIL_USE_TLS = _env('EMAIL_USE_TLS', 'true').lower() == 'true'
 EMAIL_USE_SSL = _env('EMAIL_USE_SSL', 'false').lower() == 'true'
 EMAIL_TIMEOUT = int(_env('EMAIL_TIMEOUT', '20'))

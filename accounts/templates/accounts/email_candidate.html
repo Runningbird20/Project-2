@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-shell">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-md-8 col-lg-6">
+        <div class="surface-card p-4">
+
+          <h2 class="surface-title mb-3">Email {{ candidate.user.get_username }}</h2>
+
+          <form method="POST">
+            {% csrf_token %}
+
+            <div class="mb-3">
+              <label class="form-label">Subject</label>
+              <input type="text" name="subject" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Message</label>
+              <textarea name="message" class="form-control" rows="6" required></textarea>
+            </div>
+
+            <button type="submit" class="primary-btn">Send Email</button>
+            <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn ms-2">Cancel</a>
+          </form>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

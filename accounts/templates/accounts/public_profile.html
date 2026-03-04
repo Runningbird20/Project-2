@@ -77,6 +77,9 @@
         </div>
 
         <div class="text-center mt-3">
+          {% if template_data.profile.user.email and not template_data.profile.hide_email_from_employers %}
+          <a href="{% url 'accounts.email_candidate' template_data.profile.id %}" class="secondary-btn">Email</a>
+          {% endif %}
           <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn">Back to Search</a>
         </div>
       </div>
