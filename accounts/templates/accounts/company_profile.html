@@ -18,6 +18,13 @@
                   </a>
                 </p>
               {% endif %}
+              {% if template_data.response_sla %}
+                <div class="mt-2">
+                  <span class="sla-badge {{ template_data.response_sla.css_class }}">
+                    {{ template_data.response_sla.label }}
+                  </span>
+                </div>
+              {% endif %}
             </div>
             {% if template_data.is_owner %}
               <a class="secondary-btn" href="{% url 'accounts.company_profile_edit' %}">Edit Company Profile</a>
