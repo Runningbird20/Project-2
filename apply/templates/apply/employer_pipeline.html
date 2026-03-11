@@ -94,13 +94,33 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow rounded-4">
       <div class="modal-header border-0">
-        <h5 class="modal-title fw-bold">Confirm Rejection</h5>
+        <h5 class="modal-title fw-bold">Reject Applicant</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body pt-0 pb-3 px-4"><p class="mb-0 text-muted">Are you sure you want to reject this applicant?</p></div>
+      <div class="modal-body pt-0 pb-3 px-4">
+        <p class="mb-3 text-muted">
+          You moved <span class="fw-semibold text-dark" id="rejectionApplicantName">this applicant</span> to Rejected.
+          Send feedback now?
+        </p>
+        <div class="mb-3">
+          <label for="rejectionTemplateSelect" class="form-label fw-semibold">Feedback Template</label>
+          <select class="form-select" id="rejectionTemplateSelect">
+            {% for template in rejection_feedback_templates %}
+            <option value="{{ template.key }}">{{ template.label }}</option>
+            {% endfor %}
+          </select>
+          <div class="small text-muted mt-2" id="rejectionTemplatePreview"></div>
+        </div>
+        <div>
+          <label for="rejectionPersonalNote" class="form-label fw-semibold">Personalized Note (Optional)</label>
+          <textarea class="form-control" id="rejectionPersonalNote" rows="3" maxlength="1000" placeholder="Add candidate-specific context or encouragement."></textarea>
+          <div class="small text-muted mt-1">Up to 1000 characters.</div>
+        </div>
+      </div>
       <div class="modal-footer border-0 pt-0">
         <button type="button" class="secondary-btn btn-compact border-0" id="cancelRejection">Cancel</button>
-        <button type="button" class="danger-btn btn-compact border-0" id="confirmRejection">Yes, Reject Applicant</button>
+        <button type="button" class="secondary-btn btn-compact border-0" id="rejectWithoutFeedback">Reject Without Feedback</button>
+        <button type="button" class="danger-btn btn-compact border-0" id="rejectWithFeedback">Send Feedback &amp; Reject</button>
       </div>
     </div>
   </div>
@@ -146,12 +166,25 @@
   </div>
 </div>
 
+{{ rejection_feedback_templates|json_script:"rejectionFeedbackTemplatesData" }}
+
 <script>
 let pendingUpdate = null;
 let draggedCard = null;
-const rejectionModal = new bootstrap.Modal(document.getElementById('rejectionModal'));
+const rejectionModalElement = document.getElementById('rejectionModal');
+const rejectionModal = new bootstrap.Modal(rejectionModalElement);
 const interviewPromptModal = new bootstrap.Modal(document.getElementById('interviewPromptModal'));
 const offerPromptModal = new bootstrap.Modal(document.getElementById('offerPromptModal'));
+const rejectionTemplateSelect = document.getElementById('rejectionTemplateSelect');
+const rejectionTemplatePreview = document.getElementById('rejectionTemplatePreview');
+const rejectionPersonalNote = document.getElementById('rejectionPersonalNote');
+const rejectionApplicantName = document.getElementById('rejectionApplicantName');
+const rejectionTemplatesNode = document.getElementById('rejectionFeedbackTemplatesData');
+const rejectionTemplates = rejectionTemplatesNode ? JSON.parse(rejectionTemplatesNode.textContent) : [];
+const rejectionTemplateMap = {};
+rejectionTemplates.forEach((template) => {
+  rejectionTemplateMap[template.key] = template;
+});
 
 document.addEventListener('DOMContentLoaded', function () {
   const urlParams = new URLSearchParams(window.location.search);
@@ -171,18 +204,36 @@ document.addEventListener('DOMContentLoaded', function () {
   if (undoAppId && oldStatus) {
     showUndoToast(undoAppId, oldStatus);
   }
+  if (rejectionTemplateSelect && rejectionTemplates.length) {
+    rejectionTemplateSelect.value = rejectionTemplates[0].key;
+    updateRejectionTemplatePreview();
+    rejectionTemplateSelect.addEventListener('change', updateRejectionTemplatePreview);
+  }
   if (window.location.search) {
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 });
 
-function executeStatusUpdate(appId, newStatus, previousStatus, isUndo, applicantName) {
+function executeStatusUpdate(appId, newStatus, previousStatus, isUndo, applicantName, extraPayload) {
+  const payload = Object.assign({ status: newStatus }, extraPayload || {});
   fetch(`/apply/update-status/${appId}/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-    body: JSON.stringify({ status: newStatus })
-  }).then((res) => {
-    if (!res.ok) { alert('Error updating status.'); return; }
+    body: JSON.stringify(payload)
+  }).then(async (res) => {
+    if (!res.ok) {
+      let errorMessage = 'Error updating status.';
+      try {
+        const errorData = await res.json();
+        if (errorData && errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch (err) {
+      }
+      throw new Error(errorMessage);
+    }
+    return res.json();
+  }).then(() => {
     const currentUrl = window.location.pathname;
     if (isUndo) {
       window.location.href = currentUrl;
@@ -206,6 +257,8 @@ function executeStatusUpdate(appId, newStatus, previousStatus, isUndo, applicant
       }
     }
     window.location.href = `${currentUrl}?${params.toString()}`;
+  }).catch((error) => {
+    alert(error.message || 'Error updating status.');
   });
 }
 
@@ -244,15 +297,60 @@ function showOfferPrompt(appId, applicantName) {
   offerPromptModal.show();
 }
 
-document.getElementById('confirmRejection').addEventListener('click', () => {
-  if (pendingUpdate) {
-    rejectionModal.hide();
-    executeStatusUpdate(pendingUpdate.appId, 'rejected', pendingUpdate.previousStatus, false, pendingUpdate.applicantName);
+function updateRejectionTemplatePreview() {
+  if (!rejectionTemplateSelect || !rejectionTemplatePreview) return;
+  const selectedKey = rejectionTemplateSelect.value;
+  const selectedTemplate = rejectionTemplateMap[selectedKey];
+  rejectionTemplatePreview.textContent = selectedTemplate ? selectedTemplate.body : '';
+}
+
+function prepareRejectionPrompt(applicantName) {
+  if (rejectionApplicantName) {
+    rejectionApplicantName.textContent = applicantName || 'this applicant';
   }
+  if (rejectionPersonalNote) {
+    rejectionPersonalNote.value = '';
+  }
+  if (rejectionTemplateSelect && rejectionTemplates.length) {
+    rejectionTemplateSelect.value = rejectionTemplates[0].key;
+  }
+  updateRejectionTemplatePreview();
+}
+
+document.getElementById('rejectWithFeedback').addEventListener('click', () => {
+  if (!pendingUpdate) {
+    return;
+  }
+  if (!rejectionTemplateSelect || !rejectionTemplateSelect.value) {
+    alert('Select a feedback template.');
+    return;
+  }
+  const update = pendingUpdate;
+  const payload = {
+    send_feedback: true,
+    feedback_template: rejectionTemplateSelect.value,
+    feedback_note: rejectionPersonalNote ? rejectionPersonalNote.value.trim() : ''
+  };
+  rejectionModal.hide();
+  pendingUpdate = null;
+  executeStatusUpdate(update.appId, 'rejected', update.previousStatus, false, update.applicantName, payload);
+});
+
+document.getElementById('rejectWithoutFeedback').addEventListener('click', () => {
+  if (!pendingUpdate) {
+    return;
+  }
+  const update = pendingUpdate;
+  rejectionModal.hide();
+  pendingUpdate = null;
+  executeStatusUpdate(update.appId, 'rejected', update.previousStatus, false, update.applicantName, { send_feedback: false });
 });
 
 document.getElementById('cancelRejection').addEventListener('click', () => {
   rejectionModal.hide();
+});
+
+rejectionModalElement.addEventListener('hidden.bs.modal', () => {
   pendingUpdate = null;
 });
 
@@ -285,7 +383,12 @@ document.querySelectorAll('.drop-zone').forEach((zone) => {
     const newStatus = zone.dataset.status;
 
     if (!newStatus || newStatus === previousStatus) return;
-    if (newStatus === 'rejected') { pendingUpdate = { appId, previousStatus, applicantName }; rejectionModal.show(); return; }
+    if (newStatus === 'rejected') {
+      pendingUpdate = { appId, previousStatus, applicantName };
+      prepareRejectionPrompt(applicantName);
+      rejectionModal.show();
+      return;
+    }
     executeStatusUpdate(appId, newStatus, previousStatus, false, applicantName);
   });
 });

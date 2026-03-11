@@ -63,6 +63,31 @@ class JobPostViewTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(JobPost.objects.count(), 1)
 
+    def test_employer_post_does_not_require_address_when_country_prefilled(self):
+        self.client.login(username='employer', password='pass12345')
+        payload = {
+            'title': 'Backend Engineer',
+            'company': 'Acme Inc',
+            'company_size': 'mid_size',
+            'location': 'Remote',
+            'salary_min': 70000,
+            'salary_max': 90000,
+            'work_setting': 'remote',
+            'description': 'Build APIs and services.',
+            'map-address_line_1': '',
+            'map-address_line_2': '',
+            'map-city': '',
+            'map-state': '',
+            'map-postal_code': '',
+            'map-country': 'United States',
+        }
+
+        response = self.client.post(reverse('jobposts.create'), payload)
+
+        self.assertEqual(response.status_code, 302)
+        post = JobPost.objects.get()
+        self.assertFalse(OfficeLocation.objects.filter(job_post=post).exists())
+
     def test_employer_can_pin_office_location_on_create(self):
         self.client.login(username='employer', password='pass12345')
         payload = {

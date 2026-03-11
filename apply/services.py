@@ -31,6 +31,9 @@ def enforce_employer_response_deadline():
         rejected_at=timezone.now(),
         auto_rejected_for_timeout=True,
         rejected_offer_by_applicant=False,
+        rejection_feedback_template="",
+        rejection_feedback_note="",
+        rejection_feedback_sent_at=None,
     )
 
 

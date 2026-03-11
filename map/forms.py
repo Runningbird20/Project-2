@@ -67,7 +67,8 @@ class OfficeLocationForm(forms.ModelForm):
         postal_code = (cleaned_data.get('postal_code') or '').strip()
         country = (cleaned_data.get('country') or '').strip()
 
-        self.has_location_data = any([line_1, line_2, city, state, postal_code, country])
+        # Treat country-only input as empty so address remains optional on job create/edit.
+        self.has_location_data = any([line_1, line_2, city, state, postal_code])
 
         if self.has_location_data:
             required_fields = {
