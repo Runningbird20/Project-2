@@ -1657,6 +1657,68 @@ html.dark-mode .endorsement-tooltip.bs-tooltip-auto[data-popper-placement^="righ
   border-right-color: #21344f;
 }
 
+.sla-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: 0.26rem 0.62rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.sla-badge.is-green {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #86efac;
+}
+
+.sla-badge.is-yellow {
+  background: #fef9c3;
+  color: #854d0e;
+  border-color: #fde047;
+}
+
+.sla-badge.is-red {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+.sla-badge.is-neutral {
+  background: #e5e7eb;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+html.dark-mode .sla-badge.is-green {
+  background: rgba(20, 83, 45, 0.35);
+  color: #c7f9cc;
+  border-color: #3f8f67;
+}
+
+html.dark-mode .sla-badge.is-yellow {
+  background: rgba(133, 77, 14, 0.35);
+  color: #fde68a;
+  border-color: #b45309;
+}
+
+html.dark-mode .sla-badge.is-red {
+  background: rgba(153, 27, 27, 0.35);
+  color: #fecaca;
+  border-color: #b91c1c;
+}
+
+html.dark-mode .sla-badge.is-neutral {
+  background: rgba(55, 65, 81, 0.45);
+  color: #e5e7eb;
+  border-color: #6b7280;
+}
+
 .offer-compare-panel {
   background: rgba(248, 250, 252, 0.9);
   border-color: #d8dee8 !important;

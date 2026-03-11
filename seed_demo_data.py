@@ -107,6 +107,13 @@ APPLICATION_STATUS_WEIGHTS = [
     ("offer", 0.14),
     ("rejected", 0.12),
 ]
+EMPLOYER_RESPONSE_PROFILES = [
+    # These ranges line up with SLA colors in the UI:
+    # green < 49 hours, yellow <= 1 week, red > 1 week.
+    {"name": "fast", "weight": 0.35, "min_hours": 6, "max_hours": 48},
+    {"name": "standard", "weight": 0.45, "min_hours": 50, "max_hours": 160},
+    {"name": "slow", "weight": 0.20, "min_hours": 170, "max_hours": 360},
+]
 INTERVIEW_DURATION_CHOICES = [30, 45, 60, 90]
 INTERVIEW_NOTES = [
     "General technical interview.",
@@ -255,6 +262,44 @@ def weighted_choice(weighted_items):
         if roll <= cumulative:
             return value
     return weighted_items[-1][0]
+
+
+def build_employer_response_profiles(employers):
+    weighted_profiles = [
+        (profile["name"], profile["weight"]) for profile in EMPLOYER_RESPONSE_PROFILES
+    ]
+    profile_map = {profile["name"]: profile for profile in EMPLOYER_RESPONSE_PROFILES}
+    assignments = {}
+    for employer in employers:
+        profile_name = weighted_choice(weighted_profiles)
+        profile_data = profile_map[profile_name]
+        assignments[employer.id] = {
+            "profile": profile_name,
+            "baseline_hours": random.randint(profile_data["min_hours"], profile_data["max_hours"]),
+            "min_hours": profile_data["min_hours"],
+            "max_hours": profile_data["max_hours"],
+        }
+    return assignments
+
+
+def random_response_delay_hours_for_employer(employer_id, response_profiles):
+    assignment = response_profiles.get(employer_id)
+    if not assignment:
+        return random.randint(24, 120)
+
+    # Keep each employer's response behavior clustered around a baseline.
+    delay_hours = assignment["baseline_hours"] + random.randint(-12, 12)
+    delay_hours = max(assignment["min_hours"], min(assignment["max_hours"], delay_hours))
+    return delay_hours
+
+
+def summarize_response_profiles(response_profiles):
+    summary = {"fast": 0, "standard": 0, "slow": 0}
+    for assignment in response_profiles.values():
+        profile = assignment.get("profile")
+        if profile in summary:
+            summary[profile] += 1
+    return summary
 
 
 def parse_skill_csv(raw_value):
@@ -428,7 +473,13 @@ def create_jobs(prefix, employers, count):
     return created
 
 
-def create_applications(applicants, jobs, min_per_applicant=1, max_per_applicant=4):
+def create_applications(
+    applicants,
+    jobs,
+    min_per_applicant=1,
+    max_per_applicant=4,
+    employer_response_profiles=None,
+):
     created = []
     if not applicants or not jobs:
         return created
@@ -453,20 +504,39 @@ def create_applications(applicants, jobs, min_per_applicant=1, max_per_applicant
                 status=status,
             )
 
-            applied_at = now - timedelta(
-                days=random.randint(2, 120),
-                hours=random.randint(0, 23),
-                minutes=random.randint(0, 59),
-            )
+            responded_at = None
+            if status != "applied":
+                delay_hours = random_response_delay_hours_for_employer(
+                    job.owner_id,
+                    employer_response_profiles or {},
+                )
+                # Ensure the application existed long enough for this response delay.
+                min_age_hours = min((120 * 24) - 1, delay_hours + random.randint(6, 36))
+                age_hours = random.randint(max(8, min_age_hours), 120 * 24)
+                applied_at = now - timedelta(
+                    hours=age_hours,
+                    minutes=random.randint(0, 59),
+                )
+                responded_at = applied_at + timedelta(
+                    hours=delay_hours,
+                    minutes=random.randint(0, 45),
+                )
+            else:
+                applied_at = now - timedelta(
+                    days=random.randint(2, 120),
+                    hours=random.randint(0, 23),
+                    minutes=random.randint(0, 59),
+                )
+
             updates = {"applied_at": applied_at}
 
-            viewed = random.random() < (0.9 if status != "applied" else 0.55)
+            viewed = random.random() < (0.94 if status != "applied" else 0.55)
             updates["employer_viewed"] = viewed
             if viewed:
-                updates["employer_viewed_at"] = random_timestamp_between(applied_at, now)
+                viewed_end = responded_at if responded_at else now
+                updates["employer_viewed_at"] = random_timestamp_between(applied_at, viewed_end)
 
-            if status != "applied":
-                responded_at = random_timestamp_between(applied_at + timedelta(hours=8), now)
+            if responded_at:
                 updates["responded_at"] = responded_at
                 if status == "rejected":
                     updates["rejected_at"] = responded_at
@@ -696,11 +766,14 @@ def main():
         employers = create_employers(args.prefix, args.employers, args.password)
         applicants = create_applicants(args.prefix, args.applicants, args.password)
         jobs = create_jobs(args.prefix, employers, args.jobs)
+        response_profiles = build_employer_response_profiles(employers)
+        response_profile_summary = summarize_response_profiles(response_profiles)
         applications = create_applications(
             applicants,
             jobs,
             min_per_applicant=args.applications_min_per_applicant,
             max_per_applicant=args.applications_max_per_applicant,
+            employer_response_profiles=response_profiles,
         )
         interview_stats = create_interviews_feedback_and_endorsements(
             applications,
@@ -714,6 +787,12 @@ def main():
     print(f"Created applicants: {len(applicants)}")
     print(f"Created job posts: {len(jobs)}")
     print(f"Created applications: {len(applications)}")
+    print(
+        "Employer response profiles: "
+        f"fast={response_profile_summary['fast']}, "
+        f"standard={response_profile_summary['standard']}, "
+        f"slow={response_profile_summary['slow']}"
+    )
     print(f"Created interview slots: {interview_stats['interview_slots']}")
     print(f"Created booked interviews: {interview_stats['booked_slots']}")
     print(f"Created open interviews: {interview_stats['open_slots']}")
