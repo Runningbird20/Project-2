@@ -1,9 +1,12 @@
 from decimal import Decimal
+from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
+from apply.models import Application
 from jobposts.models import JobPost
 from map.models import OfficeLocation
 
@@ -28,7 +31,7 @@ class CompanyProfileAndSearchTests(TestCase):
         self.applicant_profile.account_type = Profile.AccountType.APPLICANT
         self.applicant_profile.save()
 
-        post = JobPost.objects.create(
+        self.post = JobPost.objects.create(
             owner=self.employer,
             title="Backend Engineer",
             company="Acme Labs",
@@ -38,7 +41,7 @@ class CompanyProfileAndSearchTests(TestCase):
             description="Build APIs",
         )
         OfficeLocation.objects.create(
-            job_post=post,
+            job_post=self.post,
             address_line_1="75 5th St NW",
             city="Atlanta",
             state="GA",
@@ -129,3 +132,52 @@ class CompanyProfileAndSearchTests(TestCase):
         self.employer_profile.refresh_from_db()
         self.assertEqual(self.employer_profile.city, "Atlanta")
         self.assertEqual(self.employer_profile.state, "GA")
+
+    def _create_responded_application(self, hours_to_respond, username_suffix):
+        user_model = get_user_model()
+        applicant = user_model.objects.create_user(
+            username=f"sla_applicant_{username_suffix}",
+            password="pass12345",
+        )
+        applicant_profile, _ = Profile.objects.get_or_create(user=applicant)
+        applicant_profile.account_type = Profile.AccountType.APPLICANT
+        applicant_profile.save()
+
+        application = Application.objects.create(
+            user=applicant,
+            job=self.post,
+            resume_type="profile",
+            status="review",
+        )
+        responded_at = timezone.now() - timedelta(hours=1)
+        applied_at = responded_at - timedelta(hours=hours_to_respond)
+        Application.objects.filter(id=application.id).update(
+            applied_at=applied_at,
+            responded_at=responded_at,
+        )
+
+    def test_company_profile_shows_green_response_sla_badge_under_49_hours(self):
+        self._create_responded_application(hours_to_respond=48, username_suffix="green")
+        self.client.login(username="applicant1", password="pass12345")
+        response = self.client.get(
+            reverse("accounts.company_profile", kwargs={"username": self.employer.username})
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Responds in ~2 days")
+        self.assertContains(response, "sla-badge is-green")
+
+    def test_company_search_shows_yellow_response_sla_badge_between_49_hours_and_week(self):
+        self._create_responded_application(hours_to_respond=72, username_suffix="yellow")
+        self.client.login(username="applicant1", password="pass12345")
+        response = self.client.get(reverse("accounts.company_search"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Responds in ~3 days")
+        self.assertContains(response, "sla-badge is-yellow")
+
+    def test_company_search_shows_red_response_sla_badge_over_one_week(self):
+        self._create_responded_application(hours_to_respond=240, username_suffix="red")
+        self.client.login(username="applicant1", password="pass12345")
+        response = self.client.get(reverse("accounts.company_search"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Responds in ~10 days")
+        self.assertContains(response, "sla-badge is-red")
