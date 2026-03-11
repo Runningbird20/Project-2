@@ -1131,6 +1131,16 @@ html.dark-mode .status-rejected {
   color: #5e1b21;
 }
 
+.recruiter-feedback-card {
+  border-color: #e4c7cb !important;
+  background: #fffafc;
+  color: #422126;
+}
+
+.recruiter-feedback-card .text-muted {
+  color: #6b5a63 !important;
+}
+
 .offer-rejected-by-applicant-label {
   color: #8b5e00 !important;
   font-weight: 600;
@@ -1140,6 +1150,16 @@ html.dark-mode .offer-rejection-alert {
   border-color: #7f1d1d;
   background: rgba(88, 28, 34, 0.45);
   color: #ffd4d8;
+}
+
+html.dark-mode .recruiter-feedback-card {
+  border-color: #7a4a52 !important;
+  background: rgba(63, 30, 37, 0.55);
+  color: #ffe5ea;
+}
+
+html.dark-mode .recruiter-feedback-card .text-muted {
+  color: #d7bcc5 !important;
 }
 
 html.dark-mode .offer-rejection-alert strong {
@@ -1442,7 +1462,8 @@ html.dark-mode .modal .modal-footer .secondary-btn:focus {
 
 html.dark-mode #interviewSlotModal .modal-content,
 html.dark-mode #interviewPromptModal .modal-content,
-html.dark-mode #offerPromptModal .modal-content {
+html.dark-mode #offerPromptModal .modal-content,
+html.dark-mode #rejectionModal .modal-content {
   background: #121d2d;
   border: 1px solid #3b4a62 !important;
   color: #e6edf8;
@@ -1450,25 +1471,31 @@ html.dark-mode #offerPromptModal .modal-content {
 
 html.dark-mode #interviewSlotModal .modal-header,
 html.dark-mode #interviewPromptModal .modal-header,
-html.dark-mode #offerPromptModal .modal-header {
+html.dark-mode #offerPromptModal .modal-header,
+html.dark-mode #rejectionModal .modal-header {
   border-bottom-color: #3b4a62;
 }
 
 html.dark-mode #interviewSlotModal .modal-footer,
 html.dark-mode #interviewPromptModal .modal-footer,
-html.dark-mode #offerPromptModal .modal-footer {
+html.dark-mode #offerPromptModal .modal-footer,
+html.dark-mode #rejectionModal .modal-footer {
   border-top-color: #3b4a62;
 }
 
 html.dark-mode #interviewSlotModal .form-control,
-html.dark-mode #interviewSlotModal .form-select {
+html.dark-mode #interviewSlotModal .form-select,
+html.dark-mode #rejectionModal .form-control,
+html.dark-mode #rejectionModal .form-select {
   background-color: rgba(17, 24, 35, 0.95);
   border-color: #3b4a62;
   color: #edf2ff;
 }
 
 html.dark-mode #interviewSlotModal .form-control:focus,
-html.dark-mode #interviewSlotModal .form-select:focus {
+html.dark-mode #interviewSlotModal .form-select:focus,
+html.dark-mode #rejectionModal .form-control:focus,
+html.dark-mode #rejectionModal .form-select:focus {
   border-color: #9ca3af;
   box-shadow: 0 0 0 0.15rem rgba(156, 163, 175, 0.3);
 }
@@ -1485,7 +1512,8 @@ html.dark-mode #interviewSlotModal input[type="time"]::-webkit-calendar-picker-i
 
 html.dark-mode #interviewSlotModal .modal-footer .secondary-btn,
 html.dark-mode #interviewPromptModal .modal-footer .secondary-btn,
-html.dark-mode #offerPromptModal .modal-footer .secondary-btn {
+html.dark-mode #offerPromptModal .modal-footer .secondary-btn,
+html.dark-mode #rejectionModal .modal-footer .secondary-btn {
   background: #2a3b58;
   color: #e6edf8;
   border-color: #4a5d7d;
@@ -1496,7 +1524,9 @@ html.dark-mode #interviewSlotModal .modal-footer .secondary-btn:focus,
 html.dark-mode #interviewPromptModal .modal-footer .secondary-btn:hover,
 html.dark-mode #interviewPromptModal .modal-footer .secondary-btn:focus,
 html.dark-mode #offerPromptModal .modal-footer .secondary-btn:hover,
-html.dark-mode #offerPromptModal .modal-footer .secondary-btn:focus {
+html.dark-mode #offerPromptModal .modal-footer .secondary-btn:focus,
+html.dark-mode #rejectionModal .modal-footer .secondary-btn:hover,
+html.dark-mode #rejectionModal .modal-footer .secondary-btn:focus {
   background: #8eb9ff;
   color: #0b1526;
   border-color: #8eb9ff;
@@ -1504,7 +1534,8 @@ html.dark-mode #offerPromptModal .modal-footer .secondary-btn:focus {
 
 html.dark-mode #interviewSlotModal .btn-close,
 html.dark-mode #interviewPromptModal .btn-close,
-html.dark-mode #offerPromptModal .btn-close {
+html.dark-mode #offerPromptModal .btn-close,
+html.dark-mode #rejectionModal .btn-close {
   filter: invert(1) grayscale(100%) brightness(200%);
 }
 

@@ -14,6 +14,7 @@ import csv
 from datetime import timedelta
 from django.utils import timezone
 from accounts.models import Profile
+from messaging.models import Message
 from .services import (
     auto_archive_old_rejections,
     enforce_employer_response_deadline,
@@ -63,6 +64,63 @@ def _default_offer_compensation(application):
 
 def _default_offer_response_deadline():
     return (timezone.now() + timedelta(days=7)).strftime("%B %d, %Y")
+
+
+REJECTION_FEEDBACK_TEMPLATES = {
+    "skills_alignment": {
+        "label": "Skills Alignment",
+        "body": (
+            "Thank you for applying. We are moving forward with candidates whose recent skills "
+            "and project experience more closely match this role."
+        ),
+    },
+    "experience_scope": {
+        "label": "Experience Scope",
+        "body": (
+            "Thank you for your time. We selected candidates with more direct experience in the "
+            "scope and seniority this position currently requires."
+        ),
+    },
+    "role_fit": {
+        "label": "Role Fit",
+        "body": (
+            "We appreciate your interest. We decided to continue with applicants whose background "
+            "is a closer fit for this specific team and role focus."
+        ),
+    },
+}
+
+
+def _serialize_rejection_feedback_templates():
+    return [
+        {
+            "key": key,
+            "label": template_data["label"],
+            "body": template_data["body"],
+        }
+        for key, template_data in REJECTION_FEEDBACK_TEMPLATES.items()
+    ]
+
+
+def _build_rejection_feedback_text(template_key, personalized_note):
+    template_data = REJECTION_FEEDBACK_TEMPLATES.get(template_key)
+    if not template_data:
+        return ""
+    note_text = (personalized_note or "").strip()
+    sections = [template_data["body"]]
+    if note_text:
+        sections.append(f"Additional note from your recruiter:\n{note_text}")
+    return "\n\n".join(sections)
+
+
+def _as_bool(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    if isinstance(value, (int, float)):
+        return bool(value)
+    return False
 
 
 def _ensure_offer_defaults(application):
@@ -182,6 +240,10 @@ def application_status(request):
         user=request.user,
         archived_by_applicant=False,
     ).select_related("job")
+    for application in active_applications:
+        template_data = REJECTION_FEEDBACK_TEMPLATES.get(application.rejection_feedback_template, {})
+        application.rejection_feedback_template_label = template_data.get("label", "")
+        application.rejection_feedback_template_body = template_data.get("body", "")
     received_offers = Application.objects.filter(
         user=request.user,
         status__in=("offer", "closed"),
@@ -254,6 +316,14 @@ def application_status(request):
                         ),
                     }
                 )
+        if application.status == "rejected" and application.rejection_feedback_sent_at:
+            activity_events.append(
+                {
+                    "timestamp": application.rejection_feedback_sent_at,
+                    "event_type": "Feedback",
+                    "detail": f"Recruiter shared rejection feedback for {role_label}.",
+                }
+            )
 
     activity_events.sort(key=lambda item: item["timestamp"], reverse=True)
     activity_events = activity_events[:3]
@@ -293,46 +363,103 @@ def update_status(request, application_id):
     try:
         data = json.loads(request.body)
         new_status = data.get("status")
-        
+        send_feedback = _as_bool(data.get("send_feedback"))
+        feedback_template_key = (data.get("feedback_template") or "").strip()
+        feedback_note = (data.get("feedback_note") or "").strip()
+
         application = get_object_or_404(Application, id=application_id)
 
         if application.job.owner != request.user:
             return JsonResponse({"success": False, "error": "Unauthorized"}, status=403)
 
         valid_statuses = [choice[0] for choice in Application.STATUS_CHOICES]
-        
+
         if new_status in valid_statuses:
+            if send_feedback and new_status != "rejected":
+                return JsonResponse(
+                    {"success": False, "error": "Feedback can only be sent for rejected applicants."},
+                    status=400,
+                )
+            if send_feedback and feedback_template_key not in REJECTION_FEEDBACK_TEMPLATES:
+                return JsonResponse(
+                    {"success": False, "error": "Invalid rejection feedback template."},
+                    status=400,
+                )
+            if len(feedback_note) > 1000:
+                return JsonResponse(
+                    {"success": False, "error": "Feedback note must be 1000 characters or fewer."},
+                    status=400,
+                )
+
             application.status = new_status
             application.responded_at = timezone.now()
             if new_status == "rejected":
                 application.rejected_at = timezone.now()
                 application.auto_rejected_for_timeout = False
                 application.rejected_offer_by_applicant = False
+                if send_feedback:
+                    application.rejection_feedback_template = feedback_template_key
+                    application.rejection_feedback_note = feedback_note
+                    application.rejection_feedback_sent_at = timezone.now()
+                else:
+                    application.rejection_feedback_template = ""
+                    application.rejection_feedback_note = ""
+                    application.rejection_feedback_sent_at = None
             else:
                 application.rejected_at = None
                 application.archived_by_applicant = False
                 application.archived_by_employer = False
                 application.auto_rejected_for_timeout = False
                 application.rejected_offer_by_applicant = False
+                application.rejection_feedback_template = ""
+                application.rejection_feedback_note = ""
+                application.rejection_feedback_sent_at = None
             application.save()
             if new_status == "offer":
                 _ensure_offer_defaults(application)
 
+            rejection_feedback_text = ""
+            if new_status == "rejected" and send_feedback:
+                rejection_feedback_text = _build_rejection_feedback_text(feedback_template_key, feedback_note)
+                if rejection_feedback_text:
+                    try:
+                        Message.objects.create(
+                            sender=request.user,
+                            recipient=application.user,
+                            body=(
+                                f"Feedback for your {application.job.title} application at "
+                                f"{application.job.company}:\n\n{rejection_feedback_text}"
+                            ),
+                        )
+                    except Exception as exc:
+                        if settings.DEBUG:
+                            messages.warning(request, f"Rejection feedback message could not be sent: {exc}")
+                        else:
+                            messages.warning(request, "Rejection feedback message could not be sent.")
+
             if application.user.email:
                 try:
+                    status_email_message = (
+                        f"Hi {application.user.username},\n\n"
+                        "We wanted to let you know that there has been an update to your "
+                        f"application for {application.job.title} at {application.job.company}.\n\n"
+                        f"Current status: {application.get_status_display()}\n\n"
+                    )
+                    if rejection_feedback_text:
+                        status_email_message += (
+                            "Recruiter feedback:\n"
+                            f"{rejection_feedback_text}\n\n"
+                        )
+                    status_email_message += (
+                        "To view more details and any next steps, please log in to your "
+                        "PandaPulse account. We encourage you to check your dashboard "
+                        "regularly for additional updates.\n\n"
+                        "Wishing you the best,\n"
+                        "The PandaPulse Team\n"
+                    )
                     send_mail(
                         subject=f"Application status update: {application.job.title}",
-                        message=(
-                            f"Hi {application.user.username},\n\n"
-                            "We wanted to let you know that there has been an update to your "
-                            f"application for {application.job.title} at {application.job.company}.\n\n"
-                            f"Current status: {application.get_status_display()}\n\n"
-                            "To view more details and any next steps, please log in to your "
-                            "PandaPulse account. We encourage you to check your dashboard "
-                            "regularly for additional updates.\n\n"
-                            "Wishing you the best,\n"
-                            "The PandaPulse Team\n"
-                        ),
+                        message=status_email_message,
                         from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
                         recipient_list=[application.user.email],
                         fail_silently=False,
@@ -345,7 +472,7 @@ def update_status(request, application_id):
             
             messages.success(request, f"Status updated for {application.user.username}.")
             
-            return JsonResponse({"success": True})
+            return JsonResponse({"success": True, "feedback_sent": bool(rejection_feedback_text)})
         
         return JsonResponse({"success": False, "error": f"Invalid status: {new_status}"}, status=400)
 
@@ -388,6 +515,7 @@ def employer_pipeline(request, job_id):
         'active_count': active_count,
         'rejected_count': rejected_count,
         'archived_rejected': archived_rejected,
+        'rejection_feedback_templates': _serialize_rejection_feedback_templates(),
     })
 
 
@@ -441,6 +569,9 @@ def reject_offer(request, application_id):
     application.responded_at = timezone.now()
     application.auto_rejected_for_timeout = False
     application.rejected_offer_by_applicant = True
+    application.rejection_feedback_template = ""
+    application.rejection_feedback_note = ""
+    application.rejection_feedback_sent_at = None
     application.archived_by_applicant = False
     application.archived_by_employer = False
     application.save(
@@ -450,6 +581,9 @@ def reject_offer(request, application_id):
             "responded_at",
             "auto_rejected_for_timeout",
             "rejected_offer_by_applicant",
+            "rejection_feedback_template",
+            "rejection_feedback_note",
+            "rejection_feedback_sent_at",
             "archived_by_applicant",
             "archived_by_employer",
         ]
