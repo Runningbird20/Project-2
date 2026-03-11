@@ -2,6 +2,7 @@ from django import forms
 from django.utils import timezone
 
 from apply.models import Application
+from .models import InterviewFeedback
 
 
 class InterviewSlotProposalForm(forms.Form):
@@ -57,3 +58,56 @@ class InterviewSlotProposalForm(forms.Form):
         if start_at <= timezone.now():
             raise forms.ValidationError("Interview time must be in the future.")
         return start_at
+
+
+class InterviewFeedbackForm(forms.ModelForm):
+    SCORE_CHOICES = [
+        (1, "1 - Needs Improvement"),
+        (2, "2 - Below Expectations"),
+        (3, "3 - Meets Expectations"),
+        (4, "4 - Strong"),
+        (5, "5 - Exceptional"),
+    ]
+
+    technical_score = forms.TypedChoiceField(
+        choices=SCORE_CHOICES,
+        coerce=int,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    communication_score = forms.TypedChoiceField(
+        choices=SCORE_CHOICES,
+        coerce=int,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    problem_solving_score = forms.TypedChoiceField(
+        choices=SCORE_CHOICES,
+        coerce=int,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    recommendation = forms.ChoiceField(
+        choices=InterviewFeedback.Recommendation.choices,
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    class Meta:
+        model = InterviewFeedback
+        fields = [
+            "technical_score",
+            "communication_score",
+            "problem_solving_score",
+            "recommendation",
+            "strengths",
+            "concerns",
+            "decision_rationale",
+        ]
+        widgets = {
+            "strengths": forms.Textarea(
+                attrs={"class": "form-control", "rows": 2, "placeholder": "What went well?"}
+            ),
+            "concerns": forms.Textarea(
+                attrs={"class": "form-control", "rows": 2, "placeholder": "What concerns came up?"}
+            ),
+            "decision_rationale": forms.Textarea(
+                attrs={"class": "form-control", "rows": 3, "placeholder": "Why this recommendation?"}
+            ),
+        }

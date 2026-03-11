@@ -40,7 +40,26 @@
 
           {% if template_data.profile.show_skills %}
           <h5 class="surface-title">Skills</h5>
-          {% if template_data.profile.skills %}<p>{{ template_data.profile.skills }}</p>{% else %}<p class="text-muted">No skills added yet.</p>{% endif %}
+          {% if template_data.skill_badges %}
+            <div class="d-flex flex-wrap gap-2">
+              {% for skill in template_data.skill_badges %}
+                <span
+                  class="badge rounded-pill skill-indicator {% if skill.endorsed %}is-endorsed{% else %}is-default{% endif %}"
+                  {% if skill.endorsed_by %}
+                    title="Endorsed by {{ skill.endorsed_by }}"
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="top"
+                    data-bs-custom-class="endorsement-tooltip"
+                    data-bs-title="Endorsed by {{ skill.endorsed_by }}"
+                  {% endif %}
+                >
+                  {{ skill.name }}
+                </span>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-muted">No skills added yet.</p>
+          {% endif %}
           <hr>
           {% endif %}
 

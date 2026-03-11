@@ -216,10 +216,10 @@
                 {% endfor %}
               </div>
             </div>
-            <div class="surface-card">
-              <h3 class="surface-title mb-3">Scheduled Interviews</h3>
+            <div class="surface-card mb-3">
+              <h3 class="surface-title mb-3">Upcoming Scheduled Interviews</h3>
               <div class="vstack gap-2">
-                {% for slot in scheduled_interviews %}
+                {% for slot in upcoming_interviews %}
                 <div class="border rounded-4 p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
                   <div>
                     <div class="fw-semibold">{{ slot.application.job.title }} at {{ slot.application.job.company }}</div>
@@ -234,7 +234,87 @@
                   </div>
                 </div>
                 {% empty %}
-                <p class="text-muted mb-0">No scheduled interviews yet.</p>
+                <p class="text-muted mb-0">No upcoming scheduled interviews.</p>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="surface-card">
+              <h3 class="surface-title mb-3">Past Interviews</h3>
+              <div class="vstack gap-2">
+                {% for slot in past_interviews %}
+                <div class="border rounded-4 p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                  <div>
+                    <div class="fw-semibold">{{ slot.application.job.title }} at {{ slot.application.job.company }}</div>
+                    <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
+                    {% if slot.meeting_link %}
+                      <div class="small"><a href="{{ slot.meeting_link }}" target="_blank" rel="noopener noreferrer">Meeting link</a></div>
+                    {% endif %}
+                  </div>
+                  <div class="form-actions">
+                    <a class="secondary-btn btn-compact" href="{% url 'interviews:download_ics' slot.id %}">Download ICS</a>
+                    {% if slot.feedback_visible_to_applicant %}
+                    <button
+                      type="button"
+                      class="primary-btn btn-compact border-0"
+                      data-bs-toggle="modal"
+                      data-bs-target="#applicantFeedbackModal{{ slot.id }}"
+                    >
+                      View Feedback
+                    </button>
+                    {% else %}
+                    <span class="small text-muted">No feedback shared yet.</span>
+                    {% endif %}
+                  </div>
+                </div>
+                {% if slot.feedback_visible_to_applicant %}
+                <div class="modal fade" id="applicantFeedbackModal{{ slot.id }}" tabindex="-1" aria-hidden="true">
+                  <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content border-0 shadow rounded-4">
+                      <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-bold">Interview Feedback</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                      </div>
+                      <div class="modal-body py-4">
+                        <div class="row g-3">
+                          <div class="col-md-6">
+                            <div class="small text-muted">Recommendation</div>
+                            <div class="fw-semibold">{{ slot.feedback.get_recommendation_display }}</div>
+                          </div>
+                          <div class="col-md-2">
+                            <div class="small text-muted">Technical</div>
+                            <div class="fw-semibold">{{ slot.feedback.technical_score }}/5</div>
+                          </div>
+                          <div class="col-md-2">
+                            <div class="small text-muted">Communication</div>
+                            <div class="fw-semibold">{{ slot.feedback.communication_score }}/5</div>
+                          </div>
+                          <div class="col-md-2">
+                            <div class="small text-muted">Problem Solving</div>
+                            <div class="fw-semibold">{{ slot.feedback.problem_solving_score }}/5</div>
+                          </div>
+                          <div class="col-md-6">
+                            <div class="small text-muted">Strengths</div>
+                            <div>{{ slot.feedback.strengths|default:"No strengths provided." }}</div>
+                          </div>
+                          <div class="col-md-6">
+                            <div class="small text-muted">Areas to Improve</div>
+                            <div>{{ slot.feedback.concerns|default:"No concerns provided." }}</div>
+                          </div>
+                          <div class="col-12">
+                            <div class="small text-muted">Decision Rationale</div>
+                            <div>{{ slot.feedback.decision_rationale|default:"No rationale provided." }}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="secondary-btn btn-compact border-0" data-bs-dismiss="modal">Close</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+                {% empty %}
+                <p class="text-muted mb-0">No past interviews yet.</p>
                 {% endfor %}
               </div>
             </div>
@@ -262,7 +342,26 @@
               <div class="row g-3 mb-3">
                 <div class="col-md-6">
                   <h5 class="surface-title mb-1">Skills</h5>
-                  <p class="text-muted mb-0">{{ user.profile.skills|default:"No skills added yet." }}</p>
+                  {% if applicant_skill_badges %}
+                  <div class="d-flex flex-wrap gap-2">
+                    {% for skill in applicant_skill_badges %}
+                    <span
+                      class="badge rounded-pill skill-indicator {% if skill.endorsed %}is-endorsed{% else %}is-default{% endif %}"
+                      {% if skill.endorsed_by %}
+                        title="Endorsed by {{ skill.endorsed_by }}"
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="top"
+                        data-bs-custom-class="endorsement-tooltip"
+                        data-bs-title="Endorsed by {{ skill.endorsed_by }}"
+                      {% endif %}
+                    >
+                      {{ skill.name }}
+                    </span>
+                    {% endfor %}
+                  </div>
+                  {% else %}
+                  <p class="text-muted mb-0">No skills added yet.</p>
+                  {% endif %}
                 </div>
                 <div class="col-md-6">
                   <h5 class="surface-title mb-1">Education</h5>

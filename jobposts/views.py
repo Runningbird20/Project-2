@@ -23,7 +23,7 @@ from project2.skills import COMMON_SKILLS
 from django.contrib.admin.views.decorators import staff_member_required
 
 from django.db.models import Count
-from interviews.services import get_employer_interview_context
+from interviews.services import build_skill_badges_for_applicant, get_employer_interview_context
 
 MIN_MATCH_PERCENT = 50
 
@@ -173,11 +173,22 @@ def dashboard(request):
 
             if best_job:
                 overlap_skills = _ordered_overlap_skills(best_job.skills, candidate.skills)
+                candidate_skill_badges = {
+                    item["name"].lower(): item for item in build_skill_badges_for_applicant(candidate.user)
+                }
                 candidate_matches.append({
                     "candidate": candidate,
                     "job": best_job,
                     "score": best_score,
                     "overlap_skills": overlap_skills,
+                    "overlap_skill_badges": [
+                        {
+                            "name": skill,
+                            "endorsed": candidate_skill_badges.get(skill.lower(), {}).get("endorsed", False),
+                            "endorsed_by": candidate_skill_badges.get(skill.lower(), {}).get("endorsed_by", ""),
+                        }
+                        for skill in overlap_skills
+                    ],
                 })
     
         saved_searches = request.user.saved_searches.all()

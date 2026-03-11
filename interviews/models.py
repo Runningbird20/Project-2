@@ -101,3 +101,106 @@ class InterviewSlot(models.Model):
             meeting_link=meeting_link,
             notes=notes,
         )
+
+
+class InterviewFeedback(models.Model):
+    class Recommendation(models.TextChoices):
+        ADVANCE = "advance", "Advance"
+        HOLD = "hold", "Hold"
+        REJECT = "reject", "Reject"
+
+    interview_slot = models.OneToOneField(
+        InterviewSlot,
+        on_delete=models.CASCADE,
+        related_name="feedback",
+    )
+    employer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="interview_feedback_entries",
+    )
+    technical_score = models.PositiveSmallIntegerField()
+    communication_score = models.PositiveSmallIntegerField()
+    problem_solving_score = models.PositiveSmallIntegerField()
+    recommendation = models.CharField(max_length=20, choices=Recommendation.choices)
+    strengths = models.TextField(blank=True)
+    concerns = models.TextField(blank=True)
+    decision_rationale = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return f"Feedback for slot {self.interview_slot_id}"
+
+    def clean(self):
+        if self.interview_slot_id and self.interview_slot.employer_id != self.employer_id:
+            raise ValidationError("Feedback employer must match the interview employer.")
+
+        for field_name in ["technical_score", "communication_score", "problem_solving_score"]:
+            score = getattr(self, field_name)
+            if score is None:
+                raise ValidationError({field_name: "Score is required."})
+            if score < 1 or score > 5:
+                raise ValidationError({field_name: "Scores must be between 1 and 5."})
+
+    def save(self, *args, **kwargs):
+        if self.interview_slot_id and not self.employer_id:
+            self.employer_id = self.interview_slot.employer_id
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+
+class InterviewSkillEndorsement(models.Model):
+    interview_slot = models.ForeignKey(
+        InterviewSlot,
+        on_delete=models.CASCADE,
+        related_name="skill_endorsements",
+    )
+    employer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="interview_skill_endorsements_given",
+    )
+    applicant = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="interview_skill_endorsements_received",
+    )
+    skill_name = models.CharField(max_length=120)
+    skill_key = models.CharField(max_length=120, db_index=True, blank=True)
+    endorsed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-endorsed_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["interview_slot", "skill_key"],
+                name="unique_interview_slot_skill_endorsement",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.skill_name} endorsed for slot {self.interview_slot_id}"
+
+    def clean(self):
+        if self.interview_slot_id:
+            if self.interview_slot.employer_id != self.employer_id:
+                raise ValidationError("Endorsement employer must match interview employer.")
+            if self.interview_slot.applicant_id != self.applicant_id:
+                raise ValidationError("Endorsement applicant must match interview applicant.")
+
+        normalized = " ".join((self.skill_name or "").split()).strip()
+        if not normalized:
+            raise ValidationError({"skill_name": "Skill name is required."})
+        self.skill_name = normalized
+        self.skill_key = normalized.lower()
+
+    def save(self, *args, **kwargs):
+        if self.interview_slot_id:
+            self.employer_id = self.interview_slot.employer_id
+            self.applicant_id = self.interview_slot.applicant_id
+        self.full_clean()
+        super().save(*args, **kwargs)

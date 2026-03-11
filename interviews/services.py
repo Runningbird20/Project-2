@@ -1,4 +1,5 @@
 import calendar
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone as dt_timezone
 from urllib.parse import quote
 
@@ -8,8 +9,8 @@ from django.utils import timezone
 
 from accounts.models import Profile
 
-from .forms import InterviewSlotProposalForm
-from .models import InterviewSlot
+from .forms import InterviewFeedbackForm, InterviewSlotProposalForm
+from .models import InterviewSkillEndorsement, InterviewSlot
 
 
 def _month_anchor(raw_value):
@@ -21,6 +22,56 @@ def _month_anchor(raw_value):
             pass
     now = timezone.localtime()
     return now.year, now.month
+
+
+def normalize_skill_token(raw_value):
+    return " ".join(str(raw_value or "").split()).strip().lower()
+
+
+def parse_skill_tokens(raw_value):
+    seen = set()
+    ordered = []
+    for token in str(raw_value or "").replace(";", ",").split(","):
+        skill = " ".join(token.split()).strip()
+        if not skill:
+            continue
+        key = skill.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        ordered.append(skill)
+    return ordered
+
+
+def build_skill_badges_for_applicant(applicant):
+    try:
+        profile = applicant.profile
+    except Profile.DoesNotExist:
+        profile = None
+
+    skills = parse_skill_tokens(getattr(profile, "skills", ""))
+    company_map = defaultdict(set)
+    for endorsement in (
+        InterviewSkillEndorsement.objects.filter(applicant=applicant)
+        .select_related("interview_slot__application__job")
+        .only("skill_key", "interview_slot__application__job__company")
+    ):
+        company = endorsement.interview_slot.application.job.company
+        if company:
+            company_map[endorsement.skill_key].add(company)
+
+    badges = []
+    for skill in skills:
+        key = normalize_skill_token(skill)
+        companies = sorted(company_map.get(key, set()))
+        badges.append(
+            {
+                "name": skill,
+                "endorsed": bool(companies),
+                "endorsed_by": ", ".join(companies),
+            }
+        )
+    return badges
 
 
 def build_calendar_data(interviews, month_key=None):
@@ -58,23 +109,77 @@ def build_calendar_data(interviews, month_key=None):
 
 
 def _base_interview_queryset():
-    return InterviewSlot.objects.select_related("application", "application__job", "application__user", "employer", "applicant")
+    return InterviewSlot.objects.select_related(
+        "application",
+        "application__job",
+        "application__user",
+        "employer",
+        "applicant",
+        "applicant__profile",
+        "feedback",
+    )
 
 
 def get_applicant_interview_context(user, month_key=None):
-    scheduled = _base_interview_queryset().filter(applicant=user, status=InterviewSlot.Status.BOOKED).order_by("start_at")
+    now = timezone.now()
+    scheduled = list(
+        _base_interview_queryset().filter(applicant=user, status=InterviewSlot.Status.BOOKED).order_by("start_at")
+    )
     open_slots = _base_interview_queryset().filter(applicant=user, status=InterviewSlot.Status.OPEN).order_by("start_at")
+    upcoming = []
+    past = []
+    for slot in scheduled:
+        slot.feedback_visible_to_applicant = slot.end_at <= now and bool(getattr(slot, "feedback", None))
+        if slot.end_at <= now:
+            past.append(slot)
+        else:
+            upcoming.append(slot)
     return {
-        "scheduled_interviews": scheduled,
+        "scheduled_interviews": upcoming,
+        "upcoming_interviews": upcoming,
+        "past_interviews": past,
         "open_interview_slots": open_slots,
-        "interview_calendar": build_calendar_data(scheduled, month_key=month_key),
+        "interview_calendar": build_calendar_data(upcoming, month_key=month_key),
+        "applicant_skill_badges": build_skill_badges_for_applicant(user),
     }
 
 
 def get_employer_interview_context(user, month_key=None, post_data=None, initial_application_id=None):
-    scheduled = _base_interview_queryset().filter(employer=user, status=InterviewSlot.Status.BOOKED).order_by("start_at")
+    scheduled = list(
+        _base_interview_queryset().filter(employer=user, status=InterviewSlot.Status.BOOKED).order_by("start_at")
+    )
     open_slots = _base_interview_queryset().filter(employer=user, status=InterviewSlot.Status.OPEN).order_by("start_at")
     form = InterviewSlotProposalForm(post_data or None, employer=user)
+    endorsement_keys_by_slot = defaultdict(set)
+    if scheduled:
+        for slot_id, skill_key in InterviewSkillEndorsement.objects.filter(
+            interview_slot_id__in=[slot.id for slot in scheduled]
+        ).values_list("interview_slot_id", "skill_key"):
+            endorsement_keys_by_slot[slot_id].add(skill_key)
+    now = timezone.now()
+    upcoming = []
+    past = []
+    for slot in scheduled:
+        slot.feedback_allowed = slot.end_at <= now
+        slot.feedback_form = InterviewFeedbackForm(instance=getattr(slot, "feedback", None), prefix=f"feedback-{slot.id}")
+        try:
+            applicant_profile = slot.applicant.profile
+        except Profile.DoesNotExist:
+            applicant_profile = None
+        applicant_skills = parse_skill_tokens(getattr(applicant_profile, "skills", ""))
+        endorsed_keys = endorsement_keys_by_slot.get(slot.id, set())
+        slot.skill_endorsement_options = [
+            {
+                "label": skill,
+                "value": skill,
+                "endorsed": normalize_skill_token(skill) in endorsed_keys,
+            }
+            for skill in applicant_skills
+        ]
+        if slot.end_at <= now:
+            past.append(slot)
+        else:
+            upcoming.append(slot)
     if initial_application_id and not post_data:
         try:
             parsed_application_id = int(initial_application_id)
@@ -83,10 +188,12 @@ def get_employer_interview_context(user, month_key=None, post_data=None, initial
         if parsed_application_id and form.fields["application"].queryset.filter(id=parsed_application_id).exists():
             form.fields["application"].initial = parsed_application_id
     return {
-        "scheduled_interviews": scheduled,
+        "scheduled_interviews": upcoming,
+        "upcoming_interviews": upcoming,
+        "past_interviews": past,
         "open_interview_slots": open_slots,
         "interview_proposal_form": form,
-        "interview_calendar": build_calendar_data(scheduled, month_key=month_key),
+        "interview_calendar": build_calendar_data(upcoming, month_key=month_key),
     }
 
 
