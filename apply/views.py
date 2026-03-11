@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.conf import settings
 from django.core.mail import send_mail
+from django.urls import reverse
 from .models import Application
 from jobposts.models import JobPost
 from jobposts.models import ApplicantJobMatch
@@ -21,6 +22,8 @@ from .services import (
     calculate_application_streak,
 )
 from interviews.services import get_applicant_interview_context
+
+PRIVATE_NOTE_MAX_LENGTH = 2000
 
 def _benefits_score_from_company_perks(company_perks_text):
     perks_text = (company_perks_text or "").strip()
@@ -356,6 +359,47 @@ def application_status(request):
             **interview_context,
         },
     )
+
+
+@login_required
+@require_POST
+def save_applicant_private_note(request, application_id):
+    application = get_object_or_404(Application, id=application_id, user=request.user)
+    note_text = (request.POST.get("applicant_private_note") or "").strip()
+    if len(note_text) > PRIVATE_NOTE_MAX_LENGTH:
+        messages.warning(
+            request,
+            f"Applicant note must be {PRIVATE_NOTE_MAX_LENGTH} characters or fewer.",
+        )
+    else:
+        application.applicant_private_note = note_text
+        application.save(update_fields=["applicant_private_note"])
+        messages.success(request, "Private note saved.")
+    return redirect(f"{reverse('apply:application_status')}?tab=tab-applications")
+
+
+@login_required
+@require_POST
+def save_employer_private_note(request, application_id):
+    application = get_object_or_404(
+        Application.objects.select_related("job"),
+        id=application_id,
+    )
+    if application.job.owner != request.user:
+        return HttpResponseForbidden("Unauthorized")
+
+    note_text = (request.POST.get("employer_private_note") or "").strip()
+    if len(note_text) > PRIVATE_NOTE_MAX_LENGTH:
+        messages.warning(
+            request,
+            f"Employer note must be {PRIVATE_NOTE_MAX_LENGTH} characters or fewer.",
+        )
+    else:
+        application.employer_private_note = note_text
+        application.save(update_fields=["employer_private_note"])
+        messages.success(request, "Private note saved.")
+    return redirect("apply:employer_pipeline", job_id=application.job.id)
+
 
 @login_required
 @require_POST

@@ -54,6 +54,24 @@
               <button type="submit" class="secondary-btn btn-compact border-0 w-100 offer-archive-employer-btn">Archive Rejected Applicant</button>
             </form>
             {% endif %}
+            <form method="post" action="{% url 'apply:save_employer_private_note' app.id %}" class="mb-3">
+              {% csrf_token %}
+              <label class="small fw-semibold mb-1" for="employerPrivateNote{{ app.id }}">Private Employer Note</label>
+              <textarea
+                id="employerPrivateNote{{ app.id }}"
+                name="employer_private_note"
+                class="form-control form-control-sm"
+                rows="3"
+                maxlength="2000"
+                placeholder="Add internal notes about this applicant."
+              >{{ app.employer_private_note }}</textarea>
+              <div class="d-flex justify-content-between align-items-center gap-2 mt-2 flex-wrap">
+                <div class="small text-muted">Visible only to employers on this job.</div>
+                <button type="submit" class="secondary-btn btn-compact border-0 offer-archive-btn">
+                  Save Note
+                </button>
+              </div>
+            </form>
             <div class="d-grid gap-2">
               {% if app.resume_file %}<a href="{{ app.resume_file.url }}" target="_blank" class="secondary-btn btn-compact">View Resume</a>{% endif %}
               <a href="{% url 'accounts.profile_with_id' app.user.id %}" class="secondary-btn btn-compact">View Applicant Profile</a>

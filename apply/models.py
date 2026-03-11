@@ -26,6 +26,8 @@ class Application(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     job = models.ForeignKey(JobPost, on_delete=models.CASCADE, related_name="applications")
     note = models.TextField(blank=True)
+    applicant_private_note = models.TextField(blank=True, default="")
+    employer_private_note = models.TextField(blank=True, default="")
 
     resume_file = models.FileField(upload_to="resumes/", blank=True, null=True)
 
