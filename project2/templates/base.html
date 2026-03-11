@@ -314,6 +314,16 @@
         });
       })();
     </script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        if (!window.bootstrap || !bootstrap.Tooltip) return;
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+          if (!bootstrap.Tooltip.getInstance(el)) {
+            new bootstrap.Tooltip(el, { container: "body", trigger: "hover focus" });
+          }
+        });
+      });
+    </script>
     {% block extra_scripts %}{% endblock %}
   </body>
 </html>

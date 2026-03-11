@@ -3,6 +3,8 @@ import argparse
 import os
 import random
 import sys
+import uuid
+from datetime import timedelta
 from pathlib import Path
 
 
@@ -18,8 +20,11 @@ django.setup()
 
 from django.contrib.auth import get_user_model  # noqa: E402
 from django.db import transaction  # noqa: E402
+from django.utils import timezone  # noqa: E402
 
 from accounts.models import Profile  # noqa: E402
+from apply.models import Application  # noqa: E402
+from interviews.models import InterviewFeedback, InterviewSkillEndorsement, InterviewSlot  # noqa: E402
 from jobposts.models import JobPost  # noqa: E402
 from map.models import OfficeLocation  # noqa: E402
 
@@ -95,6 +100,20 @@ US_ZIP_INDEX = [
 
 WORK_SETTINGS = ["remote", "onsite", "hybrid"]
 COMPANY_SIZES = ["small", "mid_size", "large", "startup", "enterprise"]
+APPLICATION_STATUS_WEIGHTS = [
+    ("applied", 0.23),
+    ("review", 0.24),
+    ("interview", 0.27),
+    ("offer", 0.14),
+    ("rejected", 0.12),
+]
+INTERVIEW_DURATION_CHOICES = [30, 45, 60, 90]
+INTERVIEW_NOTES = [
+    "General technical interview.",
+    "Focus on API design and system thinking.",
+    "Behavioral + project deep dive.",
+    "Team fit and communication assessment.",
+]
 
 COMPANY_BLURBS = [
     "builds software products used by teams around the world.",
@@ -129,11 +148,44 @@ PERK_POOL = [
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Populate PandaPulse with demo employers, applicants, job posts, addresses, and skills."
+        description=(
+            "Populate PandaPulse with demo employers, applicants, job posts, applications, "
+            "interviews, feedback, and skill endorsements."
+        )
     )
     parser.add_argument("--employers", type=int, default=12, help="Number of employer accounts to create.")
     parser.add_argument("--applicants", type=int, default=30, help="Number of applicant accounts to create.")
     parser.add_argument("--jobs", type=int, default=70, help="Number of job posts to create.")
+    parser.add_argument(
+        "--applications-min-per-applicant",
+        type=int,
+        default=1,
+        help="Minimum number of applications to create per applicant.",
+    )
+    parser.add_argument(
+        "--applications-max-per-applicant",
+        type=int,
+        default=4,
+        help="Maximum number of applications to create per applicant.",
+    )
+    parser.add_argument(
+        "--interview-probability",
+        type=float,
+        default=0.70,
+        help="Chance that an interview/offer/closed application gets seeded interviews.",
+    )
+    parser.add_argument(
+        "--feedback-probability",
+        type=float,
+        default=0.75,
+        help="Chance that a completed interview gets feedback.",
+    )
+    parser.add_argument(
+        "--endorsement-probability",
+        type=float,
+        default=0.80,
+        help="Chance that feedback includes endorsed skills.",
+    )
     parser.add_argument("--password", default="Pass12345!", help="Password used for created users.")
     parser.add_argument("--prefix", default="seed", help="Username/email prefix for generated accounts.")
     parser.add_argument(
@@ -193,6 +245,42 @@ def random_company_website(company_name):
 def random_company_perks():
     picks = random.sample(PERK_POOL, random.randint(3, 5))
     return "\n".join(picks)
+
+
+def weighted_choice(weighted_items):
+    roll = random.random()
+    cumulative = 0.0
+    for value, weight in weighted_items:
+        cumulative += weight
+        if roll <= cumulative:
+            return value
+    return weighted_items[-1][0]
+
+
+def parse_skill_csv(raw_value):
+    seen = set()
+    ordered = []
+    for token in str(raw_value or "").replace(";", ",").split(","):
+        skill = " ".join(token.split()).strip()
+        if not skill:
+            continue
+        key = skill.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        ordered.append(skill)
+    return ordered
+
+
+def random_meeting_link():
+    return f"https://meet.pandapulse.demo/{uuid.uuid4().hex[:10]}"
+
+
+def random_timestamp_between(start_dt, end_dt):
+    if end_dt <= start_dt:
+        return start_dt
+    span_seconds = int((end_dt - start_dt).total_seconds())
+    return start_dt + timedelta(seconds=random.randint(0, span_seconds))
 
 
 def ensure_profile(user, account_type, **updates):
@@ -340,6 +428,247 @@ def create_jobs(prefix, employers, count):
     return created
 
 
+def create_applications(applicants, jobs, min_per_applicant=1, max_per_applicant=4):
+    created = []
+    if not applicants or not jobs:
+        return created
+
+    now = timezone.now()
+    min_count = max(0, min_per_applicant)
+    max_count = max(min_count, max_per_applicant)
+
+    for applicant in applicants:
+        target = random.randint(min_count, max_count)
+        target = min(target, len(jobs))
+        if target <= 0:
+            continue
+
+        for job in random.sample(jobs, target):
+            status = weighted_choice(APPLICATION_STATUS_WEIGHTS)
+            application = Application.objects.create(
+                user=applicant,
+                job=job,
+                note=f"Interested in {job.title} and relevant to {job.company}.",
+                resume_type="profile",
+                status=status,
+            )
+
+            applied_at = now - timedelta(
+                days=random.randint(2, 120),
+                hours=random.randint(0, 23),
+                minutes=random.randint(0, 59),
+            )
+            updates = {"applied_at": applied_at}
+
+            viewed = random.random() < (0.9 if status != "applied" else 0.55)
+            updates["employer_viewed"] = viewed
+            if viewed:
+                updates["employer_viewed_at"] = random_timestamp_between(applied_at, now)
+
+            if status != "applied":
+                responded_at = random_timestamp_between(applied_at + timedelta(hours=8), now)
+                updates["responded_at"] = responded_at
+                if status == "rejected":
+                    updates["rejected_at"] = responded_at
+                    updates["auto_rejected_for_timeout"] = False
+                    updates["rejected_offer_by_applicant"] = False
+
+            Application.objects.filter(id=application.id).update(**updates)
+            application.refresh_from_db()
+            created.append(application)
+    return created
+
+
+def _random_interview_start(now, past=False):
+    if past:
+        base = now - timedelta(days=random.randint(1, 45))
+    else:
+        base = now + timedelta(days=random.randint(1, 30))
+    return base.replace(
+        hour=random.randint(9, 17),
+        minute=random.choice([0, 15, 30, 45]),
+        second=0,
+        microsecond=0,
+    )
+
+
+def create_interviews_feedback_and_endorsements(
+    applications,
+    interview_probability=0.70,
+    feedback_probability=0.75,
+    endorsement_probability=0.80,
+):
+    stats = {
+        "interview_slots": 0,
+        "booked_slots": 0,
+        "open_slots": 0,
+        "canceled_slots": 0,
+        "feedback_entries": 0,
+        "skill_endorsements": 0,
+    }
+    if not applications:
+        return stats
+
+    now = timezone.now()
+    eligible = [app for app in applications if app.status in {"interview", "offer"}]
+    booked_past_slots = []
+    feedback_slots = []
+    for application in eligible:
+        if random.random() > interview_probability:
+            continue
+
+        if application.status == "offer":
+            primary_kind = weighted_choice([("past_booked", 0.9), ("upcoming_booked", 0.1)])
+        else:
+            primary_kind = weighted_choice([("past_booked", 0.45), ("upcoming_booked", 0.4), ("open_future", 0.15)])
+
+        primary_start = _random_interview_start(now, past=(primary_kind == "past_booked"))
+        primary_duration = random.choice(INTERVIEW_DURATION_CHOICES)
+        primary_slot = InterviewSlot.create_from_duration(
+            application=application,
+            start_at=primary_start,
+            duration_minutes=primary_duration,
+            meeting_link=random_meeting_link(),
+            notes=random.choice(INTERVIEW_NOTES),
+        )
+        stats["interview_slots"] += 1
+
+        if primary_kind in {"past_booked", "upcoming_booked"}:
+            booked_at = primary_slot.start_at - timedelta(
+                days=random.randint(0, 7),
+                hours=random.randint(2, 20),
+            )
+            if booked_at > now:
+                booked_at = now - timedelta(hours=random.randint(2, 48))
+            primary_slot.status = InterviewSlot.Status.BOOKED
+            primary_slot.booked_at = booked_at
+            primary_slot.booked_by = application.user
+            primary_slot.save(update_fields=["status", "booked_at", "booked_by"])
+            stats["booked_slots"] += 1
+            if primary_slot.end_at <= now:
+                booked_past_slots.append(primary_slot)
+        else:
+            stats["open_slots"] += 1
+
+        if (
+            primary_slot.status == InterviewSlot.Status.BOOKED
+            and primary_slot.end_at <= now
+            and random.random() <= feedback_probability
+        ):
+            feedback = InterviewFeedback.objects.create(
+                interview_slot=primary_slot,
+                employer=application.job.owner,
+                technical_score=random.randint(2, 5),
+                communication_score=random.randint(2, 5),
+                problem_solving_score=random.randint(2, 5),
+                recommendation=weighted_choice(
+                    [("advance", 0.6), ("hold", 0.25), ("reject", 0.15)]
+                ),
+                strengths=random.choice(
+                    [
+                        "Strong communication and collaboration.",
+                        "Clear problem-solving approach with good tradeoff analysis.",
+                        "Solid fundamentals and practical project experience.",
+                        "Good ownership mindset and thoughtful questions.",
+                    ]
+                ),
+                concerns=random.choice(
+                    [
+                        "Could provide deeper system design detail.",
+                        "Needs more examples around scaling and reliability.",
+                        "Would benefit from stronger test strategy articulation.",
+                        "No major concerns noted.",
+                    ]
+                ),
+                decision_rationale=random.choice(
+                    [
+                        "Performance aligned with role expectations and team needs.",
+                        "Interview signals indicate a strong potential fit for the team.",
+                        "Mixed interview signals suggest additional evaluation may help.",
+                    ]
+                ),
+            )
+            stats["feedback_entries"] += 1
+            feedback_slots.append(primary_slot)
+
+            if random.random() <= endorsement_probability:
+                applicant_skills = parse_skill_csv(getattr(application.user.profile, "skills", ""))
+                if applicant_skills:
+                    endorsed_count = random.randint(1, min(4, len(applicant_skills)))
+                    for skill in random.sample(applicant_skills, endorsed_count):
+                        InterviewSkillEndorsement.objects.create(
+                            interview_slot=primary_slot,
+                            employer=application.job.owner,
+                            applicant=application.user,
+                            skill_name=skill,
+                        )
+                        stats["skill_endorsements"] += 1
+
+        extra_slots = random.randint(0, 2)
+        for _ in range(extra_slots):
+            extra_slot = InterviewSlot.create_from_duration(
+                application=application,
+                start_at=_random_interview_start(now, past=False),
+                duration_minutes=random.choice(INTERVIEW_DURATION_CHOICES),
+                meeting_link=random_meeting_link(),
+                notes=random.choice(INTERVIEW_NOTES),
+            )
+            stats["interview_slots"] += 1
+            if random.random() < 0.35:
+                extra_slot.status = InterviewSlot.Status.CANCELED
+                extra_slot.save(update_fields=["status"])
+                stats["canceled_slots"] += 1
+            else:
+                stats["open_slots"] += 1
+
+    if not booked_past_slots and eligible:
+        fallback_app = random.choice(eligible)
+        fallback_slot = InterviewSlot.create_from_duration(
+            application=fallback_app,
+            start_at=_random_interview_start(now, past=True),
+            duration_minutes=random.choice(INTERVIEW_DURATION_CHOICES),
+            meeting_link=random_meeting_link(),
+            notes=random.choice(INTERVIEW_NOTES),
+        )
+        fallback_slot.status = InterviewSlot.Status.BOOKED
+        fallback_slot.booked_at = fallback_slot.start_at - timedelta(days=2)
+        fallback_slot.booked_by = fallback_app.user
+        fallback_slot.save(update_fields=["status", "booked_at", "booked_by"])
+        booked_past_slots.append(fallback_slot)
+        stats["interview_slots"] += 1
+        stats["booked_slots"] += 1
+
+    if booked_past_slots and stats["feedback_entries"] == 0:
+        fallback_slot = random.choice(booked_past_slots)
+        InterviewFeedback.objects.create(
+            interview_slot=fallback_slot,
+            employer=fallback_slot.employer,
+            technical_score=4,
+            communication_score=4,
+            problem_solving_score=4,
+            recommendation="advance",
+            strengths="Consistent interview performance.",
+            concerns="No major concerns noted.",
+            decision_rationale="Strong fit based on interview discussion and project examples.",
+        )
+        feedback_slots.append(fallback_slot)
+        stats["feedback_entries"] += 1
+
+    if feedback_slots and stats["skill_endorsements"] == 0:
+        fallback_slot = random.choice(feedback_slots)
+        fallback_skills = parse_skill_csv(getattr(fallback_slot.applicant.profile, "skills", ""))
+        if fallback_skills:
+            InterviewSkillEndorsement.objects.create(
+                interview_slot=fallback_slot,
+                employer=fallback_slot.employer,
+                applicant=fallback_slot.applicant,
+                skill_name=random.choice(fallback_skills),
+            )
+            stats["skill_endorsements"] += 1
+
+    return stats
+
+
 def clear_seed_data(prefix):
     User = get_user_model()
     users = User.objects.filter(username__startswith=f"{prefix}_")
@@ -367,11 +696,30 @@ def main():
         employers = create_employers(args.prefix, args.employers, args.password)
         applicants = create_applicants(args.prefix, args.applicants, args.password)
         jobs = create_jobs(args.prefix, employers, args.jobs)
+        applications = create_applications(
+            applicants,
+            jobs,
+            min_per_applicant=args.applications_min_per_applicant,
+            max_per_applicant=args.applications_max_per_applicant,
+        )
+        interview_stats = create_interviews_feedback_and_endorsements(
+            applications,
+            interview_probability=args.interview_probability,
+            feedback_probability=args.feedback_probability,
+            endorsement_probability=args.endorsement_probability,
+        )
 
     print("Seed complete.")
     print(f"Created employers: {len(employers)}")
     print(f"Created applicants: {len(applicants)}")
     print(f"Created job posts: {len(jobs)}")
+    print(f"Created applications: {len(applications)}")
+    print(f"Created interview slots: {interview_stats['interview_slots']}")
+    print(f"Created booked interviews: {interview_stats['booked_slots']}")
+    print(f"Created open interviews: {interview_stats['open_slots']}")
+    print(f"Created canceled interviews: {interview_stats['canceled_slots']}")
+    print(f"Created interview feedback entries: {interview_stats['feedback_entries']}")
+    print(f"Created skill endorsements: {interview_stats['skill_endorsements']}")
     print(f"Username prefix: {args.prefix}_*")
     print(f"Password: {args.password}")
 

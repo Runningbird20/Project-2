@@ -24,6 +24,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 
 from map.services import OfficeLocationGeocodingError, geocode_office_address
 from project2.skills import COMMON_SKILLS
+from interviews.services import build_skill_badges_for_applicant
 
 from .forms import CompanyProfileForm, CustomErrorList, ProfileEditForm, SignupWithProfileForm
 from .models import Profile, SavedCandidateSearch
@@ -341,6 +342,8 @@ def profile(request, user_id=None):
         "is_own_profile": is_own,
         "has_links": prof.links.exists(),
     }
+    if prof.account_type == Profile.AccountType.APPLICANT:
+        template_data["skill_badges"] = build_skill_badges_for_applicant(user_to_view)
     return render(request, "accounts/profile.html", {"template_data": template_data})
 
 
@@ -455,6 +458,7 @@ def public_profile(request, username):
                 "public_view": True,
                 "is_owner": is_owner,
                 "has_links": profile.links.exists(),
+                "skill_badges": build_skill_badges_for_applicant(user),
             }
         },
     )
@@ -512,6 +516,7 @@ def candidate_search(request):
                 best_score = score
         candidate.has_skill_match = best_job is not None
         candidate.matched_job_title = best_job.title if best_job else ""
+        candidate.skill_badges = build_skill_badges_for_applicant(candidate.user)
     candidates.sort(key=lambda c: (not c.has_skill_match, c.user.username.lower()))
 
     return render(
