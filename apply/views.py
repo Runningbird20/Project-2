@@ -4,6 +4,8 @@ from django.contrib import messages
 from django.conf import settings
 from django.core.mail import send_mail
 from django.urls import reverse
+
+from accounts.views import profile
 from .models import Application
 from jobposts.models import JobPost
 from jobposts.models import ApplicantJobMatch
@@ -22,6 +24,7 @@ from .services import (
     calculate_application_streak,
 )
 from interviews.services import get_applicant_interview_context
+from apply.resume_parser import parse_resume
 
 PRIVATE_NOTE_MAX_LENGTH = 2000
 
@@ -172,6 +175,22 @@ def submit_application(request, job_id):
         resume_type=resume_type,
         resume_file=resume_file if resume_type == "uploaded" else None,
     )
+
+    if application.resume_file:
+        try:
+            parsed = parse_resume(application.resume_file.path)
+            skills_list = parsed.get("skills", [])
+            skills_csv = ", ".join(skills_list)
+            profile = request.user.profile
+            profile.parsed_resume_skills = skills_csv
+            profile.save()
+
+        except Exception as exc:
+            if settings.DEBUG:
+                print("Resume parsing failed:", exc)
+
+        
+
 
     if request.user.email:
         try:
