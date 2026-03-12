@@ -8,13 +8,18 @@
           <p class="page-kicker mb-2">Company profile</p>
           <h1 class="page-title page-title-sm">Edit Company Profile</h1>
           <p class="surface-copy mb-0">Applicants will see this profile in company search.</p>
+          <p class="small text-muted mt-2 mb-0">Fields marked with <span class="required-indicator">*</span> are required.</p>
           <hr>
 
           <form method="post" class="vstack gap-3">
             {% csrf_token %}
             {{ template_data.form.non_field_errors }}
 
-            <div>{{ template_data.form.company_name.label_tag }} {{ template_data.form.company_name }}{{ template_data.form.company_name.errors }}</div>
+            <div>
+              <label for="{{ template_data.form.company_name.id_for_label }}">Company Name <span class="required-indicator">*</span></label>
+              {{ template_data.form.company_name }}
+              {{ template_data.form.company_name.errors }}
+            </div>
             <div>{{ template_data.form.company_website.label_tag }} {{ template_data.form.company_website }}{{ template_data.form.company_website.errors }}</div>
             <div>{{ template_data.form.company_description.label_tag }} {{ template_data.form.company_description }}{{ template_data.form.company_description.errors }}</div>
             <div>{{ template_data.form.company_culture.label_tag }} {{ template_data.form.company_culture }}{{ template_data.form.company_culture.errors }}</div>

@@ -816,9 +816,51 @@ html.dark-mode .create-job-heading {
   margin-bottom: 0.3rem;
 }
 
+.required-indicator {
+  color: #b42318;
+  font-weight: 800;
+  margin-left: 0.12rem;
+}
+
+.signup-password-help ul {
+  margin: 0.45rem 0 0;
+  padding-left: 1.15rem;
+}
+
+.signup-password-help li + li {
+  margin-top: 0.2rem;
+}
+
+.password-requirements {
+  list-style: none;
+  padding-left: 0;
+}
+
+.password-requirement {
+  color: #6b7280;
+  transition: color 0.18s ease;
+}
+
+.password-requirement.is-met {
+  color: #15803d;
+  font-weight: 700;
+}
+
+.password-requirements-note {
+  margin-top: 0.45rem;
+}
+
 html.dark-mode .field-block label,
 html.dark-mode .form-label {
   color: #e6edf8;
+}
+
+html.dark-mode .password-requirement {
+  color: #b8c4da;
+}
+
+html.dark-mode .password-requirement.is-met {
+  color: #86efac;
 }
 
 .form-control,

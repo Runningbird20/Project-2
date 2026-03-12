@@ -10,6 +10,7 @@
             <p class="page-kicker">Join PandaPulse</p>
             <h1 class="page-title page-title-sm">Create your account</h1>
           </div>
+          <p class="small text-muted mb-3">Fields marked with <span class="required-indicator">*</span> are required.</p>
 
             <!-- IMPORTANT: enctype for image upload -->
             <form method="POST" enctype="multipart/form-data">
@@ -20,16 +21,41 @@
               <h5 class="surface-title mt-1">Account</h5>
 
               {{ template_data.form.username.errors }}
-              <div class="field-block">{{ template_data.form.username.label_tag }} {{ template_data.form.username }}</div>
+              <div class="field-block">
+                <label for="{{ template_data.form.username.id_for_label }}">Username <span class="required-indicator">*</span></label>
+                {{ template_data.form.username }}
+              </div>
 
               {{ template_data.form.email.errors }}
-              <div class="field-block">{{ template_data.form.email.label_tag }} {{ template_data.form.email }}</div>
+              <div class="field-block">
+                <label for="{{ template_data.form.email.id_for_label }}">Email <span class="required-indicator">*</span></label>
+                {{ template_data.form.email }}
+              </div>
 
               {{ template_data.form.password1.errors }}
-              <div class="field-block">{{ template_data.form.password1.label_tag }} {{ template_data.form.password1 }}</div>
+              <div class="field-block">
+                <label for="{{ template_data.form.password1.id_for_label }}">Password <span class="required-indicator">*</span></label>
+                {{ template_data.form.password1 }}
+                <div class="form-text signup-password-help">
+                  <ul class="password-requirements" id="passwordRequirements">
+                    <li class="password-requirement" data-rule="length">At least 8 characters</li>
+                    <li class="password-requirement" data-rule="uppercase">At least 1 uppercase letter</li>
+                    <li class="password-requirement" data-rule="lowercase">At least 1 lowercase letter</li>
+                    <li class="password-requirement" data-rule="number">At least 1 number</li>
+                    <li class="password-requirement" data-rule="special">At least 1 special character</li>
+                    <li class="password-requirement" data-rule="match">Passwords match</li>
+                  </ul>
+                  <div class="password-requirements-note">
+                    Final signup also checks that your password is not too common and not too similar to your account details.
+                  </div>
+                </div>
+              </div>
 
               {{ template_data.form.password2.errors }}
-              <div class="field-block">{{ template_data.form.password2.label_tag }} {{ template_data.form.password2 }}</div>
+              <div class="field-block">
+                <label for="{{ template_data.form.password2.id_for_label }}">Confirm Password <span class="required-indicator">*</span></label>
+                {{ template_data.form.password2 }}
+              </div>
 
               <hr />
               <h5 class="surface-title">Profile</h5>
@@ -38,14 +64,19 @@
               <div class="field-block">{{ template_data.form.profile_picture.label_tag }} {{ template_data.form.profile_picture }}</div>
 
               {{ template_data.form.account_type.errors }}
-              <div class="field-block">{{ template_data.form.account_type.label_tag }} {{ template_data.form.account_type }}</div>
+              <div class="field-block">
+                <label for="{{ template_data.form.account_type.id_for_label }}">I am signing up as <span class="required-indicator">*</span></label>
+                {{ template_data.form.account_type }}
+              </div>
 
               <div class="field-block">
                 <div class="border rounded-4 p-3 bg-light-subtle map-pin-card">
                   <div class="text-uppercase text-muted small mb-2">Address</div>
+                  <div class="form-text mb-3">Applicants must provide Address Line 1, City, State, and ZIP.</div>
                   <div class="row g-3">
                     <div class="col-12">
-                      {{ template_data.form.address_line_1.label_tag }} {{ template_data.form.address_line_1 }}
+                      <label for="{{ template_data.form.address_line_1.id_for_label }}">Address Line 1 <span class="required-indicator applicant-required-marker">*</span></label>
+                      {{ template_data.form.address_line_1 }}
                       {{ template_data.form.address_line_1.errors }}
                     </div>
                     <div class="col-12">
@@ -53,15 +84,18 @@
                       {{ template_data.form.address_line_2.errors }}
                     </div>
                     <div class="col-md-5">
-                      {{ template_data.form.city.label_tag }} {{ template_data.form.city }}
+                      <label for="{{ template_data.form.city.id_for_label }}">City <span class="required-indicator applicant-required-marker">*</span></label>
+                      {{ template_data.form.city }}
                       {{ template_data.form.city.errors }}
                     </div>
                     <div class="col-md-3">
-                      {{ template_data.form.state.label_tag }} {{ template_data.form.state }}
+                      <label for="{{ template_data.form.state.id_for_label }}">State <span class="required-indicator applicant-required-marker">*</span></label>
+                      {{ template_data.form.state }}
                       {{ template_data.form.state.errors }}
                     </div>
                     <div class="col-md-4">
-                      {{ template_data.form.postal_code.label_tag }} {{ template_data.form.postal_code }}
+                      <label for="{{ template_data.form.postal_code.id_for_label }}">ZIP <span class="required-indicator applicant-required-marker">*</span></label>
+                      {{ template_data.form.postal_code }}
                       {{ template_data.form.postal_code.errors }}
                     </div>
                     <div class="col-md-6">
@@ -106,7 +140,10 @@
 
               <div id="employer_fields">
                 {{ template_data.form.company_name.errors }}
-                <div class="field-block">{{ template_data.form.company_name.label_tag }} {{ template_data.form.company_name }}</div>
+                <div class="field-block">
+                  <label for="{{ template_data.form.company_name.id_for_label }}">Company Name <span class="required-indicator employer-required-marker d-none">*</span></label>
+                  {{ template_data.form.company_name }}
+                </div>
 
                 {{ template_data.form.company_website.errors }}
                 <div class="field-block">{{ template_data.form.company_website.label_tag }} {{ template_data.form.company_website }}</div>
@@ -120,14 +157,74 @@
 
               <script>
                 (function () {
+                  const passwordInput = document.getElementById("id_password1");
+                  const confirmPasswordInput = document.getElementById("id_password2");
+                  const requirements = document.querySelectorAll(".password-requirement");
+
+                  function evaluatePasswordRule(rule, password, confirmPassword) {
+                    if (rule === "length") return password.length >= 8;
+                    if (rule === "uppercase") return /[A-Z]/.test(password);
+                    if (rule === "lowercase") return /[a-z]/.test(password);
+                    if (rule === "number") return /\d/.test(password);
+                    if (rule === "special") return /[^A-Za-z0-9]/.test(password);
+                    if (rule === "match") return password.length > 0 && password === confirmPassword;
+                    return false;
+                  }
+
+                  function refreshPasswordRequirements() {
+                    const password = passwordInput ? passwordInput.value : "";
+                    const confirmPassword = confirmPasswordInput ? confirmPasswordInput.value : "";
+                    requirements.forEach(function (item) {
+                      const isMet = evaluatePasswordRule(item.dataset.rule, password, confirmPassword);
+                      item.classList.toggle("is-met", isMet);
+                    });
+                  }
+
+                  if (passwordInput) {
+                    passwordInput.addEventListener("input", refreshPasswordRequirements);
+                  }
+                  if (confirmPasswordInput) {
+                    confirmPasswordInput.addEventListener("input", refreshPasswordRequirements);
+                  }
+                  refreshPasswordRequirements();
+                })();
+
+                (function () {
                   const select = document.getElementById("id_account_type");
                   const applicant = document.getElementById("applicant_fields");
                   const employer = document.getElementById("employer_fields");
+                  const companyName = document.getElementById("id_company_name");
+                  const applicantRequiredFields = [
+                    document.getElementById("id_address_line_1"),
+                    document.getElementById("id_city"),
+                    document.getElementById("id_state"),
+                    document.getElementById("id_postal_code"),
+                  ];
+                  const applicantMarkers = document.querySelectorAll(".applicant-required-marker");
+                  const employerMarkers = document.querySelectorAll(".employer-required-marker");
+
+                  function toggleRequired(elements, isRequired) {
+                    elements.forEach(function (element) {
+                      if (element) {
+                        element.required = isRequired;
+                      }
+                    });
+                  }
+
+                  function toggleMarkers(markers, shouldShow) {
+                    markers.forEach(function (marker) {
+                      marker.classList.toggle("d-none", !shouldShow);
+                    });
+                  }
 
                   function refresh() {
                     const isEmployer = select && select.value === "EMPLOYER";
                     if (employer) employer.style.display = isEmployer ? "block" : "none";
                     if (applicant) applicant.style.display = isEmployer ? "none" : "block";
+                    toggleRequired(applicantRequiredFields, !isEmployer);
+                    toggleRequired([companyName], isEmployer);
+                    toggleMarkers(applicantMarkers, !isEmployer);
+                    toggleMarkers(employerMarkers, isEmployer);
                   }
 
                   if (select) {

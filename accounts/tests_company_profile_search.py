@@ -110,6 +110,34 @@ class CompanyProfileAndSearchTests(TestCase):
         self.employer_profile.refresh_from_db()
         self.assertEqual(self.employer_profile.company_name, "Acme Labs Updated")
 
+    def test_company_profile_edit_shows_required_marker_and_rejects_blank_company_name(self):
+        self.client.login(username="recruiter1", password="pass12345")
+
+        get_response = self.client.get(reverse("accounts.company_profile_edit"))
+        self.assertEqual(get_response.status_code, 200)
+        self.assertContains(get_response, "Fields marked with")
+        self.assertContains(get_response, "Company Name")
+        self.assertContains(get_response, "required-indicator")
+
+        post_response = self.client.post(
+            reverse("accounts.company_profile_edit"),
+            {
+                "company_name": "",
+                "company_website": "",
+                "company_description": "Builds AI tools.",
+                "company_culture": "Remote-first and learning-focused.",
+                "company_perks": "401k match\nHome office stipend",
+                "address_line_1": "",
+                "address_line_2": "",
+                "city": "",
+                "state": "",
+                "postal_code": "",
+                "country": "United States",
+            },
+        )
+        self.assertEqual(post_response.status_code, 200)
+        self.assertContains(post_response, "Company name is required for employers.")
+
     def test_employer_can_set_company_hq_in_company_profile(self):
         self.client.login(username="recruiter1", password="pass12345")
         response = self.client.post(

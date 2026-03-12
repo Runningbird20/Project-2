@@ -1,6 +1,7 @@
 import re
 
 from django import forms
+from django.contrib.auth import password_validation
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
 from django.forms.utils import ErrorList
@@ -167,8 +168,10 @@ class CustomErrorList(ErrorList):
 class CustomUserCreationForm(UserCreationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["username"].help_text = None
+        self.fields["password1"].help_text = password_validation.password_validators_help_text_html()
+        self.fields["password2"].help_text = None
         for fieldname in ['username', 'password1', 'password2']:
-            self.fields[fieldname].help_text = None
             self.fields[fieldname].widget.attrs.update({'class': 'form-control'})
 
 class SignupWithProfileForm(ApplicantAddressFieldsMixin, CustomUserCreationForm):
@@ -567,6 +570,9 @@ class ProfileEditForm(ApplicantAddressFieldsMixin, forms.ModelForm):
 class CompanyProfileForm(ApplicantAddressFieldsMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["company_name"].required = True
+        self.fields["company_name"].widget.attrs["required"] = True
+        self.fields["company_name"].error_messages["required"] = "Company name is required for employers."
         self.fields["country"].initial = "United States"
         if self.instance and self.instance.pk and not self.is_bound:
             if any(
