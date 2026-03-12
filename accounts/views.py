@@ -732,8 +732,11 @@ def delete_candidate_search(request, search_id):
     return redirect("jobposts.dashboard")
 
 
-@superuser_required
+@login_required
 def applicant_clusters_map(request):
+    if not (request.user.is_superuser or _is_employer(request.user)):
+        return HttpResponseForbidden("Only employers can access applicant clusters map.")
+
     applicants = Profile.objects.filter(account_type=Profile.AccountType.APPLICANT).select_related("user")
     location_counts = Counter()
     for profile in applicants:
