@@ -22,7 +22,7 @@
             </div>
 
             <button type="submit" class="primary-btn">Send Email</button>
-            <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn ms-2">Cancel</a>
+            <a href="{% url 'accounts.public_profile' candidate.user.username %}" class="secondary-btn ms-2">Return to Profile</a>
           </form>
 
         </div>

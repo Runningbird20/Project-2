@@ -27,8 +27,10 @@
                             <a href="{% url 'messaging:inbox' %}" class="secondary-btn btn-compact">
                                 All Chats
                             </a>
-                            {% if can_post_job %}
-                                <a href="{% url 'jobposts.dashboard' %}" class="secondary-btn btn-compact">Back to Dashboard</a>
+                            {% if can_post_job and partner_public_username %}
+                                <a href="{% url 'accounts.public_profile' partner_public_username %}" class="secondary-btn btn-compact">Return to Profile</a>
+                            {% elif can_post_job %}
+                                <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn btn-compact">Return to Find Candidates</a>
                             {% else %}
                                 <a href="{% url 'apply:application_status' %}" class="secondary-btn btn-compact">Back to Dashboard</a>
                             {% endif %}

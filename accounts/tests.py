@@ -1,12 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
-<<<<<<< HEAD
 from django.core import mail
 from django.test.utils import override_settings
-=======
-from unittest.mock import patch
->>>>>>> d01baced0c73dcc3eed56bd8efb0232142b26b68
 
 from .models import Profile
 

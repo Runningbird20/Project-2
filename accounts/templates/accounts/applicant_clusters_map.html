@@ -12,7 +12,11 @@
         </p>
       </div>
       <div class="form-actions">
-        <a href="{% url 'accounts.manage_users' %}" class="secondary-btn">Back to Manage Users</a>
+        {% if request.user.is_superuser %}
+          <a href="{% url 'accounts.manage_users' %}" class="secondary-btn">Back to Manage Users</a>
+        {% else %}
+          <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn">Return to Find Candidates</a>
+        {% endif %}
       </div>
     </div>
 

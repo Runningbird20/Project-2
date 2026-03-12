@@ -7,11 +7,11 @@
       <div class="col-md-10 col-lg-8">
         <div class="surface-card">
           <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-            <div class="d-flex align-items-start gap-3">
+            <div class="d-flex align-items-start gap-3 flex-grow-1">
               <div class="flex-shrink-0">
                 <img src="{{ template_data.profile.profile_picture_or_default_url }}" alt="Profile picture" class="rounded-circle border" style="width:84px;height:84px;object-fit:cover;">
               </div>
-              <div>
+              <div class="flex-grow-1">
                 <p class="page-kicker mb-2">Public candidate profile</p>
                 <h1 class="page-title page-title-sm mb-1">{{ template_data.profile.user.get_username }}</h1>
                 {% if template_data.is_owner %}
@@ -19,23 +19,27 @@
                 {% else %}
                   {% if template_data.profile.location_city_state %}<p class="small text-muted mb-1">{{ template_data.profile.location_city_state }}</p>{% endif %}
                 {% endif %}
-                {% if template_data.profile.user.email %}
-                  {% if template_data.is_owner or not template_data.profile.hide_email_from_employers %}
-                    <p class="small text-muted mb-1">{{ template_data.profile.user.email }}</p>
-                  {% endif %}
+                {% if not template_data.profile.hide_email_from_employers and template_data.profile.user.email %}
+                  <p class="small text-muted mb-1">{{ template_data.profile.user.email }}</p>
+                {% endif %}
+                {% if template_data.is_owner and template_data.profile.user.email %}
+                  <p class="small text-muted mb-1">{{ template_data.profile.user.email }}</p>
                 {% endif %}
                 {% if template_data.profile.show_headline and template_data.profile.headline %}<p class="surface-copy mb-0">{{ template_data.profile.headline }}</p>{% endif %}
               </div>
             </div>
-            {% if template_data.is_owner %}
-              <a class="secondary-btn" href="{% url 'accounts.profile_edit' %}">Edit</a>
-            {% endif %}
+            <div class="text-md-end">
+              {% if template_data.is_owner %}
+                <a class="secondary-btn" href="{% url 'accounts.profile_edit' %}">Edit</a>
+              {% elif template_data.profile.user.email and not template_data.profile.hide_email_from_employers %}
+                <a href="{% url 'accounts.email_candidate' template_data.profile.id %}" class="secondary-btn">Email</a>
+              {% endif %}
+            </div>
           </div>
 
           {% if template_data.is_owner and not template_data.profile.visible_to_recruiters %}
             <div class="alert alert-warning mt-3 mb-0">You are previewing your public profile while set to private.</div>
           {% endif %}
-
           <hr>
 
           {% if template_data.profile.show_skills %}
@@ -93,12 +97,8 @@
             <p class="text-muted">No links added yet.</p>
           {% endif %}
           {% endif %}
-        </div>
-
-        <div class="text-center mt-3">
-          {% if template_data.profile.user.email and not template_data.profile.hide_email_from_employers %}
-          <a href="{% url 'accounts.email_candidate' template_data.profile.id %}" class="secondary-btn">Email</a>
-          {% endif %}
+          </div>
+       <div class="text-center mt-3">
           <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn">Back to Search</a>
         </div>
       </div>

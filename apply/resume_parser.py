@@ -1,5 +1,12 @@
-import PyPDF2
 import re
+
+try:
+    from pypdf import PdfReader
+except ImportError:
+    try:
+        from PyPDF2 import PdfReader
+    except ImportError:
+        PdfReader = None
 
 SKILL_LIBRARY = {
     # Programming Languages
@@ -101,9 +108,12 @@ SKILL_LIBRARY = {
 
 
 def extract_text_from_pdf(file_path):
+    if PdfReader is None:
+        raise RuntimeError("Missing PDF parser dependency. Install 'pypdf'.")
+
     text = ""
     with open(file_path, "rb") as f:
-        reader = PyPDF2.PdfReader(f)
+        reader = PdfReader(f)
         for page in reader.pages:
             text += page.extract_text() or ""
     return text

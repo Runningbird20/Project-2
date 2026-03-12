@@ -50,8 +50,13 @@
               <div class="p-5 text-center text-muted">
                 <i class="bi bi-chat-left-dots display-1 d-block mb-3 opacity-25"></i>
                 <h4>No conversations yet</h4>
-                <p>When you message recruiters or candidates, they will appear here.</p>
-                <a href="{% url 'jobposts.search' %}" class="primary-btn mt-3">Browse Jobs</a>
+                {% if can_post_job %}
+                  <p>When you message candidates, they will appear here.</p>
+                  <a href="{% url 'accounts.candidate_search' %}" class="primary-btn mt-3">Find Candidates</a>
+                {% else %}
+                  <p>When you message recruiters or candidates, they will appear here.</p>
+                  <a href="{% url 'jobposts.search' %}" class="primary-btn mt-3">Browse Jobs</a>
+                {% endif %}
               </div>
             {% endfor %}
           </div>

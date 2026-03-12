@@ -7,6 +7,12 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.utils import timezone
 
+
+def _can_post_job(user):
+    profile, _ = Profile.objects.get_or_create(user=user)
+    return profile.account_type == Profile.AccountType.EMPLOYER
+
+
 @login_required
 def check_typing_status(request, partner_id):
     partner_profile = get_object_or_404(Profile, user_id=partner_id)
@@ -27,6 +33,7 @@ def update_my_typing_status(request):
 
 @login_required
 def inbox(request):
+    can_post_job = _can_post_job(request.user)
     sent_to = Message.objects.filter(sender=request.user).values_list('recipient', flat=True)
     received_from = Message.objects.filter(recipient=request.user).values_list('sender', flat=True)
     
@@ -55,12 +62,18 @@ def inbox(request):
 
     threads.sort(key=lambda x: x['last_message'].timestamp, reverse=True)
     return render(request, 'messaging/inbox.html', {
-        'chat_threads': threads 
+        'chat_threads': threads,
+        'can_post_job': can_post_job,
     })
 
 @login_required
 def chat_detail(request, partner_id):
     partner = get_object_or_404(User, id=partner_id)
+    can_post_job = _can_post_job(request.user)
+    partner_profile, _ = Profile.objects.get_or_create(user=partner)
+    partner_public_username = ""
+    if can_post_job and partner_profile.account_type == Profile.AccountType.APPLICANT:
+        partner_public_username = partner.username
     
     messages = Message.objects.filter(
         Q(sender=request.user, recipient=partner) | 
@@ -78,7 +91,9 @@ def chat_detail(request, partner_id):
 
     return render(request, 'messaging/chat_detail.html', {
         'partner': partner,
-        'chat_messages': messages
+        'chat_messages': messages,
+        'can_post_job': can_post_job,
+        'partner_public_username': partner_public_username,
     })
 
 @login_required
