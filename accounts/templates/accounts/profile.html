@@ -100,7 +100,15 @@
           {% endif %}
         </div>
 
-        {% if not template_data.is_own_profile %}
+        {% if template_data.is_own_profile %}
+        <div class="text-center mt-3">
+          {% if template_data.profile.account_type == "APPLICANT" %}
+          <a href="{% url 'apply:application_status' %}" class="secondary-btn">Return to Dashboard</a>
+          {% else %}
+          <a href="{% url 'jobposts.dashboard' %}" class="secondary-btn">Return to Dashboard</a>
+          {% endif %}
+        </div>
+        {% else %}
         <div class="text-center mt-3">
           <button onclick="history.back()" class="secondary-btn border-0">Return to Pipeline</button>
         </div>

@@ -13,7 +13,7 @@
     minMoveMs: 380,
     maxMoveMs: 1600,
     edgePadding: 18,
-    storageKey: "panda:pos:v1",
+    storageKey: "panda:pos:v2",
   };
 
   let bubbleTimer = null;
@@ -43,6 +43,12 @@
     return mascot.getBoundingClientRect();
   }
 
+  function updateBubblePlacement() {
+    const rect = getRect();
+    const shouldFlipBubble = rect.left + rect.width / 2 < window.innerWidth / 2;
+    mascot.classList.toggle("bubble-right", shouldFlipBubble);
+  }
+
   function setPos(x, y) {
     const rect = getRect();
     const clampedX = clamp(x, config.edgePadding, window.innerWidth - rect.width - config.edgePadding);
@@ -51,6 +57,7 @@
     mascot.style.top = `${clampedY}px`;
     mascot.style.right = "auto";
     mascot.style.bottom = "auto";
+    updateBubblePlacement();
   }
 
   function currentPos() {
@@ -61,13 +68,13 @@
   function savePos() {
     const rect = getRect();
     try {
-      localStorage.setItem(config.storageKey, JSON.stringify({ x: rect.left, y: rect.top }));
+      sessionStorage.setItem(config.storageKey, JSON.stringify({ x: rect.left, y: rect.top }));
     } catch (e) {}
   }
 
   function loadPos() {
     try {
-      const raw = localStorage.getItem(config.storageKey);
+      const raw = sessionStorage.getItem(config.storageKey);
       if (!raw) return false;
       const p = JSON.parse(raw);
       if (typeof p?.x !== "number" || typeof p?.y !== "number") return false;
@@ -198,6 +205,7 @@
     mascot.style.top = `${rect.top}px`;
     mascot.style.right = "auto";
     mascot.style.bottom = "auto";
+    updateBubblePlacement();
   }
 
   function onPointerDown(e) {
@@ -248,8 +256,7 @@
 
   window.addEventListener("resize", () => {
     const rect = getRect();
-    mascot.style.left = `${clamp(rect.left, config.edgePadding, window.innerWidth - rect.width - config.edgePadding)}px`;
-    mascot.style.top = `${clamp(rect.top, config.edgePadding, window.innerHeight - rect.height - config.edgePadding)}px`;
+    setPos(rect.left, rect.top);
     savePos();
   });
 })();

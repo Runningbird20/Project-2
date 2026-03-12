@@ -23,7 +23,7 @@
   =================================*/
   #panda-mascot {
     position: fixed;
-    right: 18px;
+    left: 18px;
     bottom: 18px;
     z-index: var(--panda-z);
   

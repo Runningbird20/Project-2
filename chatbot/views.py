@@ -1,5 +1,7 @@
-import openai
 import json
+import logging
+
+import openai
 from django.http import JsonResponse
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -13,6 +15,58 @@ from .utils import get_comprehensive_site_context
 from jobposts.models import JobPost
 from apply.models import Application
 from messaging.models import Message
+
+
+logger = logging.getLogger(__name__)
+
+
+def _friendly_assistant_error_response(exc):
+    error_text = str(exc)
+    status_code = getattr(exc, "status_code", None)
+
+    if (
+        isinstance(exc, openai.AuthenticationError)
+        or status_code == 401
+        or "User not found." in error_text
+        or "code': 401" in error_text
+        or '"code": 401' in error_text
+    ):
+        return JsonResponse(
+            {
+                "status": "error",
+                "response": (
+                    "Panda Assistant could not authenticate with OpenRouter. "
+                    "Replace OPENROUTER_API_KEY in .env with a valid OpenRouter key and restart the server."
+                ),
+            },
+            status=200,
+        )
+
+    if isinstance(exc, openai.RateLimitError) or status_code == 429:
+        return JsonResponse(
+            {
+                "status": "error",
+                "response": "Panda Assistant is rate-limited right now. Please wait a moment and try again.",
+            },
+            status=200,
+        )
+
+    if isinstance(exc, openai.APIConnectionError):
+        return JsonResponse(
+            {
+                "status": "error",
+                "response": "Panda Assistant could not reach OpenRouter. Check your network connection and try again.",
+            },
+            status=200,
+        )
+
+    return JsonResponse(
+        {
+            "status": "error",
+            "response": "Panda Assistant is temporarily unavailable. Please try again in a moment.",
+        },
+        status=500,
+    )
 
 @login_required
 def ask_panda(request):
@@ -155,12 +209,9 @@ def ask_panda(request):
 
         return JsonResponse({'response': messages[-1]['content']})
 
-    except Exception as e:
-        print(f"Panda Agent Error: {e}")
-        return JsonResponse({
-            'status': 'error',
-            'response': f"Assistant error: {str(e)}"
-        }, status=500)
+    except Exception as exc:
+        logger.exception("Panda Agent Error")
+        return _friendly_assistant_error_response(exc)
 
 @login_required
 def panda_greet(request):

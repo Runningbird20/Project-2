@@ -19,10 +19,9 @@
                 {% else %}
                   {% if template_data.profile.location_city_state %}<p class="small text-muted mb-1">{{ template_data.profile.location_city_state }}</p>{% endif %}
                 {% endif %}
-                {% if not template_data.profile.hide_email_from_employers and template_data.profile.user.email %}
+                {% if template_data.profile.user.email and template_data.is_owner %}
                   <p class="small text-muted mb-1">{{ template_data.profile.user.email }}</p>
-                {% endif %}
-                {% if template_data.is_owner and template_data.profile.user.email %}
+                {% elif template_data.profile.user.email and not template_data.profile.hide_email_from_employers %}
                   <p class="small text-muted mb-1">{{ template_data.profile.user.email }}</p>
                 {% endif %}
                 {% if template_data.profile.show_headline and template_data.profile.headline %}<p class="surface-copy mb-0">{{ template_data.profile.headline }}</p>{% endif %}
@@ -98,8 +97,16 @@
           {% endif %}
           {% endif %}
           </div>
-       <div class="text-center mt-3">
-          <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn">Back to Search</a>
+        <div class="text-center mt-3">
+          {% if template_data.is_owner %}
+            {% if template_data.profile.account_type == "EMPLOYER" %}
+              <a href="{% url 'jobposts.dashboard' %}" class="secondary-btn">Return to Dashboard</a>
+            {% else %}
+              <a href="{% url 'apply:application_status' %}" class="secondary-btn">Return to Dashboard</a>
+            {% endif %}
+          {% else %}
+            <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn">Back to Search</a>
+          {% endif %}
         </div>
       </div>
     </div>

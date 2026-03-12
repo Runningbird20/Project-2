@@ -146,9 +146,12 @@
         const form = document.getElementById("chatbot-form");
         const input = document.getElementById("chatbot-input");
         const messages = document.getElementById("chatbot-messages");
+        const sendBtn = form.querySelector('button[type="submit"]');
         const isAuthenticated = {{ user.is_authenticated|yesno:"true,false" }};
+        let thinkingRow = null;
+        let isAwaitingResponse = false;
 
-        if (!panel || !mascot || !closeBtn || !form || !input || !messages) return;
+        if (!panel || !mascot || !closeBtn || !form || !input || !messages || !sendBtn) return;
 
         function getCookie(name) {
           const parts = (`; ${document.cookie}`).split(`; ${name}=`);
@@ -167,6 +170,45 @@
           row.appendChild(bubble);
           messages.appendChild(row);
           messages.scrollTop = messages.scrollHeight;
+        }
+
+        function showThinkingIndicator() {
+          if (thinkingRow) return;
+          const row = document.createElement("div");
+          row.className = "chatbot-message-row is-panda";
+          row.setAttribute("data-thinking-indicator", "true");
+
+          const bubble = document.createElement("div");
+          bubble.className = "chatbot-message chatbot-message-panda chatbot-message-thinking";
+          bubble.setAttribute("role", "status");
+          bubble.setAttribute("aria-live", "polite");
+          bubble.setAttribute("aria-label", "Panda is thinking");
+
+          const label = document.createElement("span");
+          label.className = "chatbot-thinking-label";
+          label.textContent = "Panda is thinking";
+
+          const dots = document.createElement("span");
+          dots.className = "chatbot-thinking-dots";
+          dots.setAttribute("aria-hidden", "true");
+
+          for (let i = 0; i < 3; i += 1) {
+            const dot = document.createElement("span");
+            dots.appendChild(dot);
+          }
+
+          bubble.appendChild(label);
+          bubble.appendChild(dots);
+          row.appendChild(bubble);
+          messages.appendChild(row);
+          messages.scrollTop = messages.scrollHeight;
+          thinkingRow = row;
+        }
+
+        function hideThinkingIndicator() {
+          if (!thinkingRow) return;
+          thinkingRow.remove();
+          thinkingRow = null;
         }
 
         async function postMessage(text) {
@@ -269,15 +311,26 @@
 
         form.addEventListener("submit", async function (event) {
           event.preventDefault();
-          if (!isAuthenticated) return;
+          if (!isAuthenticated || isAwaitingResponse) return;
           const text = input.value.trim();
           if (!text) return;
           input.value = "";
           addMessage("user", text);
+          isAwaitingResponse = true;
+          input.disabled = true;
+          sendBtn.disabled = true;
+          showThinkingIndicator();
           try {
             await postMessage(text);
           } catch (err) {
+            hideThinkingIndicator();
             addMessage("panda", err.message || "I could not process that request.");
+          } finally {
+            hideThinkingIndicator();
+            isAwaitingResponse = false;
+            input.disabled = !isAuthenticated;
+            sendBtn.disabled = !isAuthenticated;
+            input.focus();
           }
         });
       });

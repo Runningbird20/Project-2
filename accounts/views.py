@@ -384,6 +384,18 @@ def signup(request):
             else:
                 messages.warning(request, "Account confirmation email could not be sent.")
 
+    authenticated_user = authenticate(
+        request,
+        username=user.username,
+        password=form.cleaned_data.get("password1"),
+    )
+    if authenticated_user is not None:
+        auth_login(request, authenticated_user)
+        messages.success(request, "Account created! You're now signed in.")
+        if acct == Profile.AccountType.EMPLOYER:
+            return redirect("jobposts.dashboard")
+        return redirect("apply:application_status")
+
     messages.success(request, "Account created! Please log in.")
     return redirect("accounts.login")
 
