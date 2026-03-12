@@ -42,6 +42,8 @@ class Profile(models.Model):
     country = models.CharField(max_length=100, blank=True, default="United States")
     projects = models.TextField(blank=True)
 
+    parsed_resume_skills = models.TextField(blank=True)
+    
     # Employer-only fields
     company_name = models.CharField(max_length=120, blank=True)
     company_website = models.URLField(blank=True)

@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+
+{% load split_filters %}
 {% block content %}
 <section class="page-shell">
   <div class="container-fluid px-4">
@@ -29,6 +31,15 @@
               <h6 class="fw-bold mb-0">{{ app.user.get_full_name|default:app.user.username }}</h6>
               <a href="mailto:{{ app.user.email }}" class="text-muted"><i class="bi bi-envelope"></i></a>
             </div>
+
+            <div class="mb-2 d-flex flex-wrap gap-1">
+              {% for skill in app.user.profile.parsed_resume_skills|split:"," %}
+                  <span class="badge bg-light text-dark border">{{ skill }}</span>
+              {% endfor %}
+            </div>
+
+        
+
             <div class="small text-muted mb-3">Drag to move applicant</div>
             {% if app.status != 'rejected' and app.status != 'closed' %}
             <div class="small mb-2 {% if app.response_due_within_7_days %}text-danger{% else %}text-muted{% endif %}">
