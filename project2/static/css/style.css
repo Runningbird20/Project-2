@@ -2285,6 +2285,53 @@ html.dark-mode .sla-badge.is-neutral {
   font-weight: 600;
 }
 
+.candidate-compare-card-actions {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+
+.more-tools-card-header {
+  position: relative;
+  padding-right: 3.75rem;
+}
+
+.more-tools-card-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.candidate-compare-card-header {
+  flex-wrap: nowrap;
+}
+
+.candidate-compare-card-primary,
+.candidate-compare-card-subtitle {
+  min-width: 0;
+}
+
+@media (max-width: 767.98px) {
+  .candidate-compare-card-header {
+    flex-wrap: wrap;
+  }
+
+  .candidate-compare-card-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .more-tools-card-header {
+    padding-left: 0;
+    padding-right: 0;
+    padding-top: 3rem;
+  }
+
+  .more-tools-card-toggle {
+    top: 0;
+    right: 0;
+  }
+}
+
 html.dark-mode .offer-compare-panel {
   background: rgba(15, 23, 36, 0.85);
   border-color: #39485f !important;

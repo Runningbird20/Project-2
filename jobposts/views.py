@@ -1,4 +1,5 @@
 import math
+from collections import defaultdict
 from urllib.parse import quote
 
 from django.conf import settings
@@ -31,6 +32,14 @@ from django.db.models import Count
 from interviews.services import build_skill_badges_for_applicant, get_employer_interview_context
 
 MIN_MATCH_PERCENT = 50
+APPLICATION_COMPARE_STATUS_SCORES = {
+    "applied": 45,
+    "review": 65,
+    "interview": 82,
+    "offer": 100,
+    "closed": 100,
+    "rejected": 10,
+}
 
 
 def _skill_set(raw_value):
@@ -185,6 +194,103 @@ def _build_employer_candidate_matches(employer_user, employer_jobs):
     return candidate_matches
 
 
+def _application_compare_status_score(status):
+    return APPLICATION_COMPARE_STATUS_SCORES.get(status, 0)
+
+
+def _profile_for_user(user):
+    try:
+        return user.profile
+    except Profile.DoesNotExist:
+        return None
+
+
+def _build_employer_application_compare_groups(employer_jobs):
+    if not employer_jobs:
+        return []
+
+    employer_job_ids = [job.id for job in employer_jobs]
+    applications = list(
+        Application.objects.filter(
+            job_id__in=employer_job_ids,
+            archived_by_employer=False,
+        )
+        .select_related("job", "user")
+        .order_by("job_id", "-applied_at", "user__username")
+    )
+    if not applications:
+        return []
+
+    applications_by_job_id = defaultdict(list)
+    for application in applications:
+        applications_by_job_id[application.job_id].append(application)
+
+    profile_cache = {}
+    skill_badge_cache = {}
+    comparison_groups = []
+    for job in employer_jobs:
+        job_applications = applications_by_job_id.get(job.id, [])
+        if not job_applications:
+            continue
+
+        job_skills = _skill_set(job.skills)
+        comparison_rows = []
+        for application in job_applications:
+            if application.user_id not in profile_cache:
+                profile_cache[application.user_id] = _profile_for_user(application.user)
+            candidate = profile_cache[application.user_id]
+            candidate_combined_skills = merge_skills_csv(
+                getattr(candidate, "skills", ""),
+                getattr(candidate, "parsed_resume_skills", ""),
+            )
+            candidate_skills = _combined_skill_set(
+                getattr(candidate, "skills", ""),
+                getattr(candidate, "parsed_resume_skills", ""),
+            )
+            overlap_skills = _ordered_overlap_skills(job.skills, candidate_combined_skills)
+            if application.user_id not in skill_badge_cache:
+                skill_badge_cache[application.user_id] = {
+                    item["name"].lower(): item
+                    for item in build_skill_badges_for_applicant(application.user)
+                }
+            candidate_badges = skill_badge_cache[application.user_id]
+            overlap_skill_badges = _build_overlap_skill_badges(overlap_skills, candidate_badges)
+            comparison_rows.append(
+                {
+                    "application": application,
+                    "candidate": candidate,
+                    "candidate_name": application.user.get_full_name() or application.user.username,
+                    "match_score": _skill_overlap_percent(candidate_skills, job_skills),
+                    "shared_skills": overlap_skills,
+                    "shared_skill_badges": overlap_skill_badges,
+                    "shared_skill_count": len(overlap_skills),
+                    "endorsed_shared_skill_count": sum(
+                        1 for item in overlap_skill_badges if item["endorsed"]
+                    ),
+                    "stage_score": _application_compare_status_score(application.status),
+                }
+            )
+
+        comparison_rows.sort(
+            key=lambda item: (
+                -item["match_score"],
+                -item["stage_score"],
+                -item["endorsed_shared_skill_count"],
+                -item["shared_skill_count"],
+                item["candidate_name"].lower(),
+            )
+        )
+        comparison_groups.append(
+            {
+                "job": job,
+                "applicant_count": len(comparison_rows),
+                "rows": comparison_rows,
+            }
+        )
+
+    return comparison_groups
+
+
 def _haversine_miles(lat1, lon1, lat2, lon2):
     """Calculate great-circle distance in miles between two lat/lon points."""
     earth_radius_miles = 3958.8
@@ -257,6 +363,7 @@ def dashboard(request):
         overall_total = sum(job.total_apps for job in my_jobs)
         employer_jobs = list(my_jobs)
         candidate_matches = _build_employer_candidate_matches(request.user, employer_jobs)
+        applicant_compare_groups = _build_employer_application_compare_groups(employer_jobs)
     
         saved_searches = list(request.user.saved_searches.order_by("-created_at"))
         saved_search_new_alert_count = 0
@@ -290,6 +397,7 @@ def dashboard(request):
             'dashboard_tools_alerts_return_url': dashboard_tools_alerts_return_url,
             'dashboard_tools_alerts_return_param': dashboard_tools_alerts_return_param,
             'matched_candidates': candidate_matches,
+            'applicant_compare_groups': applicant_compare_groups,
             'archived_rejected_applicants': Application.objects.filter(
                 job__owner=request.user,
                 status='rejected',
