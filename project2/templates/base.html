@@ -242,7 +242,8 @@
           const gap = 12;
           const viewportPadding = 12;
 
-          let left = mascotRect.left + mascotRect.width - panelWidth;
+          // Centers panel over the panda
+          let left = mascotRect.left + (mascotRect.width / 2) - (panelWidth / 2);
           let top = mascotRect.top - panelHeight - gap;
 
           if (top < viewportPadding) {
