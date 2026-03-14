@@ -19,14 +19,16 @@ import django  # noqa: E402
 django.setup()
 
 from django.contrib.auth import get_user_model  # noqa: E402
+from django.core.files.base import File  # noqa: E402
 from django.db import transaction  # noqa: E402
 from django.utils import timezone  # noqa: E402
 
-from accounts.models import Profile  # noqa: E402
+from accounts.models import Profile, SavedCandidateSearch  # noqa: E402
 from apply.models import Application  # noqa: E402
 from interviews.models import InterviewFeedback, InterviewSkillEndorsement, InterviewSlot  # noqa: E402
-from jobposts.models import JobPost  # noqa: E402
+from jobposts.models import ApplicantJobMatch, JobPost  # noqa: E402
 from map.models import OfficeLocation  # noqa: E402
+from messaging.models import Message  # noqa: E402
 
 
 SKILLS = [
@@ -151,6 +153,29 @@ PERK_POOL = [
     "Annual team offsite",
     "Performance bonus",
 ]
+
+APPLICANT_RESUME_TEMPLATE_PATH = ROOT / "media" / "profile_resumes" / "2025-template_bullet.pdf"
+SEED_SUPERUSER_USERNAME = "seed_sup_1"
+SEED_SUPERUSER_EMAIL = "seed_sup_1@example.com"
+APPLICATION_STATUS_COVERAGE = ["applied", "review", "interview", "offer", "rejected", "closed"]
+REJECTION_FEEDBACK_KEYS = ["skills_alignment", "experience_scope", "role_fit"]
+APPLICANT_NOTE_SNIPPETS = [
+    "Strong fit based on the stack and location. Follow up after the next recruiter review.",
+    "Prioritize this role because the work setting and salary are both aligned.",
+    "Remember to mention the automation project during the next conversation.",
+]
+EMPLOYER_NOTE_SNIPPETS = [
+    "Good resume and relevant project experience. Worth a closer review.",
+    "Candidate has strong overlap with the technical requirements and nice communication.",
+    "Keep warm in the pipeline. Could be a strong backup if the top pick declines.",
+]
+MESSAGE_TEMPLATES = {
+    "applicant_intro": "Hi {employer}, I just applied for {job} and wanted to share how my background lines up with the role.",
+    "employer_reply": "Thanks for applying to {job}. We reviewed your background and will keep you posted on next steps.",
+    "interview_prompt": "We would like to move forward with {job}. Please review the interview options in PandaPulse when you have a moment.",
+    "offer_follow_up": "Good news. Your offer details for {job} are ready to review in PandaPulse.",
+    "applicant_reply": "Thank you for the update on {job}. I am excited to keep the process moving.",
+}
 
 
 def parse_args():
@@ -328,6 +353,43 @@ def random_timestamp_between(start_dt, end_dt):
     return start_dt + timedelta(seconds=random.randint(0, span_seconds))
 
 
+def _skill_key_set(raw_value):
+    return {skill.lower() for skill in parse_skill_csv(raw_value)}
+
+
+def _match_percent(candidate_skills, job_skills):
+    if not candidate_skills or not job_skills:
+        return 0
+    overlap_count = len(candidate_skills.intersection(job_skills))
+    return round((overlap_count / len(job_skills)) * 100)
+
+
+def _offer_letter_fields(application):
+    owner_name = application.job.owner.get_full_name() or application.job.owner.username
+    return {
+        "offer_letter_title": f"Offer for {application.job.title} at {application.job.company}",
+        "offer_letter_body": (
+            f"Dear {application.user.get_full_name() or application.user.username},\n\n"
+            f"We are excited to offer you the {application.job.title} role at {application.job.company}. "
+            "Your background stood out across the interview process, and we believe you would make an immediate impact.\n\n"
+            "Please review the compensation, start date, and additional terms below. Reach out with any questions.\n\n"
+            f"Sincerely,\n{owner_name}"
+        ),
+        "offer_compensation": application.job.pay_range or "Compensation details to be confirmed.",
+        "offer_start_date": (timezone.now() + timedelta(days=21 + random.randint(0, 14))).strftime("%B %d, %Y"),
+        "offer_response_deadline": (timezone.now() + timedelta(days=7)).strftime("%B %d, %Y"),
+        "offer_additional_terms": "Offer is contingent on completion of standard onboarding and reference checks.",
+    }
+
+
+def _update_model(instance, **updates):
+    if not updates:
+        return instance
+    instance.__class__.objects.filter(id=instance.id).update(**updates)
+    instance.refresh_from_db()
+    return instance
+
+
 def ensure_profile(user, account_type, **updates):
     profile, _ = Profile.objects.get_or_create(user=user)
     profile.account_type = account_type
@@ -335,6 +397,71 @@ def ensure_profile(user, account_type, **updates):
         setattr(profile, key, value)
     profile.save()
     return profile
+
+
+def ensure_seed_superuser(password):
+    User = get_user_model()
+    user = User.objects.filter(username=SEED_SUPERUSER_USERNAME).first()
+    created = False
+
+    if user is None:
+        user = User.objects.create_superuser(
+            username=SEED_SUPERUSER_USERNAME,
+            email=SEED_SUPERUSER_EMAIL,
+            password=password,
+        )
+        created = True
+    else:
+        changed_fields = []
+        if user.email != SEED_SUPERUSER_EMAIL:
+            user.email = SEED_SUPERUSER_EMAIL
+            changed_fields.append("email")
+        if not user.is_staff:
+            user.is_staff = True
+            changed_fields.append("is_staff")
+        if not user.is_superuser:
+            user.is_superuser = True
+            changed_fields.append("is_superuser")
+        if not user.is_active:
+            user.is_active = True
+            changed_fields.append("is_active")
+        user.set_password(password)
+        changed_fields.append("password")
+        user.save(update_fields=changed_fields)
+
+    ensure_profile(
+        user,
+        Profile.AccountType.EMPLOYER,
+        company_name="PandaPulse Admin",
+        company_website="https://pandapulse.local/admin",
+        company_description="Seeded platform administrator account for demos and testing.",
+        company_culture="Operations-focused account used to verify admin and employer flows.",
+        company_perks="Full admin access\nSeed data visibility",
+        headline="",
+        skills="",
+        education="",
+        work_experience="",
+        visible_to_recruiters=False,
+    )
+    return user, created
+
+
+def assign_seed_resume(profile, template_path=APPLICANT_RESUME_TEMPLATE_PATH):
+    if profile.account_type != Profile.AccountType.APPLICANT:
+        return ""
+    if not template_path.exists():
+        raise FileNotFoundError(
+            f"Applicant resume template not found: {template_path}"
+        )
+
+    file_name = f"{profile.user.username}_2025-template_bullet.pdf"
+    current_name = Path(getattr(profile.resume_file, "name", "") or "").name
+    if current_name == file_name and profile.resume_file:
+        return profile.resume_file.name
+
+    with template_path.open("rb") as source_file:
+        profile.resume_file.save(file_name, File(source_file), save=True)
+    return profile.resume_file.name
 
 
 def create_employers(prefix, count, password):
@@ -386,7 +513,7 @@ def create_applicants(prefix, count, password):
             continue
         user = User.objects.create_user(username=username, email=email, password=password)
         address = random_address()
-        ensure_profile(
+        profile = ensure_profile(
             user,
             Profile.AccountType.APPLICANT,
             headline=random.choice(
@@ -415,6 +542,7 @@ def create_applicants(prefix, count, password):
             company_perks="",
             visible_to_recruiters=True,
         )
+        assign_seed_resume(profile)
         created.append(user)
     return created
 
@@ -473,6 +601,37 @@ def create_jobs(prefix, employers, count):
     return created
 
 
+def align_jobs_with_applicants(jobs, applicants):
+    if not jobs or not applicants:
+        return 0
+
+    shuffled_jobs = list(jobs)
+    shuffled_applicants = list(applicants)
+    random.shuffle(shuffled_jobs)
+    random.shuffle(shuffled_applicants)
+
+    aligned = 0
+    target_count = min(len(shuffled_jobs), max(4, len(shuffled_applicants)))
+    for job, applicant in zip(shuffled_jobs, shuffled_applicants * max(1, len(shuffled_jobs))):
+        applicant_skills = parse_skill_csv(getattr(applicant.profile, "skills", ""))
+        if len(applicant_skills) < 4:
+            continue
+
+        chosen_skills = applicant_skills[: min(5, len(applicant_skills))]
+        chosen_skill_keys = {skill.lower() for skill in chosen_skills}
+        extra_pool = [skill for skill in SKILLS if skill.lower() not in chosen_skill_keys]
+        if extra_pool:
+            chosen_skills.extend(random.sample(extra_pool, min(2, len(extra_pool))))
+
+        job.skills = ", ".join(chosen_skills)
+        job.save(update_fields=["skills"])
+        aligned += 1
+        if aligned >= target_count:
+            break
+
+    return aligned
+
+
 def create_applications(
     applicants,
     jobs,
@@ -487,6 +646,7 @@ def create_applications(
     now = timezone.now()
     min_count = max(0, min_per_applicant)
     max_count = max(min_count, max_per_applicant)
+    coverage_index = 0
 
     for applicant in applicants:
         target = random.randint(min_count, max_count)
@@ -495,7 +655,11 @@ def create_applications(
             continue
 
         for job in random.sample(jobs, target):
-            status = weighted_choice(APPLICATION_STATUS_WEIGHTS)
+            if coverage_index < len(APPLICATION_STATUS_COVERAGE):
+                status = APPLICATION_STATUS_COVERAGE[coverage_index]
+                coverage_index += 1
+            else:
+                status = weighted_choice(APPLICATION_STATUS_WEIGHTS)
             application = Application.objects.create(
                 user=applicant,
                 job=job,
@@ -549,6 +713,77 @@ def create_applications(
     return created
 
 
+def enrich_application_feature_data(applications):
+    stats = {
+        "offer_letters": 0,
+        "rejection_feedback": 0,
+        "archived_rejections": 0,
+        "offer_rejections": 0,
+        "applicant_notes": 0,
+        "employer_notes": 0,
+    }
+    if not applications:
+        return stats
+
+    now = timezone.now()
+    rejected_applications = []
+    for index, application in enumerate(applications):
+        updates = {}
+
+        if index % 2 == 0:
+            updates["applicant_private_note"] = random.choice(APPLICANT_NOTE_SNIPPETS)
+            stats["applicant_notes"] += 1
+        if index % 3 == 0:
+            updates["employer_private_note"] = random.choice(EMPLOYER_NOTE_SNIPPETS)
+            stats["employer_notes"] += 1
+
+        if application.status in {"offer", "closed"}:
+            updates.update(_offer_letter_fields(application))
+            stats["offer_letters"] += 1
+
+        if application.status == "rejected":
+            rejected_applications.append(application)
+            response_time = application.responded_at or application.rejected_at or application.applied_at
+            feedback_sent_at = response_time + timedelta(hours=random.randint(1, 18))
+            if feedback_sent_at > now:
+                feedback_sent_at = now - timedelta(hours=random.randint(1, 6))
+            updates.update(
+                {
+                    "rejection_feedback_template": random.choice(REJECTION_FEEDBACK_KEYS),
+                    "rejection_feedback_note": (
+                        "We appreciated the thoughtful application and encourage you to keep an eye on future roles."
+                    ),
+                    "rejection_feedback_sent_at": feedback_sent_at,
+                }
+            )
+            stats["rejection_feedback"] += 1
+
+        _update_model(application, **updates)
+
+    if rejected_applications:
+        archived_application = rejected_applications[0]
+        if not archived_application.archived_by_applicant or not archived_application.archived_by_employer:
+            _update_model(
+                archived_application,
+                archived_by_applicant=True,
+                archived_by_employer=True,
+            )
+            stats["archived_rejections"] += 1
+
+        if len(rejected_applications) > 1:
+            declined_offer_application = rejected_applications[1]
+            _update_model(
+                declined_offer_application,
+                rejected_offer_by_applicant=True,
+                rejection_feedback_template="",
+                rejection_feedback_note="",
+                rejection_feedback_sent_at=None,
+            )
+            stats["offer_rejections"] += 1
+
+    return stats
+
+
 def _random_interview_start(now, past=False):
     if past:
         base = now - timedelta(days=random.randint(1, 45))
@@ -571,6 +806,7 @@ def create_interviews_feedback_and_endorsements(
     stats = {
         "interview_slots": 0,
         "booked_slots": 0,
+        "upcoming_booked_slots": 0,
         "open_slots": 0,
         "canceled_slots": 0,
         "feedback_entries": 0,
@@ -580,14 +816,18 @@ def create_interviews_feedback_and_endorsements(
         return stats
 
     now = timezone.now()
-    eligible = [app for app in applications if app.status in {"interview", "offer"}]
+    eligible = [app for app in applications if app.status in {"interview", "offer", "closed"}]
+    active_interview_applications = [app for app in eligible if app.status in {"interview", "offer"}] or eligible
     booked_past_slots = []
+    booked_upcoming_slots = []
     feedback_slots = []
     for application in eligible:
         if random.random() > interview_probability:
             continue
 
-        if application.status == "offer":
+        if application.status == "closed":
+            primary_kind = weighted_choice([("past_booked", 0.95), ("upcoming_booked", 0.05)])
+        elif application.status == "offer":
             primary_kind = weighted_choice([("past_booked", 0.9), ("upcoming_booked", 0.1)])
         else:
             primary_kind = weighted_choice([("past_booked", 0.45), ("upcoming_booked", 0.4), ("open_future", 0.15)])
@@ -617,6 +857,9 @@ def create_interviews_feedback_and_endorsements(
             stats["booked_slots"] += 1
             if primary_slot.end_at <= now:
                 booked_past_slots.append(primary_slot)
+            else:
+                booked_upcoming_slots.append(primary_slot)
+                stats["upcoming_booked_slots"] += 1
         else:
             stats["open_slots"] += 1
 
@@ -674,7 +917,7 @@ def create_interviews_feedback_and_endorsements(
                         )
                         stats["skill_endorsements"] += 1
 
-        extra_slots = random.randint(0, 2)
+        extra_slots = 0 if application.status == "closed" else random.randint(0, 2)
         for _ in range(extra_slots):
             extra_slot = InterviewSlot.create_from_duration(
                 application=application,
@@ -736,12 +979,210 @@ def create_interviews_feedback_and_endorsements(
             )
             stats["skill_endorsements"] += 1
 
+    if not booked_upcoming_slots and active_interview_applications:
+        fallback_app = random.choice(active_interview_applications)
+        fallback_slot = InterviewSlot.create_from_duration(
+            application=fallback_app,
+            start_at=_random_interview_start(now, past=False),
+            duration_minutes=random.choice(INTERVIEW_DURATION_CHOICES),
+            meeting_link=random_meeting_link(),
+            notes=random.choice(INTERVIEW_NOTES),
+        )
+        fallback_slot.status = InterviewSlot.Status.BOOKED
+        fallback_slot.booked_at = now - timedelta(hours=6)
+        fallback_slot.booked_by = fallback_app.user
+        fallback_slot.save(update_fields=["status", "booked_at", "booked_by"])
+        stats["interview_slots"] += 1
+        stats["booked_slots"] += 1
+        stats["upcoming_booked_slots"] += 1
+
+    if stats["open_slots"] == 0 and active_interview_applications:
+        fallback_app = random.choice(active_interview_applications)
+        InterviewSlot.create_from_duration(
+            application=fallback_app,
+            start_at=_random_interview_start(now, past=False),
+            duration_minutes=random.choice(INTERVIEW_DURATION_CHOICES),
+            meeting_link=random_meeting_link(),
+            notes=random.choice(INTERVIEW_NOTES),
+        )
+        stats["interview_slots"] += 1
+        stats["open_slots"] += 1
+
+    return stats
+
+
+def create_saved_candidate_alerts(employers, applicants):
+    stats = {"saved_searches": 0}
+    if not employers or not applicants:
+        return stats
+
+    candidate_profiles = [user.profile for user in applicants if getattr(user, "profile", None)]
+    if not candidate_profiles:
+        return stats
+
+    now = timezone.now()
+    random.shuffle(candidate_profiles)
+    for index, employer in enumerate(employers):
+        candidate_profile = candidate_profiles[index % len(candidate_profiles)]
+        candidate_skills = parse_skill_csv(candidate_profile.skills)
+        filters = {
+            "skills": candidate_skills[0] if candidate_skills else "Python",
+            "location": candidate_profile.city or candidate_profile.state or "Atlanta",
+            "projects": "automation",
+        }
+        search = SavedCandidateSearch.objects.create(
+            employer=employer,
+            search_name=f'{filters["skills"]} Candidates in {filters["location"]}',
+            filters=filters,
+        )
+        updates = {"created_at": now - timedelta(days=10 + index)}
+        if index % 3 == 1:
+            updates["last_viewed_at"] = now
+        elif index % 3 == 2:
+            updates["last_viewed_at"] = now - timedelta(days=2)
+        SavedCandidateSearch.objects.filter(id=search.id).update(**updates)
+        stats["saved_searches"] += 1
+
+    return stats
+
+
+def create_applicant_job_matches(applicants, jobs, applications):
+    stats = {"job_matches": 0}
+    if not applicants or not jobs:
+        return stats
+
+    applied_job_ids = {}
+    for application in applications:
+        applied_job_ids.setdefault(application.user_id, set()).add(application.job_id)
+
+    now = timezone.now()
+    for applicant in applicants:
+        profile = applicant.profile
+        applicant_skills = _skill_key_set(profile.skills).union(_skill_key_set(profile.parsed_resume_skills))
+        if not applicant_skills:
+            continue
+
+        ranked_matches = []
+        for job in jobs:
+            if job.id in applied_job_ids.get(applicant.id, set()):
+                continue
+            job_skills = _skill_key_set(job.skills)
+            if not job_skills:
+                continue
+            overlap = sorted(applicant_skills.intersection(job_skills))
+            if not overlap:
+                continue
+            if _match_percent(applicant_skills, job_skills) < 50:
+                continue
+            ranked_matches.append((len(overlap), overlap, job))
+
+        ranked_matches.sort(key=lambda item: (-item[0], item[2].title.lower()))
+        for score, overlap, job in ranked_matches[:3]:
+            match, created = ApplicantJobMatch.objects.update_or_create(
+                applicant=applicant,
+                job=job,
+                defaults={
+                    "score": score,
+                    "matched_skills": ", ".join(overlap),
+                    "employer_notified_at": now - timedelta(days=random.randint(1, 14)),
+                },
+            )
+            if created or match.id:
+                stats["job_matches"] += 1
+
+    return stats
+
+
+def create_messages_for_applications(applications):
+    stats = {"threads": 0, "messages": 0}
+    if not applications:
+        return stats
+
+    seen_pairs = set()
+    ordered_applications = sorted(applications, key=lambda application: application.applied_at)
+    for application in ordered_applications:
+        if not application.job.owner:
+            continue
+        pair_key = (application.user_id, application.job.owner_id)
+        if pair_key in seen_pairs:
+            continue
+        seen_pairs.add(pair_key)
+        stats["threads"] += 1
+
+        applicant = application.user
+        employer = application.job.owner
+        base_time = application.applied_at + timedelta(hours=1)
+        messages_to_create = [
+            {
+                "sender": applicant,
+                "recipient": employer,
+                "body": MESSAGE_TEMPLATES["applicant_intro"].format(
+                    employer=employer.get_full_name() or employer.username,
+                    job=application.job.title,
+                ),
+                "timestamp": base_time,
+                "is_read": True,
+            },
+            {
+                "sender": employer,
+                "recipient": applicant,
+                "body": MESSAGE_TEMPLATES["employer_reply"].format(job=application.job.title),
+                "timestamp": base_time + timedelta(hours=6),
+                "is_read": application.status == "applied",
+            },
+        ]
+
+        if application.status in {"interview", "offer", "closed"}:
+            messages_to_create.append(
+                {
+                    "sender": employer,
+                    "recipient": applicant,
+                    "body": MESSAGE_TEMPLATES["interview_prompt"].format(job=application.job.title),
+                    "timestamp": (application.responded_at or base_time) + timedelta(hours=2),
+                    "is_read": application.status == "closed",
+                }
+            )
+        if application.status in {"offer", "closed"}:
+            messages_to_create.append(
+                {
+                    "sender": employer,
+                    "recipient": applicant,
+                    "body": MESSAGE_TEMPLATES["offer_follow_up"].format(job=application.job.title),
+                    "timestamp": (application.responded_at or base_time) + timedelta(hours=8),
+                    "is_read": False,
+                }
+            )
+            messages_to_create.append(
+                {
+                    "sender": applicant,
+                    "recipient": employer,
+                    "body": MESSAGE_TEMPLATES["applicant_reply"].format(job=application.job.title),
+                    "timestamp": (application.responded_at or base_time) + timedelta(hours=12),
+                    "is_read": True,
+                }
+            )
+
+        for payload in messages_to_create:
+            message = Message.objects.create(
+                sender=payload["sender"],
+                recipient=payload["recipient"],
+                body=payload["body"],
+                is_read=payload["is_read"],
+            )
+            Message.objects.filter(id=message.id).update(
+                timestamp=payload["timestamp"],
+                is_read=payload["is_read"],
+            )
+            stats["messages"] += 1
+
     return stats
 
 
 def clear_seed_data(prefix):
     User = get_user_model()
-    users = User.objects.filter(username__startswith=f"{prefix}_")
+    users = User.objects.filter(username__startswith=f"{prefix}_").exclude(
+        username=SEED_SUPERUSER_USERNAME
+    )
     user_ids = list(users.values_list("id", flat=True))
 
     # Remove jobs owned by seeded users first (cascades office locations).
@@ -755,6 +1196,7 @@ def main():
     random.seed()
 
     with transaction.atomic():
+        superuser, superuser_created = ensure_seed_superuser(args.password)
         if args.clear_prefix or args.clear_only:
             deleted_users, deleted_jobs = clear_seed_data(args.prefix)
             print(f"Deleted users: {deleted_users}")
@@ -766,6 +1208,7 @@ def main():
         employers = create_employers(args.prefix, args.employers, args.password)
         applicants = create_applicants(args.prefix, args.applicants, args.password)
         jobs = create_jobs(args.prefix, employers, args.jobs)
+        aligned_jobs = align_jobs_with_applicants(jobs, applicants)
         response_profiles = build_employer_response_profiles(employers)
         response_profile_summary = summarize_response_profiles(response_profiles)
         applications = create_applications(
@@ -775,6 +1218,10 @@ def main():
             max_per_applicant=args.applications_max_per_applicant,
             employer_response_profiles=response_profiles,
         )
+        application_feature_stats = enrich_application_feature_data(applications)
+        saved_alert_stats = create_saved_candidate_alerts(employers, applicants)
+        match_stats = create_applicant_job_matches(applicants, jobs, applications)
+        message_stats = create_messages_for_applications(applications)
         interview_stats = create_interviews_feedback_and_endorsements(
             applications,
             interview_probability=args.interview_probability,
@@ -783,10 +1230,23 @@ def main():
         )
 
     print("Seed complete.")
+    print(
+        f"Seed superuser: {superuser.username} "
+        f"({'created' if superuser_created else 'updated'})"
+    )
     print(f"Created employers: {len(employers)}")
     print(f"Created applicants: {len(applicants)}")
     print(f"Created job posts: {len(jobs)}")
+    print(f"Aligned job skill sets: {aligned_jobs}")
     print(f"Created applications: {len(applications)}")
+    print(f"Created saved candidate alerts: {saved_alert_stats['saved_searches']}")
+    print(f"Created applicant-job matches: {match_stats['job_matches']}")
+    print(f"Created message threads: {message_stats['threads']}")
+    print(f"Created individual messages: {message_stats['messages']}")
+    print(f"Seeded offer letters: {application_feature_stats['offer_letters']}")
+    print(f"Seeded rejection feedback entries: {application_feature_stats['rejection_feedback']}")
+    print(f"Seeded archived rejections: {application_feature_stats['archived_rejections']}")
+    print(f"Seeded declined offers: {application_feature_stats['offer_rejections']}")
     print(
         "Employer response profiles: "
         f"fast={response_profile_summary['fast']}, "
@@ -795,6 +1255,7 @@ def main():
     )
     print(f"Created interview slots: {interview_stats['interview_slots']}")
     print(f"Created booked interviews: {interview_stats['booked_slots']}")
+    print(f"Created upcoming scheduled interviews: {interview_stats['upcoming_booked_slots']}")
     print(f"Created open interviews: {interview_stats['open_slots']}")
     print(f"Created canceled interviews: {interview_stats['canceled_slots']}")
     print(f"Created interview feedback entries: {interview_stats['feedback_entries']}")
