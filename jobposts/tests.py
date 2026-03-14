@@ -415,6 +415,80 @@ class JobPostViewTests(TestCase):
         self.assertIn(matching, posts)
         self.assertNotIn(non_matching, posts)
 
+    def test_search_matches_full_state_name_to_abbreviated_location(self):
+        florida_job = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Miami Engineer',
+            company='Sunshine Tech',
+            location='Miami, FL',
+            pay_range='$80k-$100k',
+            work_setting='hybrid',
+            description='Florida role',
+        )
+        other_job = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Atlanta Engineer',
+            company='Peachtree Tech',
+            location='Atlanta, GA',
+            pay_range='$80k-$100k',
+            work_setting='hybrid',
+            description='Georgia role',
+        )
+
+        response = self.client.get(reverse('jobposts.search'), {'location': 'Florida'})
+
+        self.assertEqual(response.status_code, 200)
+        posts = list(response.context['template_data']['posts'])
+        self.assertIn(florida_job, posts)
+        self.assertNotIn(other_job, posts)
+
+    def test_search_matches_full_state_name_against_structured_office_location(self):
+        florida_job = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Miami Engineer',
+            company='Sunshine Tech',
+            location='Miami Office',
+            pay_range='$80k-$100k',
+            work_setting='onsite',
+            description='Florida office role',
+        )
+        OfficeLocation.objects.create(
+            job_post=florida_job,
+            address_line_1='200 Biscayne Blvd',
+            city='Miami',
+            state='FL',
+            postal_code='33131',
+            country='United States',
+            latitude=Decimal('25.761700'),
+            longitude=Decimal('-80.191800'),
+        )
+        other_job = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Austin Engineer',
+            company='Lone Star Tech',
+            location='Austin Office',
+            pay_range='$80k-$100k',
+            work_setting='onsite',
+            description='Texas office role',
+        )
+        OfficeLocation.objects.create(
+            job_post=other_job,
+            address_line_1='500 Congress Ave',
+            city='Austin',
+            state='TX',
+            postal_code='78701',
+            country='United States',
+            latitude=Decimal('30.267200'),
+            longitude=Decimal('-97.743100'),
+        )
+
+        response = self.client.get(reverse('jobposts.search'), {'location': 'Florida'})
+
+        self.assertEqual(response.status_code, 200)
+        posts = list(response.context['template_data']['posts'])
+        self.assertIn(florida_job, posts)
+        self.assertNotIn(other_job, posts)
+
     def test_search_filters_only_visa_sponsored_jobs(self):
         self.client.login(username='applicant', password='pass12345')
         visa_job = JobPost.objects.create(

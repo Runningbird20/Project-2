@@ -21,6 +21,7 @@ from .matching import sync_applicant_job_matches
 from django.views.decorators.http import require_POST
 from apply.models import Application
 from apply.services import auto_archive_old_rejections, enforce_employer_response_deadline
+from project2.location_search import location_search_terms
 from project2.skills import COMMON_SKILLS
 from django.contrib.admin.views.decorators import staff_member_required
 
@@ -382,7 +383,26 @@ def search(request):
         for term in skill_terms:
             posts = posts.filter(skills__icontains=term)
     if location:
-        posts = posts.filter(location__icontains=location)
+        parsed_location = location_search_terms(location)
+        location_query = Q()
+
+        for term in parsed_location["full_terms"]:
+            location_query |= Q(location__icontains=term)
+
+        if parsed_location["city_term"] and parsed_location["state_terms"]:
+            office_state_query = Q()
+            for state_term in parsed_location["state_terms"]:
+                office_state_query |= Q(office_location__state__iexact=state_term)
+            location_query |= Q(office_location__city__icontains=parsed_location["city_term"]) & office_state_query
+        elif parsed_location["state_terms"]:
+            for state_term in parsed_location["state_terms"]:
+                location_query |= Q(office_location__state__iexact=state_term)
+        else:
+            location_query |= Q(office_location__city__icontains=parsed_location["normalized_query"])
+            location_query |= Q(office_location__address_line_1__icontains=parsed_location["normalized_query"])
+            location_query |= Q(office_location__postal_code__icontains=parsed_location["normalized_query"])
+
+        posts = posts.filter(location_query)
     if work_setting:
         posts = posts.filter(work_setting=work_setting)
     if company_size:
