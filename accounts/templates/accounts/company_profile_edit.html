@@ -13,6 +13,7 @@
 
           <form method="post" class="vstack gap-3">
             {% csrf_token %}
+            <input type="hidden" name="return_to" value="{{ template_data.back_navigation.url }}">
             {{ template_data.form.non_field_errors }}
 
             <div>
@@ -58,7 +59,7 @@
 
             <div class="form-actions mt-2">
               <button type="submit" class="primary-btn border-0">Save Company Profile</button>
-              <a class="secondary-btn" href="{% url 'jobposts.dashboard' %}">Back to Dashboard</a>
+              <a class="secondary-btn" href="{{ template_data.back_navigation.url }}">{{ template_data.back_navigation.text }}</a>
             </div>
           </form>
         </div>

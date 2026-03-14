@@ -1002,6 +1002,10 @@ html.dark-mode .create-job-heading {
   line-height: 1.55;
 }
 
+.rejection-applicant-name {
+  color: #252b3a;
+}
+
 .field-block {
   margin-bottom: 0.7rem;
 }
@@ -1050,6 +1054,10 @@ html.dark-mode .create-job-heading {
 html.dark-mode .field-block label,
 html.dark-mode .form-label {
   color: #e6edf8;
+}
+
+html.dark-mode .rejection-applicant-name {
+  color: #edf2ff;
 }
 
 html.dark-mode .password-requirement {

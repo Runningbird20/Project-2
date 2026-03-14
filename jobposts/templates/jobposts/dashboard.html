@@ -111,8 +111,8 @@
       </div>
       <div class="form-actions">
         <a href="{% url 'messaging:inbox' %}" class="secondary-btn">Messages</a>
-        <a href="{% url 'accounts.company_profile_edit' %}" class="secondary-btn">Company Profile</a>
-        <a href="{% url 'jobposts.create' %}" class="primary-btn border-0 post-job-btn">Post New Job</a>
+        <a href="{% url 'accounts.company_profile_edit' %}?return_to={{ dashboard_return_urls.profile|urlencode }}" class="secondary-btn">Company Profile</a>
+        <a href="{% url 'jobposts.create' %}?return_to={{ dashboard_return_urls.listings|urlencode }}" class="primary-btn border-0 post-job-btn">Post New Job</a>
       </div>
     </div>
 
@@ -184,7 +184,7 @@
                       <td class="small text-muted text-center posted-on-cell">{{ job.created_at|date:'M d, Y' }}</td>
                       <td class="text-center">{{ job.total_apps }}</td>
                       <td class="text-center">{% if job.new_apps > 0 %}<span class="badge bg-success-subtle text-success">{{ job.new_apps }} New</span>{% else %}<span class="text-muted">-</span>{% endif %}</td>
-                      <td class="text-end pe-4"><div class="form-actions justify-content-end"><a href="{% url 'apply:employer_pipeline' job.id %}" class="secondary-btn">Pipeline</a><a href="{% url 'jobposts.edit' job.id %}" class="secondary-btn">Edit</a><form action="{% url 'jobposts.delete' job.id %}" method="POST" onsubmit="return confirm('Delete this listing?');">{% csrf_token %}<button type="submit" class="danger-btn border-0">Delete</button></form></div></td>
+                      <td class="text-end pe-4"><div class="form-actions justify-content-end"><a href="{% url 'apply:employer_pipeline' job.id %}" class="secondary-btn">Pipeline</a><a href="{% url 'jobposts.edit' job.id %}?return_to={{ dashboard_return_urls.listings|urlencode }}" class="secondary-btn">Edit</a><form action="{% url 'jobposts.delete' job.id %}" method="POST" onsubmit="return confirm('Delete this listing?');">{% csrf_token %}<input type="hidden" name="return_to" value="{{ dashboard_return_urls.listings }}"><button type="submit" class="danger-btn border-0">Delete</button></form></div></td>
                     </tr>
                     {% empty %}
                     <tr><td colspan="5" class="text-center py-5 text-muted">No active job posts yet.</td></tr>
@@ -445,7 +445,7 @@
                       {% endif %}
                     </div>
                     <div class="form-actions">
-                      <a href="{% url 'accounts.public_profile' match.candidate.user.username %}" class="secondary-btn btn-compact">View Profile</a>
+                      <a href="{% url 'accounts.public_profile' match.candidate.user.username %}?return_to={{ dashboard_return_urls.matches|urlencode }}" class="secondary-btn btn-compact">View Profile</a>
                       <a href="{{ candidate_search_matches_url }}" class="secondary-btn btn-compact">Open Search</a>
                     </div>
                   </div>
@@ -493,7 +493,7 @@
 
               <div class="form-actions">
                 <a href="{% url 'accounts.profile' %}" class="secondary-btn btn-compact">View Full Profile</a>
-                <a href="{% url 'accounts.profile_edit' %}" class="primary-btn btn-compact border-0">Edit Profile</a>
+                <a href="{% url 'accounts.profile_edit' %}?return_to={{ dashboard_return_urls.profile|urlencode }}" class="primary-btn btn-compact border-0">Edit Profile</a>
               </div>
             </div>
           </div>

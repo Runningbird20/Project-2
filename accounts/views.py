@@ -1,5 +1,5 @@
 import csv
-from urllib.parse import quote, urlsplit
+from urllib.parse import quote
 from collections import Counter
 from smtplib import SMTPAuthenticationError
 
@@ -20,7 +20,6 @@ from django.db.models import Count, Q
 from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -30,6 +29,11 @@ from django.core.mail import EmailMessage
 
 from apply.resume_parser import parse_resume
 from map.services import OfficeLocationGeocodingError, geocode_office_address
+from project2.navigation import (
+    build_back_navigation,
+    current_request_url,
+    safe_local_navigation_url,
+)
 from project2.skills import get_skill_options, merge_skills_csv, normalize_skills_csv, register_skill_options
 from interviews.services import build_skill_badges_for_applicant
 from apply.models import Application
@@ -93,23 +97,7 @@ def _is_applicant(user):
 
 
 def _safe_local_return_url(request, candidate_url):
-    candidate_url = (candidate_url or "").strip()
-    if not candidate_url:
-        return ""
-    if not url_has_allowed_host_and_scheme(
-        candidate_url,
-        allowed_hosts={request.get_host()},
-        require_https=request.is_secure(),
-    ):
-        return ""
-
-    parsed = urlsplit(candidate_url)
-    safe_url = parsed.path or "/"
-    if parsed.query:
-        safe_url = f"{safe_url}?{parsed.query}"
-    if parsed.fragment:
-        safe_url = f"{safe_url}#{parsed.fragment}"
-    return safe_url
+    return safe_local_navigation_url(request, candidate_url)
 
 
 def _candidate_search_back_url(request):
@@ -485,12 +473,29 @@ def profile(request, user_id=None):
         if prof.account_type != Profile.AccountType.APPLICANT or not prof.visible_to_recruiters:
             raise Http404("Profile not available.")
 
+    if is_own:
+        default_back_url = (
+            reverse("jobposts.dashboard")
+            if prof.account_type == Profile.AccountType.EMPLOYER
+            else reverse("apply:application_status")
+        )
+        default_back_label = "Dashboard"
+    else:
+        default_back_url = reverse("accounts.candidate_search")
+        default_back_label = "Find Candidates"
+
     template_data = {
         "title": f"{user_to_view.username}'s Profile" if user_id else "My Profile",
         "profile": prof,
         "viewed_user": user_to_view,
         "is_own_profile": is_own,
         "has_links": prof.links.exists(),
+        "current_url": current_request_url(request),
+        "back_navigation": build_back_navigation(
+            request,
+            default_back_url,
+            default_label=default_back_label,
+        ),
     }
     if prof.account_type == Profile.AccountType.APPLICANT:
         template_data["skill_badges"] = build_skill_badges_for_applicant(user_to_view)
@@ -503,6 +508,11 @@ def edit_profile(request, username=None):
         return HttpResponseForbidden("You can only edit your own profile.")
 
     profile, _ = Profile.objects.get_or_create(user=request.user)
+    back_navigation = build_back_navigation(
+        request,
+        reverse("accounts.profile"),
+        default_label="Profile",
+    )
 
     if request.method == "POST":
         form = ProfileEditForm(request.POST, request.FILES, instance=profile, user=request.user)
@@ -538,7 +548,15 @@ def edit_profile(request, username=None):
     return render(
         request,
         "accounts/edit_profile.html",
-        {"template_data": {"title": "Edit Profile", "form": form, "skill_options": get_skill_options()}},
+        {
+            "template_data": {
+                "title": "Edit Profile",
+                "form": form,
+                "skill_options": get_skill_options(),
+                "current_url": current_request_url(request),
+                "back_navigation": back_navigation,
+            }
+        },
     )
 
 
@@ -611,6 +629,21 @@ def public_profile(request, username):
     if profile.account_type != Profile.AccountType.APPLICANT or (not is_owner and not profile.visible_to_recruiters):
         raise Http404("Profile not available.")
 
+    if is_owner:
+        default_back_url = (
+            reverse("jobposts.dashboard")
+            if profile.account_type == Profile.AccountType.EMPLOYER
+            else reverse("apply:application_status")
+        )
+        default_back_label = "Dashboard"
+    else:
+        default_back_url = (
+            reverse("accounts.candidate_search")
+            if request.user.is_authenticated
+            else reverse("home.index")
+        )
+        default_back_label = "Find Candidates" if request.user.is_authenticated else "Home"
+
     return render(
         request,
         "accounts/public_profile.html",
@@ -622,6 +655,12 @@ def public_profile(request, username):
                 "is_owner": is_owner,
                 "has_links": profile.links.exists(),
                 "skill_badges": build_skill_badges_for_applicant(user),
+                "current_url": current_request_url(request),
+                "back_navigation": build_back_navigation(
+                    request,
+                    default_back_url,
+                    default_label=default_back_label,
+                ),
             }
         },
     )
@@ -709,6 +748,15 @@ def candidate_search(request):
                 "active_saved_search": active_saved_search,
                 "back_url": back_url,
                 "encoded_back_url": quote(back_url, safe=""),
+                "current_url": current_request_url(request),
+                "back_navigation": build_back_navigation(
+                    request,
+                    back_url,
+                    blocked_prefixes=[
+                        reverse("accounts.candidate_search"),
+                        reverse("accounts.save_search"),
+                    ],
+                ),
             }
         },
     )
@@ -720,6 +768,11 @@ def company_profile_edit(request):
         return HttpResponseForbidden("Only employers can edit company profiles.")
 
     profile, _ = Profile.objects.get_or_create(user=request.user)
+    back_navigation = build_back_navigation(
+        request,
+        reverse("jobposts.dashboard"),
+        default_label="Dashboard",
+    )
     if request.method == "POST":
         form = CompanyProfileForm(request.POST, instance=profile)
         if form.is_valid():
@@ -732,7 +785,14 @@ def company_profile_edit(request):
     return render(
         request,
         "accounts/company_profile_edit.html",
-        {"template_data": {"title": "Edit Company Profile", "form": form}},
+        {
+            "template_data": {
+                "title": "Edit Company Profile",
+                "form": form,
+                "current_url": current_request_url(request),
+                "back_navigation": back_navigation,
+            }
+        },
     )
 
 
@@ -755,6 +815,8 @@ def company_profile(request, username):
     )
     perks = [perk.strip() for perk in (profile.company_perks or "").splitlines() if perk.strip()]
     response_sla = _build_response_sla_by_employer_ids([company_user.id]).get(company_user.id)
+    default_back_url = reverse("jobposts.dashboard") if is_owner else reverse("accounts.company_search")
+    default_back_label = "Dashboard" if is_owner else "Company Search"
 
     return render(
         request,
@@ -768,6 +830,12 @@ def company_profile(request, username):
                 "perks": perks,
                 "office_jobs": office_jobs,
                 "response_sla": response_sla,
+                "current_url": current_request_url(request),
+                "back_navigation": build_back_navigation(
+                    request,
+                    default_back_url,
+                    default_label=default_back_label,
+                ),
             }
         },
     )
@@ -825,6 +893,7 @@ def company_search(request):
                     "culture": culture,
                     "location": location,
                 },
+                "current_url": current_request_url(request),
             }
         },
     )
@@ -903,6 +972,11 @@ def applicant_clusters_map(request):
         "title": "Applicant Clusters Map",
         "total_applicants": applicants.count(),
         "cluster_count": len(clusters),
+        "back_navigation": build_back_navigation(
+            request,
+            reverse("accounts.manage_users") if request.user.is_superuser else reverse("accounts.candidate_search"),
+            default_label="Manage Users" if request.user.is_superuser else "Find Candidates",
+        ),
     }
     return render(
         request,
@@ -923,6 +997,11 @@ def email_candidate(request, candidate_id):
     
     candidate = get_object_or_404(Profile, id=candidate_id)
     employer = request.user
+    back_navigation = build_back_navigation(
+        request,
+        reverse("accounts.public_profile", args=[candidate.user.username]),
+        default_label="Candidate Profile",
+    )
 
     # Candidate must have email visible
     if candidate.hide_email_from_employers:
@@ -938,7 +1017,10 @@ def email_candidate(request, candidate_id):
 
         if not subject or not message:
             messages.error(request, "Subject and message are required.")
-            return redirect("accounts.email_candidate", candidate_id=candidate_id)
+            return redirect(
+                f"{reverse('accounts.email_candidate', args=[candidate_id])}?return_to="
+                f"{back_navigation['encoded_url']}"
+            )
         
         employer_name = request.user.username
         company_name = request.user.profile.company_name
@@ -958,15 +1040,19 @@ def email_candidate(request, candidate_id):
             email.send(fail_silently=False)
 
             messages.success(request, "Your email has been sent.")
-            return redirect("accounts.candidate_search")
+            return redirect(back_navigation["url"])
         except Exception as exc:
             if settings.DEBUG:
                 messages.warning(request, f"Your email could not be sent: {exc}")
             else:
                 messages.warning(request, "Your email could not be sent.")
 
-
-    return render(request, "accounts/email_candidate.html", {
-        "candidate": candidate
-    })
+    return render(
+        request,
+        "accounts/email_candidate.html",
+        {
+            "candidate": candidate,
+            "back_navigation": back_navigation,
+        },
+    )
 

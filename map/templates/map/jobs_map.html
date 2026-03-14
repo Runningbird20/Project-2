@@ -13,14 +13,14 @@
         {% endif %}
       </div>
       <div class="form-actions">
-        <a href="{% url 'jobposts.search' %}" class="secondary-btn">Back to jobs</a>
+        <a href="{{ template_data.back_navigation.url }}" class="secondary-btn">{{ template_data.back_navigation.text }}</a>
       </div>
     </div>
 
     {% if template_data.address_prompt %}
       <div class="surface-card">
         <p class="text-muted mb-2">{{ template_data.address_prompt }}</p>
-        <a href="{% url 'accounts.profile_edit' %}" class="primary-btn border-0 btn-compact">Add Address in Profile</a>
+        <a href="{% url 'accounts.profile_edit' %}?return_to={{ template_data.current_url|urlencode }}" class="primary-btn border-0 btn-compact">Add Address in Profile</a>
       </div>
     {% elif jobs_data %}
       <div class="row g-3">

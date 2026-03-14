@@ -88,10 +88,10 @@
               {% if not app.resume_file and app.resume_type == "profile" and app.user.profile.resume_file %}
                 <a href="{{ app.user.profile.resume_file.url }}" target="_blank" class="resume-action-btn resume-action-btn-outline btn-compact">View Profile Resume</a>
               {% endif %}
-              <a href="{% url 'accounts.profile_with_id' app.user.id %}" class="secondary-btn btn-compact">View Applicant Profile</a>
+              <a href="{% url 'accounts.profile_with_id' app.user.id %}?return_to={{ current_url|urlencode }}" class="secondary-btn btn-compact">View Applicant Profile</a>
               {% if app.status == 'offer' or app.status == 'closed' %}
-              <a href="{% url 'apply:customize_offer_letter' app.id %}" class="primary-btn btn-compact border-0">Customize Offer Letter</a>
-              <a href="{% url 'apply:offer_letter' app.id %}" class="secondary-btn btn-compact">Preview Offer Letter</a>
+              <a href="{% url 'apply:customize_offer_letter' app.id %}?return_to={{ current_url|urlencode }}" class="primary-btn btn-compact border-0">Customize Offer Letter</a>
+              <a href="{% url 'apply:offer_letter' app.id %}?return_to={{ current_url|urlencode }}" class="secondary-btn btn-compact">Preview Offer Letter</a>
               {% endif %}
             </div>
           </div>
@@ -131,7 +131,7 @@
       </div>
       <div class="modal-body pt-0 pb-3 px-4">
         <p class="mb-3 text-muted">
-          You moved <span class="fw-semibold text-dark" id="rejectionApplicantName">this applicant</span> to Rejected.
+          You moved <span class="fw-semibold rejection-applicant-name" id="rejectionApplicantName">this applicant</span> to Rejected.
           Send feedback now?
         </p>
         <div class="mb-3">

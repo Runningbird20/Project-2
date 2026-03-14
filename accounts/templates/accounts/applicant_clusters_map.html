@@ -12,11 +12,7 @@
         </p>
       </div>
       <div class="form-actions">
-        {% if request.user.is_superuser %}
-          <a href="{% url 'accounts.manage_users' %}" class="secondary-btn">Back to Manage Users</a>
-        {% else %}
-          <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn">Return to Find Candidates</a>
-        {% endif %}
+        <a href="{{ template_data.back_navigation.url }}" class="secondary-btn">{{ template_data.back_navigation.text }}</a>
       </div>
     </div>
 

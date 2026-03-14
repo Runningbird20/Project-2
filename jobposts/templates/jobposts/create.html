@@ -12,6 +12,7 @@
 
         <form method="post" class="surface-card mt-3 create-job-form">
           {% csrf_token %}
+          <input type="hidden" name="return_to" value="{{ template_data.back_navigation.url }}">
           {% if template_data.form.non_field_errors %}
             <div class="alert alert-danger mb-3">
               {{ template_data.form.non_field_errors }}
@@ -188,7 +189,7 @@
           </div>
           <div class="form-actions mt-4">
             <button type="submit" class="primary-btn border-0">{{ template_data.submit_label }}</button>
-            <a class="secondary-btn" href="{% url 'jobposts.dashboard' %}">Return to Profile</a>
+            <a class="secondary-btn" href="{{ template_data.back_navigation.url }}">{{ template_data.back_navigation.text }}</a>
           </div>
         </form>
       </div>

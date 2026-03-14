@@ -31,7 +31,7 @@
               </div>
             </div>
             {% if template_data.is_own_profile %}
-              <a class="secondary-btn" href="{% url 'accounts.profile_edit' %}">Edit Profile</a>
+              <a class="secondary-btn" href="{% url 'accounts.profile_edit' %}?return_to={{ template_data.current_url|urlencode }}">Edit Profile</a>
             {% endif %}
           </div>
 
@@ -77,7 +77,7 @@
                   </div>
                   <div class="form-actions">
                     <a href="{{ template_data.profile.resume_file.url }}" target="_blank" rel="noopener noreferrer" class="resume-action-btn resume-action-btn-outline btn-compact">Open Resume</a>
-                    <a href="{% url 'accounts.profile_edit' %}" class="secondary-btn btn-compact">Update</a>
+                    <a href="{% url 'accounts.profile_edit' %}?return_to={{ template_data.current_url|urlencode }}" class="secondary-btn btn-compact">Update</a>
                   </div>
                 </div>
               </div>
@@ -113,26 +113,16 @@
           <h5 class="surface-title">Recruiter Privacy</h5>
           {% if template_data.profile.visible_to_recruiters %}
             <p class="mb-2">Recruiters can view your profile.</p>
-            <a class="secondary-btn" href="{% url 'accounts.public_profile' template_data.viewed_user.username %}">Preview public profile</a>
+            <a class="secondary-btn" href="{% url 'accounts.public_profile' template_data.viewed_user.username %}?return_to={{ template_data.current_url|urlencode }}">Preview public profile</a>
           {% else %}
             <p class="text-muted mb-0">Your profile is hidden from recruiters.</p>
           {% endif %}
           {% endif %}
         </div>
 
-        {% if template_data.is_own_profile %}
         <div class="text-center mt-3">
-          {% if template_data.profile.account_type == "APPLICANT" %}
-          <a href="{% url 'apply:application_status' %}" class="secondary-btn">Return to Dashboard</a>
-          {% else %}
-          <a href="{% url 'jobposts.dashboard' %}" class="secondary-btn">Return to Dashboard</a>
-          {% endif %}
+          <a href="{{ template_data.back_navigation.url }}" class="secondary-btn">{{ template_data.back_navigation.text }}</a>
         </div>
-        {% else %}
-        <div class="text-center mt-3">
-          <button onclick="history.back()" class="secondary-btn border-0">Return to Pipeline</button>
-        </div>
-        {% endif %}
       </div>
     </div>
   </div>

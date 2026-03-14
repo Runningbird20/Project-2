@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from unittest.mock import patch
 from decimal import Decimal
+from urllib.parse import quote
 
 from accounts.models import Profile
 from map.models import OfficeLocation
@@ -62,6 +63,25 @@ class JobPostViewTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(JobPost.objects.count(), 1)
+
+    def test_employer_post_redirects_back_to_open_positions_when_return_to_provided(self):
+        self.client.login(username='employer', password='pass12345')
+        return_to = f"{reverse('jobposts.dashboard')}?tab=emp-listings"
+        payload = {
+            'title': 'Backend Engineer',
+            'company': 'Acme Inc',
+            'company_size': 'mid_size',
+            'location': 'Remote',
+            'salary_min': 70000,
+            'salary_max': 90000,
+            'work_setting': 'remote',
+            'description': 'Build APIs and services.',
+            'return_to': return_to,
+        }
+
+        response = self.client.post(reverse('jobposts.create'), payload)
+
+        self.assertRedirects(response, return_to, fetch_redirect_response=False)
 
     def test_employer_post_does_not_require_address_when_country_prefilled(self):
         self.client.login(username='employer', password='pass12345')
@@ -557,6 +577,27 @@ class JobPostViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'Upload Resume Skills')
         self.assertContains(response, 'Use my Profile Resume')
+
+    def test_job_detail_uses_return_to_for_back_navigation(self):
+        job = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Backend Engineer',
+            company='Acme Inc',
+            location='Atlanta, GA',
+            pay_range='$80k-$100k',
+            skills='Python, Django',
+            work_setting='hybrid',
+            description='Build APIs',
+        )
+        return_to = f"{reverse('jobposts.search')}?location=Atlanta%2C+GA"
+
+        response = self.client.get(
+            f"{reverse('jobposts.detail', args=[job.id])}?return_to={quote(return_to, safe='')}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Back to Open Positions')
+        self.assertContains(response, f'href="{return_to}"')
 
     def test_search_uses_parsed_resume_skills_for_matching_when_profile_skills_are_blank(self):
         profile = Profile.objects.get(user=self.applicant_user)

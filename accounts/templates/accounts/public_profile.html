@@ -29,9 +29,9 @@
             </div>
             <div class="text-md-end">
               {% if template_data.is_owner %}
-                <a class="secondary-btn" href="{% url 'accounts.profile_edit' %}">Edit</a>
+                <a class="secondary-btn" href="{% url 'accounts.profile_edit' %}?return_to={{ template_data.current_url|urlencode }}">Edit</a>
               {% elif template_data.profile.user.email and not template_data.profile.hide_email_from_employers %}
-                <a href="{% url 'accounts.email_candidate' template_data.profile.id %}" class="secondary-btn">Email</a>
+                <a href="{% url 'accounts.email_candidate' template_data.profile.id %}?return_to={{ template_data.current_url|urlencode }}" class="secondary-btn">Email</a>
               {% endif %}
             </div>
           </div>
@@ -98,15 +98,7 @@
           {% endif %}
           </div>
         <div class="text-center mt-3">
-          {% if template_data.is_owner %}
-            {% if template_data.profile.account_type == "EMPLOYER" %}
-              <a href="{% url 'jobposts.dashboard' %}" class="secondary-btn">Return to Dashboard</a>
-            {% else %}
-              <a href="{% url 'apply:application_status' %}" class="secondary-btn">Return to Dashboard</a>
-            {% endif %}
-          {% else %}
-            <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn">Back to Search</a>
-          {% endif %}
+          <a href="{{ template_data.back_navigation.url }}" class="secondary-btn">{{ template_data.back_navigation.text }}</a>
         </div>
       </div>
     </div>

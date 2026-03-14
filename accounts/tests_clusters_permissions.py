@@ -38,7 +38,7 @@ class ApplicantClustersMapPermissionTests(TestCase):
         response = self.client.get(reverse("accounts.applicant_clusters_map"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, reverse("accounts.candidate_search"))
-        self.assertContains(response, "Return to Find Candidates")
+        self.assertContains(response, "Back to Find Candidates")
         self.assertNotContains(response, "Back to Manage Users")
 
     def test_superuser_can_access_applicant_clusters_map(self):

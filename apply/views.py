@@ -1,10 +1,11 @@
+from urllib.parse import quote
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.conf import settings
 from django.core.mail import send_mail
 from django.urls import reverse
-from django.utils.http import url_has_allowed_host_and_scheme
 
 from accounts.views import profile
 from .models import Application
@@ -26,19 +27,24 @@ from .services import (
 )
 from interviews.services import get_applicant_interview_context
 from apply.resume_parser import parse_resume
+from project2.navigation import build_back_navigation, current_request_url, safe_local_navigation_url
 from project2.skills import merge_skills_csv, normalize_skills_csv, register_skill_options
 
 PRIVATE_NOTE_MAX_LENGTH = 2000
 
 
 def _application_return_url(request, job_id):
-    referer = (request.META.get("HTTP_REFERER") or "").strip()
-    if referer and url_has_allowed_host_and_scheme(
-        url=referer,
-        allowed_hosts={request.get_host()},
-        require_https=request.is_secure(),
-    ):
+    explicit_return_to = safe_local_navigation_url(
+        request,
+        request.POST.get("return_to") or request.GET.get("return_to"),
+    )
+    if explicit_return_to:
+        return explicit_return_to
+
+    referer = safe_local_navigation_url(request, request.META.get("HTTP_REFERER"))
+    if referer:
         return referer
+
     return reverse("jobposts.detail", args=[job_id])
 
 def _benefits_score_from_company_perks(company_perks_text):
@@ -175,7 +181,7 @@ def submit_application(request, job_id):
 
     if Application.objects.filter(user=request.user, job=job).exists():
         messages.warning(request, f"You have already applied for {job.title}.")
-        return redirect("jobposts.search")
+        return redirect(_application_return_url(request, job.id))
 
     # Safety: normalize resume_type
     if resume_type not in ("profile", "uploaded"):
@@ -264,7 +270,10 @@ def submit_application(request, job_id):
     # ✅ This survives redirects and can be consumed by templates
     request.session["panda_apply_success"] = True
 
-    return redirect("apply:application_submitted", job_id=job.id)
+    return redirect(
+        f"{reverse('apply:application_submitted', args=[job.id])}?return_to="
+        f"{quote(_application_return_url(request, job.id), safe='')}"
+    )
 
 @login_required
 def application_submitted(request, job_id):
@@ -272,6 +281,11 @@ def application_submitted(request, job_id):
     template_data = {
         "title": "Application Submitted",
         "job": job,
+        "back_navigation": build_back_navigation(
+            request,
+            reverse("jobposts.search"),
+            default_label="Open Positions",
+        ),
     }
     return render(request, "apply/application_submitted.html", {"template_data": template_data})
 
@@ -398,6 +412,7 @@ def application_status(request):
             "matched_jobs": matched_jobs,
             "activity_events": activity_events,
             "application_streak": calculate_application_streak(request.user),
+            "current_url": current_request_url(request),
             **interview_context,
         },
     )
@@ -602,6 +617,7 @@ def employer_pipeline(request, job_id):
         'rejected_count': rejected_count,
         'archived_rejected': archived_rejected,
         'rejection_feedback_templates': _serialize_rejection_feedback_templates(),
+        'current_url': current_request_url(request),
     })
 
 
@@ -732,6 +748,11 @@ def customize_offer_letter(request, application_id):
         return redirect("apply:employer_pipeline", job_id=application.job.id)
 
     _ensure_offer_defaults(application)
+    back_navigation = build_back_navigation(
+        request,
+        reverse("apply:employer_pipeline", args=[application.job.id]),
+        default_label="Pipeline",
+    )
 
     if request.method == "POST":
         application.offer_letter_title = request.POST.get("offer_letter_title", "").strip()
@@ -776,6 +797,8 @@ def customize_offer_letter(request, application_id):
         "title": "Customize Offer Letter",
         "application": application,
         "job": application.job,
+        "current_url": current_request_url(request),
+        "back_navigation": back_navigation,
     }
     return render(request, "apply/customize_offer_letter.html", {"template_data": template_data})
 
@@ -820,6 +843,12 @@ def offer_letter(request, application_id):
         "offer_start_date": application.offer_start_date or "To be discussed with recruiter",
         "offer_response_deadline": application.offer_response_deadline or _default_offer_response_deadline(),
         "offer_additional_terms": application.offer_additional_terms,
+        "current_url": current_request_url(request),
+        "back_navigation": build_back_navigation(
+            request,
+            reverse("apply:application_status") if is_applicant else reverse("apply:employer_pipeline", args=[application.job.id]),
+            default_label="Dashboard" if is_applicant else "Pipeline",
+        ),
     }
 
     return render(request, "apply/offer_letter.html", {"template_data": template_data})

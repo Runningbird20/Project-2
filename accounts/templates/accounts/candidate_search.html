@@ -7,7 +7,7 @@
         <div class="surface-card">
           <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
             <div class="text-uppercase text-muted small mb-0">Candidate search</div>
-            <a href="{{ template_data.back_url }}" class="secondary-btn btn-compact">Back</a>
+            <a href="{{ template_data.back_navigation.url }}" class="secondary-btn btn-compact">{{ template_data.back_navigation.text }}</a>
           </div>
           <h2 class="surface-title mb-3">Find talent</h2>
 
@@ -51,7 +51,7 @@
               </div>
             {% endif %}
           </div>
-          <a class="secondary-btn btn-compact" href="{% url 'accounts.applicant_clusters_map' %}">View Map</a>
+          <a class="secondary-btn btn-compact" href="{% url 'accounts.applicant_clusters_map' %}?return_to={{ template_data.current_url|urlencode }}">View Map</a>
         </div>
 
         {% if template_data.candidates %}
@@ -72,7 +72,7 @@
                   </div>
                   <div class="text-end d-flex gap-2 justify-content-end candidate-card-actions">
                     <a class="secondary-btn candidate-action-btn"
-                       href="{% url 'accounts.public_profile' p.user.username %}">
+                       href="{% url 'accounts.public_profile' p.user.username %}?return_to={{ template_data.current_url|urlencode }}">
                       View profile
                     </a>
                     <a href="{% url 'messaging:chat_detail' p.user.id %}" class="primary-btn candidate-action-btn border-0">

@@ -15,6 +15,7 @@ from accounts.models import Profile
 from map.forms import OfficeLocationForm
 from map.models import OfficeLocation
 from map.services import OfficeLocationGeocodingError, geocode_office_address
+from project2.navigation import build_back_navigation, current_request_url, safe_local_navigation_url
 from .forms import JobPostForm
 from .models import ApplicantJobMatch, JobPost
 from .matching import sync_applicant_job_matches
@@ -255,6 +256,13 @@ def dashboard(request):
             )
         )
 
+    context["current_url"] = current_request_url(request)
+    context["dashboard_return_urls"] = {
+        "profile": f"{reverse('jobposts.dashboard')}?tab=emp-profile",
+        "listings": f"{reverse('jobposts.dashboard')}?tab=emp-listings",
+        "matches": f"{reverse('jobposts.dashboard')}?tab=emp-matches",
+        "tools": f"{reverse('jobposts.dashboard')}?tab=emp-tools",
+    }
     return render(request, 'jobposts/dashboard.html', context)
 
 def get_job_recommendations(user_profile):
@@ -274,6 +282,11 @@ def create(request):
         return HttpResponseForbidden('Only employer accounts can create job posts.')
 
     template_data = {'title': 'Create Job Post'}
+    back_navigation = build_back_navigation(
+        request,
+        f"{reverse('jobposts.dashboard')}?tab=emp-listings",
+        default_label="Open Positions",
+    )
 
     if request.method == 'POST':
         form = JobPostForm(request.POST)
@@ -309,7 +322,7 @@ def create(request):
                             messages.warning(request, f"Job posting confirmation email could not be sent: {exc}")
                         else:
                             messages.warning(request, "Job posting confirmation email could not be sent.")
-                return redirect('jobposts.search')
+                return redirect(back_navigation["url"])
             except OfficeLocationGeocodingError as exc:
                 map_form.add_error(None, str(exc))
     else:
@@ -320,6 +333,8 @@ def create(request):
     template_data['map_form'] = map_form
     template_data['submit_label'] = 'Create Job Post'
     template_data['skill_options'] = get_skill_options()
+    template_data['current_url'] = current_request_url(request)
+    template_data['back_navigation'] = back_navigation
     return render(request, 'jobposts/create.html', {'template_data': template_data})
 
 
@@ -332,6 +347,11 @@ def edit(request, post_id):
 
     template_data = {'title': 'Edit Job Post'}
     office_location = getattr(post, 'office_location', None)
+    back_navigation = build_back_navigation(
+        request,
+        f"{reverse('jobposts.dashboard')}?tab=emp-listings",
+        default_label="Open Positions",
+    )
 
     if request.method == 'POST':
         form = JobPostForm(request.POST, instance=post)
@@ -343,7 +363,7 @@ def edit(request, post_id):
             register_skill_options(updated_post.skills, created_by=request.user)
             try:
                 _save_office_location(updated_post, map_form)
-                return redirect('jobposts.search')
+                return redirect(back_navigation["url"])
             except OfficeLocationGeocodingError as exc:
                 map_form.add_error(None, str(exc))
     else:
@@ -354,6 +374,8 @@ def edit(request, post_id):
     template_data['map_form'] = map_form
     template_data['submit_label'] = 'Save Changes'
     template_data['skill_options'] = get_skill_options()
+    template_data['current_url'] = current_request_url(request)
+    template_data['back_navigation'] = back_navigation
     return render(request, 'jobposts/create.html', {'template_data': template_data})
 
 
@@ -543,6 +565,7 @@ def search(request):
     template_data['parsed_resume_skills'] = applicant_profile.parsed_resume_skills if applicant_profile else ''
     template_data['has_profile_resume'] = has_profile_resume
     template_data['profile_resume_name'] = profile_resume_name
+    template_data['current_url'] = current_request_url(request)
     return render(request, 'jobposts/search.html', {'template_data': template_data})
 
 
@@ -581,7 +604,8 @@ def delete_job(request, job_id):
     job = get_object_or_404(JobPost, id=job_id, owner=request.user)
     job.delete()
     messages.success(request, "Job listing deleted successfully.")
-    return redirect('jobposts.dashboard')
+    return_to = safe_local_navigation_url(request, request.POST.get("return_to"))
+    return redirect(return_to or 'jobposts.dashboard')
 
 def job_detail(request, post_id):
     job = get_object_or_404(JobPost.objects.select_related('office_location'), pk=post_id)
@@ -607,6 +631,12 @@ def job_detail(request, post_id):
         'job_skill_list': _skill_list(job.skills),
         'has_profile_resume': has_profile_resume,
         'profile_resume_name': profile_resume_name,
+        'current_url': current_request_url(request),
+        'back_navigation': build_back_navigation(
+            request,
+            reverse('jobposts.search'),
+            default_label='Open Positions',
+        ),
     })
 
 
@@ -615,6 +645,11 @@ def job_detail(request, post_id):
 def edit_post(request, post_id):
     post = get_object_or_404(JobPost, pk=post_id)
     template_data = {'title': 'Edit Job Post'}
+    back_navigation = build_back_navigation(
+        request,
+        reverse('jobposts.search'),
+        default_label='Open Positions',
+    )
 
     if request.method == 'POST':
         form = JobPostForm(request.POST, instance=post)
@@ -622,7 +657,7 @@ def edit_post(request, post_id):
             updated_post = form.save(commit=False)
             updated_post.save()
             register_skill_options(updated_post.skills, created_by=request.user)
-            return redirect('jobposts.search')
+            return redirect(back_navigation["url"])
     else:
         form = JobPostForm(instance=post)
 
@@ -630,13 +665,16 @@ def edit_post(request, post_id):
     template_data['submit_label'] = 'Save Changes'
     template_data['post_id'] = post_id
     template_data['skill_options'] = get_skill_options()
+    template_data['current_url'] = current_request_url(request)
+    template_data['back_navigation'] = back_navigation
     return render(request, 'jobposts/edit_post.html', {'template_data': template_data})
 
 @staff_member_required
 def remove_post(request, post_id):
+    return_to = safe_local_navigation_url(request, request.POST.get("return_to"))
     if request.method == "POST":
         post = JobPost.objects.get(id=post_id)
         post.delete()
-        return redirect('jobposts.search')
+        return redirect(return_to or 'jobposts.search')
     else:
-        return redirect('jobposts.search')
+        return redirect(return_to or 'jobposts.search')

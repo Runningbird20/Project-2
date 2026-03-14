@@ -76,10 +76,10 @@
           <div class="form-actions">
             <button class="primary-btn border-0" onclick="window.print()">Print</button>
             {% if template_data.is_applicant %}
-              <a class="secondary-btn" href="{% url 'apply:application_status' %}">Back to tracker</a>
+              <a class="secondary-btn" href="{{ template_data.back_navigation.url }}">{{ template_data.back_navigation.text }}</a>
             {% else %}
-              <a class="secondary-btn" href="{% url 'apply:customize_offer_letter' template_data.application.id %}">Customize Letter</a>
-              <a class="secondary-btn" href="{% url 'apply:employer_pipeline' template_data.job.id %}">Back to pipeline</a>
+              <a class="secondary-btn" href="{% url 'apply:customize_offer_letter' template_data.application.id %}?return_to={{ template_data.current_url|urlencode }}">Customize Letter</a>
+              <a class="secondary-btn" href="{{ template_data.back_navigation.url }}">{{ template_data.back_navigation.text }}</a>
             {% endif %}
           </div>
 

@@ -20,7 +20,7 @@
                 {% endif %}
               </p>
             </div>
-            <a href="{% url 'jobposts.search' %}" class="secondary-btn">Back</a>
+            <a href="{{ back_navigation.url }}" class="secondary-btn">{{ back_navigation.text }}</a>
           </div>
 
           <div class="mb-4">
@@ -74,7 +74,7 @@
               </div>
               <p class="small text-muted mt-2 mb-0">
                 {% if job.office_location.full_address %}{{ job.office_location.full_address }} - {% endif %}
-                <a href="{% url 'map.job_location' job.id %}" class="link-secondary">Open full map</a>
+                <a href="{% url 'map.job_location' job.id %}?return_to={{ current_url|urlencode }}" class="link-secondary">Open full map</a>
               </p>
             </div>
           {% endif %}
@@ -122,6 +122,7 @@
       </div>
       <form action="{% url 'apply:submit_application' job.id %}" method="POST" enctype="multipart/form-data">
         {% csrf_token %}
+        <input type="hidden" name="return_to" value="{{ current_url }}">
         <div class="modal-body p-4">
           <div class="mb-3">
             <label class="form-label fw-bold">Add a Note to the Employer</label>
@@ -137,7 +138,7 @@
             {% if has_profile_resume %}
               <div class="resume-meta-pill mt-2">Current profile resume: {{ profile_resume_name }}</div>
             {% else %}
-              <div class="small text-muted mt-2">No profile resume uploaded yet. Add one in <a href="{% url 'accounts.profile_edit' %}" class="resume-helper-link">Edit Profile</a>, or upload a new PDF here.</div>
+              <div class="small text-muted mt-2">No profile resume uploaded yet. Add one in <a href="{% url 'accounts.profile_edit' %}?return_to={{ current_url|urlencode }}" class="resume-helper-link">Edit Profile</a>, or upload a new PDF here.</div>
             {% endif %}
           </div>
 

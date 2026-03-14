@@ -1,5 +1,6 @@
 import shutil
 import tempfile
+from urllib.parse import quote
 
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -59,7 +60,8 @@ class ProfileResumeUsageTests(TestCase):
 
         self.assertRedirects(
             response,
-            reverse("apply:application_submitted", kwargs={"job_id": self.job.id}),
+            f"{reverse('apply:application_submitted', kwargs={'job_id': self.job.id})}"
+            f"?return_to={quote(reverse('jobposts.detail', args=[self.job.id]), safe='')}",
         )
         application = Application.objects.get(user=self.applicant, job=self.job)
         self.assertEqual(application.resume_type, "profile")

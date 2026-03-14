@@ -38,7 +38,7 @@ class PublicProfileNavigationTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Return to Dashboard")
+        self.assertContains(response, "Back to Dashboard")
         self.assertContains(response, reverse("apply:application_status"))
         self.assertNotContains(response, reverse("accounts.candidate_search"))
         self.assertContains(response, "applicant_preview@example.com", count=1)
@@ -51,6 +51,6 @@ class PublicProfileNavigationTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Back to Search")
+        self.assertContains(response, "Back to Find Candidates")
         self.assertContains(response, reverse("accounts.candidate_search"))
         self.assertNotContains(response, reverse("apply:application_status"))

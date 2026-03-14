@@ -12,6 +12,7 @@
 
           <form method="POST" enctype="multipart/form-data" id="profileForm" class="edit-profile-form">
             {% csrf_token %}
+            <input type="hidden" name="return_to" value="{{ template_data.back_navigation.url }}">
             {{ template_data.form.non_field_errors }}
 
             <div class="field-block">{{ template_data.form.email.label_tag }} {{ template_data.form.email }}</div>
@@ -122,13 +123,13 @@
             <div id="employer_fields">
               <div class="alert alert-info mb-0">
                 Company details are now managed separately.
-                <a href="{% url 'accounts.company_profile_edit' %}" class="alert-link">Edit Company Profile</a>
+                <a href="{% url 'accounts.company_profile_edit' %}?return_to={{ template_data.current_url|urlencode }}" class="alert-link">Edit Company Profile</a>
               </div>
             </div>
 
             <div class="form-actions mt-4">
               <button type="submit" class="primary-btn border-0">Save Changes</button>
-              <a class="secondary-btn" href="{% url 'accounts.profile' %}">Cancel</a>
+              <a class="secondary-btn" href="{{ template_data.back_navigation.url }}">{{ template_data.back_navigation.text }}</a>
             </div>
           </form>
         </div>

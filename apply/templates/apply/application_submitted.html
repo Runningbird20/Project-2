@@ -13,7 +13,7 @@
           </p>
           <p class="text-muted mb-4">You can return to the job board when you are ready.</p>
           <div class="form-actions justify-content-center">
-            <a class="primary-btn" href="{% url 'jobposts.search' %}">Back to Job Board</a>
+            <a class="primary-btn" href="{{ template_data.back_navigation.url }}">{{ template_data.back_navigation.text }}</a>
           </div>
         </div>
       </div>
