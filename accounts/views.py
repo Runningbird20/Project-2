@@ -1,4 +1,5 @@
 import csv
+from urllib.parse import quote, urlsplit
 from collections import Counter
 from smtplib import SMTPAuthenticationError
 
@@ -18,9 +19,12 @@ from django.db import transaction
 from django.db.models import Count, Q
 from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.http import require_POST
 
 from django.core.mail import EmailMessage
 
@@ -63,6 +67,52 @@ def _is_applicant(user):
         user=user,
         account_type=Profile.AccountType.APPLICANT,
     ).exists()
+
+
+def _safe_local_return_url(request, candidate_url):
+    candidate_url = (candidate_url or "").strip()
+    if not candidate_url:
+        return ""
+    if not url_has_allowed_host_and_scheme(
+        candidate_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return ""
+
+    parsed = urlsplit(candidate_url)
+    safe_url = parsed.path or "/"
+    if parsed.query:
+        safe_url = f"{safe_url}?{parsed.query}"
+    if parsed.fragment:
+        safe_url = f"{safe_url}#{parsed.fragment}"
+    return safe_url
+
+
+def _candidate_search_back_url(request):
+    explicit_return_to = _safe_local_return_url(
+        request,
+        request.GET.get("return_to") or request.POST.get("return_to"),
+    )
+    if explicit_return_to:
+        return explicit_return_to
+
+    referrer = _safe_local_return_url(request, request.META.get("HTTP_REFERER", ""))
+    blocked_prefixes = [
+        reverse("accounts.candidate_search"),
+        reverse("accounts.save_search"),
+    ]
+    if referrer and not any(referrer.startswith(prefix) for prefix in blocked_prefixes):
+        return referrer
+
+    return f"{reverse('jobposts.dashboard')}?tab=emp-tools"
+
+
+def _candidate_search_url_with_return_to(back_url):
+    candidate_search_url = reverse("accounts.candidate_search")
+    if not back_url:
+        return candidate_search_url
+    return f"{candidate_search_url}?return_to={quote(back_url, safe='')}"
 
 
 def _format_response_time_window(avg_hours):
@@ -545,14 +595,30 @@ def candidate_search(request):
     if not _is_employer(request.user):
         return HttpResponseForbidden("Only employers can access candidate search.")
 
+    back_url = _candidate_search_back_url(request)
+    active_saved_search = None
+    saved_search_id = (request.GET.get("saved_search") or "").strip()
+
+    if saved_search_id:
+        active_saved_search = get_object_or_404(
+            SavedCandidateSearch,
+            id=saved_search_id,
+            employer=request.user,
+        )
+        filters = active_saved_search.normalized_filters
+        skills = filters["skills"]
+        location = filters["location"]
+        projects = filters["projects"]
+        active_saved_search.mark_viewed()
+    else:
+        skills = request.GET.get("skills", "").strip()
+        location = request.GET.get("location", "").strip()
+        projects = request.GET.get("projects", "").strip()
+
     qs = Profile.objects.filter(
         account_type=Profile.AccountType.APPLICANT,
         visible_to_recruiters=True,
     ).select_related("user").order_by("user__username")
-
-    skills = request.GET.get("skills", "").strip()
-    location = request.GET.get("location", "").strip()
-    projects = request.GET.get("projects", "").strip()
 
     if skills:
         for t in [t.strip() for t in skills.split(",") if t.strip()]:
@@ -598,7 +664,16 @@ def candidate_search(request):
     return render(
         request,
         "accounts/candidate_search.html",
-        {"template_data": {"title": "Candidate Search", "candidates": candidates, "filters": {"skills": skills, "location": location, "projects": projects}}},
+        {
+            "template_data": {
+                "title": "Candidate Search",
+                "candidates": candidates,
+                "filters": {"skills": skills, "location": location, "projects": projects},
+                "active_saved_search": active_saved_search,
+                "back_url": back_url,
+                "encoded_back_url": quote(back_url, safe=""),
+            }
+        },
     )
 
 
@@ -719,29 +794,47 @@ def company_search(request):
 
 
 @login_required
+@require_POST
 def save_candidate_search(request):
-    if request.method == "POST":
-        SavedCandidateSearch.objects.create(
-            employer=request.user,
-            search_name=request.POST.get("search_name"),
-            filters={
-                "skills": request.POST.get("skills", ""),
-                "location": request.POST.get("location", ""),
-                "projects": request.POST.get("projects", ""),
-            },
-        )
-        messages.success(request, "Alert created successfully!")
-    return redirect("jobposts.dashboard")
+    if not _is_employer(request.user):
+        return HttpResponseForbidden("Only employers can save candidate alerts.")
+
+    back_url = _candidate_search_back_url(request)
+    search_name = (request.POST.get("search_name") or "").strip()
+    filters = {
+        "skills": (request.POST.get("skills") or "").strip(),
+        "location": (request.POST.get("location") or "").strip(),
+        "projects": (request.POST.get("projects") or "").strip(),
+    }
+
+    if not search_name:
+        messages.warning(request, "Give your alert a name before saving it.")
+        return redirect(_candidate_search_url_with_return_to(back_url))
+    if not any(filters.values()):
+        messages.warning(request, "Add at least one filter before saving an alert.")
+        return redirect(_candidate_search_url_with_return_to(back_url))
+
+    SavedCandidateSearch.objects.create(
+        employer=request.user,
+        search_name=search_name,
+        filters=filters,
+    )
+    messages.success(request, f'Alert "{search_name}" created successfully!')
+    return redirect(back_url)
 
 
 @login_required
+@require_POST
 def delete_candidate_search(request, search_id):
+    if not _is_employer(request.user):
+        return HttpResponseForbidden("Only employers can delete candidate alerts.")
+
+    return_to = _safe_local_return_url(request, request.POST.get("return_to"))
     search = get_object_or_404(SavedCandidateSearch, id=search_id, employer=request.user)
-    if request.method == "POST":
-        name = search.search_name
-        search.delete()
-        messages.warning(request, f'Alert "{name}" deleted.')
-    return redirect("jobposts.dashboard")
+    name = search.search_name
+    search.delete()
+    messages.warning(request, f'Alert "{name}" deleted.')
+    return redirect(return_to or f"{reverse('jobposts.dashboard')}?tab=emp-tools")
 
 
 @login_required

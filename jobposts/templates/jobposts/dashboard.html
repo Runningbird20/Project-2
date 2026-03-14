@@ -148,7 +148,19 @@
             <div class="row g-4 mb-4">
               <div class="col-md-4"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Active Postings</div><h3 class="surface-title mb-0">{{ jobs.count }}</h3></div></div>
               <div class="col-md-4"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Total Applicants</div><h3 class="surface-title mb-0">{{ overall_total|default:'0' }}</h3></div></div>
-              <div class="col-md-4"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Active Alerts</div><h3 class="surface-title mb-0">{{ saved_searches.count|default:'0' }}</h3></div></div>
+              <div class="col-md-4">
+                <div class="surface-card h-100">
+                  <div class="text-uppercase small text-muted">Active Alerts</div>
+                  <h3 class="surface-title mb-1">{{ saved_searches_count|default:'0' }}</h3>
+                  {% if saved_search_new_alert_count %}
+                    <div class="small text-success fw-semibold">
+                      {{ saved_search_new_alert_count }} alert{{ saved_search_new_alert_count|pluralize }} with {{ saved_search_new_match_total }} new candidate{{ saved_search_new_match_total|pluralize }}
+                    </div>
+                  {% else %}
+                    <div class="small text-muted">No new alert matches</div>
+                  {% endif %}
+                </div>
+              </div>
             </div>
             <div class="surface-card p-0 overflow-hidden">
               <div class="px-4 py-3 border-bottom"><h3 class="surface-title mb-0">My Job Listing</h3></div>
@@ -434,7 +446,7 @@
                     </div>
                     <div class="form-actions">
                       <a href="{% url 'accounts.public_profile' match.candidate.user.username %}" class="secondary-btn btn-compact">View Profile</a>
-                      <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn btn-compact">Open Search</a>
+                      <a href="{{ candidate_search_matches_url }}" class="secondary-btn btn-compact">Open Search</a>
                     </div>
                   </div>
                 {% empty %}
@@ -485,7 +497,6 @@
               </div>
             </div>
           </div>
-
           <div class="tab-pane fade" id="emp-archived" role="tabpanel" aria-labelledby="emp-archived-btn" tabindex="0">
             <div class="surface-card">
               <h3 class="surface-title mb-3">Archived Rejected Applicants</h3>
@@ -510,9 +521,108 @@
 
           <div class="tab-pane fade" id="emp-tools" role="tabpanel" aria-labelledby="emp-tools-btn" tabindex="0">
             <div class="surface-card">
-              <h3 class="surface-title mb-2">More Tools</h3>
-              <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                <p class="text-muted mb-0">This section will include additional employer tools such as interview templates, outreach messages, and hiring analytics.</p>
+              <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+                <div>
+                  <h3 class="surface-title mb-1">More Tools</h3>
+                  <p class="text-muted mb-0">Quick access to recruiter workflows and alert management.</p>
+                </div>
+              </div>
+
+              <div id="saved-alert-management" class="border rounded-4 p-3 mt-3">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+                  <div>
+                    <h3 class="surface-title mb-1">Alerts</h3>
+                    <p class="text-muted mb-0">Open a saved alert to rerun the search and review or remove alerts from one place.</p>
+                  </div>
+                  <button type="button" class="primary-btn btn-compact border-0" data-bs-toggle="modal" data-bs-target="#dashboardCreateAlertModal">Create Alert</button>
+                </div>
+
+                <div class="vstack gap-3">
+                  {% for saved_search in saved_searches %}
+                    <div class="border rounded-4 p-3">
+                      <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                        <div>
+                          <div class="d-flex align-items-center flex-wrap gap-2">
+                            <div class="fw-semibold">{{ saved_search.search_name }}</div>
+                            {% if saved_search.pending_new_match_count %}
+                              <span class="badge bg-success-subtle text-success">
+                                {{ saved_search.pending_new_match_count }} new candidate{{ saved_search.pending_new_match_count|pluralize }}
+                              </span>
+                            {% endif %}
+                          </div>
+                          <div class="small text-muted mt-1">{{ saved_search.filters_summary }}</div>
+                          <div class="small text-muted mt-2">
+                            {{ saved_search.current_match_count }} current matching candidate{{ saved_search.current_match_count|pluralize }}
+                            &middot; Saved {{ saved_search.created_at|date:"M j, Y" }}
+                            {% if saved_search.last_viewed_at %}
+                              &middot; Last reviewed {{ saved_search.last_viewed_at|date:"M j, Y g:i A" }}
+                            {% endif %}
+                          </div>
+                        </div>
+                        <div class="form-actions">
+                          <a href="{% url 'accounts.candidate_search' %}?saved_search={{ saved_search.id }}&return_to={{ dashboard_tools_alerts_return_param }}" class="secondary-btn btn-compact">View Matches</a>
+                          <form action="{% url 'accounts.delete_search' saved_search.id %}" method="post" onsubmit="return confirm('Delete this saved alert?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="return_to" value="{{ dashboard_tools_alerts_return_url }}">
+                            <button type="submit" class="danger-btn btn-compact border-0">Delete</button>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  {% empty %}
+                    <div class="border rounded-4 p-4 text-center">
+                      <h4 class="surface-title mb-2">No saved alerts yet</h4>
+                      <p class="text-muted mb-3">Save a candidate search to reuse filters and spot new matching applicants faster.</p>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal fade" id="dashboardCreateAlertModal" tabindex="-1" aria-labelledby="dashboardCreateAlertModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content border-0 shadow-lg rounded-4">
+                <form action="{% url 'accounts.save_search' %}" method="post" id="dashboardCreateAlertForm">
+                  {% csrf_token %}
+                  <div class="modal-header border-0 pb-0">
+                    <h5 class="fw-bold mb-0" id="dashboardCreateAlertModalLabel">Create Candidate Alert</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body py-4">
+                    <p class="text-muted small mb-4">Add a name and at least one filter to save a recruiter alert from your dashboard.</p>
+
+                    <input type="hidden" name="return_to" value="{{ dashboard_tools_alerts_return_url }}">
+
+                    <div class="mb-3">
+                      <label class="form-label fw-bold small" for="dashboardAlertName">Alert Name</label>
+                      <input type="text" id="dashboardAlertName" name="search_name" class="form-control" placeholder="e.g. Python Engineers in Atlanta" required>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label fw-bold small" for="dashboardAlertSkills">Skills</label>
+                      <input type="text" id="dashboardAlertSkills" name="skills" class="form-control" placeholder="e.g. Python, Django">
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label fw-bold small" for="dashboardAlertLocation">Location</label>
+                      <input type="text" id="dashboardAlertLocation" name="location" class="form-control" placeholder="e.g. Atlanta, GA">
+                    </div>
+
+                    <div class="mb-0">
+                      <label class="form-label fw-bold small" for="dashboardAlertProjects">Projects</label>
+                      <input type="text" id="dashboardAlertProjects" name="projects" class="form-control" placeholder="e.g. robotics, API">
+                    </div>
+
+                    <div id="dashboardCreateAlertError" class="text-danger small mt-3 d-none">
+                      Add at least one filter before saving an alert.
+                    </div>
+                  </div>
+                  <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="secondary-btn btn-compact border-0" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="primary-btn btn-compact border-0">Save Alert</button>
+                  </div>
+                </form>
               </div>
             </div>
           </div>
@@ -582,6 +692,47 @@
       }
     }
 
+    function bindCreateAlertModalValidation() {
+      var form = document.getElementById("dashboardCreateAlertForm");
+      if (!form) return;
+
+      var skillsInput = document.getElementById("dashboardAlertSkills");
+      var locationInput = document.getElementById("dashboardAlertLocation");
+      var projectsInput = document.getElementById("dashboardAlertProjects");
+      var errorMessage = document.getElementById("dashboardCreateAlertError");
+
+      function hideError() {
+        if (errorMessage) {
+          errorMessage.classList.add("d-none");
+        }
+      }
+
+      [skillsInput, locationInput, projectsInput].forEach(function (input) {
+        if (!input) return;
+        input.addEventListener("input", hideError);
+      });
+
+      form.addEventListener("submit", function (event) {
+        var hasFilter =
+          (skillsInput && skillsInput.value.trim() !== "") ||
+          (locationInput && locationInput.value.trim() !== "") ||
+          (projectsInput && projectsInput.value.trim() !== "");
+
+        if (hasFilter) {
+          hideError();
+          return;
+        }
+
+        event.preventDefault();
+        if (errorMessage) {
+          errorMessage.classList.remove("d-none");
+        }
+        if (skillsInput) {
+          skillsInput.focus();
+        }
+      });
+    }
+
     function restoreScrollAfterMonthChange() {
       try {
         var raw = sessionStorage.getItem(SCROLL_KEY);
@@ -597,8 +748,11 @@
       activateTabFromQuery();
       bindInterviewMonthLinks();
       bindInterviewDaySlotPicker();
+      bindCreateAlertModalValidation();
       restoreScrollAfterMonthChange();
     });
   })();
 </script>
 {% endblock %}
+
+

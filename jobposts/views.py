@@ -1,4 +1,5 @@
 import math
+from urllib.parse import quote
 
 from django.conf import settings
 from django.core.mail import send_mail
@@ -8,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from accounts.models import Profile
 from map.forms import OfficeLocationForm
@@ -118,6 +120,13 @@ def dashboard(request):
 
     # --- EMPLOYER LOGIC ---
     elif profile.account_type == Profile.AccountType.EMPLOYER:
+        dashboard_matches_return_url = f"{reverse('jobposts.dashboard')}?tab=emp-matches"
+        dashboard_tools_return_url = f"{reverse('jobposts.dashboard')}?tab=emp-tools"
+        dashboard_tools_alerts_return_url = f"{reverse('jobposts.dashboard')}?tab=emp-tools#saved-alert-management"
+        dashboard_matches_return_param = quote(dashboard_matches_return_url, safe="")
+        dashboard_tools_return_param = quote(dashboard_tools_return_url, safe="")
+        dashboard_tools_alerts_return_param = quote(dashboard_tools_alerts_return_url, safe="")
+
         my_jobs = JobPost.objects.filter(owner=request.user).annotate(
             total_apps=Count('applications'), 
             new_apps=Count(
@@ -191,12 +200,37 @@ def dashboard(request):
                     ],
                 })
     
-        saved_searches = request.user.saved_searches.all()
-    
+        saved_searches = list(request.user.saved_searches.order_by("-created_at"))
+        saved_search_new_alert_count = 0
+        saved_search_new_match_total = 0
+        for saved_search in saved_searches:
+            saved_search.current_match_count = saved_search.matching_profiles_queryset().count()
+            saved_search.pending_new_match_count = saved_search.new_matches_queryset().count()
+            if saved_search.pending_new_match_count:
+                saved_search_new_alert_count += 1
+                saved_search_new_match_total += saved_search.pending_new_match_count
+
+        saved_searches.sort(
+            key=lambda search: (
+                -int(search.pending_new_match_count > 0),
+                -search.pending_new_match_count,
+                -search.created_at.timestamp(),
+            )
+        )
+
         context.update({
             'jobs': my_jobs,
             'overall_total': overall_total,
             'saved_searches': saved_searches,
+            'saved_searches_count': len(saved_searches),
+            'saved_search_new_alert_count': saved_search_new_alert_count,
+            'saved_search_new_match_total': saved_search_new_match_total,
+            'candidate_search_matches_url': f"{reverse('accounts.candidate_search')}?return_to={dashboard_matches_return_param}",
+            'candidate_search_tools_url': f"{reverse('accounts.candidate_search')}?return_to={dashboard_tools_return_param}",
+            'dashboard_tools_return_url': dashboard_tools_return_url,
+            'dashboard_tools_return_param': dashboard_tools_return_param,
+            'dashboard_tools_alerts_return_url': dashboard_tools_alerts_return_url,
+            'dashboard_tools_alerts_return_param': dashboard_tools_alerts_return_param,
             'matched_candidates': candidate_matches,
             'archived_rejected_applicants': Application.objects.filter(
                 job__owner=request.user,
