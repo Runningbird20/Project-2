@@ -762,6 +762,29 @@ html.dark-mode .skill-add-custom:focus {
   color: #fff;
 }
 
+.pipeline-toast-undo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: auto;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  border: 1.3px solid rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.12);
+  color: #f8fbff;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  transition: transform 0.22s ease, background 0.22s ease, border-color 0.22s ease;
+}
+
+.pipeline-toast-undo-btn:hover,
+.pipeline-toast-undo-btn:focus {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.52);
+  color: #ffffff;
+}
+
 .nav-pills .secondary-btn.active,
 .nav-pills .secondary-btn[aria-selected="true"] {
   background: #252b3b;
@@ -1379,26 +1402,50 @@ button.custom-skill-add:disabled:focus {
   text-align: center;
 }
 
+.pipeline-board-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+  padding-bottom: 0.3rem;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 transparent;
+}
+
 .pipeline-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(280px, 320px);
   gap: 0.9rem;
+  width: max-content;
+  min-width: 100%;
+  align-items: start;
 }
 
 .pipeline-col {
   min-width: 0;
-  height: auto;
+  height: clamp(420px, 70vh, 760px);
   display: flex;
   flex-direction: column;
 }
 
 .kanban-scroll {
-  overflow: visible;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
   flex-grow: 1;
-  padding-right: 0;
+  padding-right: 0.35rem;
   border: 1px dashed transparent;
   border-radius: 10px;
   transition: border-color 0.15s ease, background-color 0.15s ease;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 transparent;
+}
+
+.pipeline-archived-list {
+  max-height: 22rem;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 transparent;
 }
 
 .status-rejected {
@@ -1411,23 +1458,96 @@ html.dark-mode .status-rejected {
   border-color: #7f1d1d !important;
 }
 
-.kanban-scroll::-webkit-scrollbar {
-  width: 5px;
+.pipeline-board-scroll::-webkit-scrollbar,
+.kanban-scroll::-webkit-scrollbar,
+.pipeline-archived-list::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.kanban-scroll::-webkit-scrollbar-thumb {
+.pipeline-board-scroll::-webkit-scrollbar-thumb,
+.kanban-scroll::-webkit-scrollbar-thumb,
+.pipeline-archived-list::-webkit-scrollbar-thumb {
   background: #cbd5e0;
-  border-radius: 10px;
+  border-radius: 999px;
+}
+
+html.dark-mode .pipeline-board-scroll,
+html.dark-mode .kanban-scroll,
+html.dark-mode .pipeline-archived-list {
+  scrollbar-color: #4a5d7d transparent;
+}
+
+html.dark-mode .pipeline-board-scroll::-webkit-scrollbar-thumb,
+html.dark-mode .kanban-scroll::-webkit-scrollbar-thumb,
+html.dark-mode .pipeline-archived-list::-webkit-scrollbar-thumb {
+  background: #4a5d7d;
 }
 
 @media (max-width: 1200px) {
   .pipeline-grid {
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-auto-columns: minmax(260px, 300px);
+  }
+
+  .pipeline-col {
+    height: clamp(390px, 68vh, 700px);
+  }
+}
+
+@media (max-width: 768px) {
+  .pipeline-board-scroll {
+    margin-inline: -0.25rem;
+    padding-inline: 0.25rem;
+  }
+
+  .pipeline-grid {
+    grid-auto-columns: minmax(250px, 86vw);
+  }
+
+  .pipeline-col {
+    height: clamp(360px, 62vh, 640px);
+  }
+
+  .pipeline-archived-list {
+    max-height: 18rem;
   }
 }
 
 .applicant-card {
   cursor: grab;
+}
+
+.applicant-card h6 {
+  font-size: 0.98rem;
+}
+
+.applicant-card .form-control-sm {
+  min-height: 72px;
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+}
+
+.applicant-note-form {
+  margin-bottom: 0.6rem !important;
+}
+
+.applicant-card-note-actions {
+  row-gap: 0.45rem !important;
+}
+
+.applicant-card-inline-actions {
+  margin-left: auto;
+}
+
+.applicant-card-profile-link,
+.applicant-card-links .secondary-btn,
+.applicant-card-links .primary-btn,
+.applicant-card-links .resume-action-btn {
+  min-width: 0;
+}
+
+.applicant-card-links {
+  margin-top: 0.15rem;
 }
 
 .applicant-card.dragging {
@@ -1483,6 +1603,19 @@ html.dark-mode .offer-rejection-alert strong {
 
 html.dark-mode .offer-rejected-by-applicant-label {
   color: #ffd166 !important;
+}
+
+html.dark-mode .applicant-card-profile-link {
+  background: #2a3b58;
+  color: #e6edf8;
+  border-color: #4a5d7d;
+}
+
+html.dark-mode .applicant-card-profile-link:hover,
+html.dark-mode .applicant-card-profile-link:focus {
+  background: #8eb9ff;
+  color: #0b1526;
+  border-color: #8eb9ff;
 }
 
 .offer-archive-btn {

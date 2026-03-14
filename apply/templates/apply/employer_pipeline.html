@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 
-{% load split_filters %}
 {% block content %}
 <section class="page-shell">
   <div class="container-fluid px-4">
@@ -17,78 +16,73 @@
       </div>
     </div>
 
-    <div class="pipeline-grid pb-4">
+    <div class="pipeline-board-scroll pb-4">
+      <div class="pipeline-grid">
       {% for status_key, apps in pipeline.items %}
       <div class="pipeline-col surface-card {% if status_key == 'rejected' %}status-rejected{% endif %}">
         <h6 class="text-uppercase fw-bold text-muted mb-3 d-flex justify-content-between align-items-center">
           <span>{{ status_key }}</span>
           <span class="badge bg-white text-dark border">{{ apps|length }}</span>
         </h6>
-        <div class="kanban-scroll vstack gap-3 drop-zone" data-status="{{ status_key }}">
+        <div class="kanban-scroll vstack gap-2 drop-zone" data-status="{{ status_key }}">
           {% for app in apps %}
-          <div class="surface-card p-3 applicant-card" draggable="true" data-app-id="{{ app.id }}" data-current-status="{{ app.status }}" data-applicant-name="{{ app.user.get_full_name|default:app.user.username }}">
-            <div class="d-flex justify-content-between align-items-start mb-2">
+          <div class="surface-card p-2 applicant-card" draggable="true" data-app-id="{{ app.id }}" data-current-status="{{ app.status }}" data-applicant-name="{{ app.user.get_full_name|default:app.user.username }}">
+            <div class="d-flex justify-content-between align-items-start mb-1">
               <h6 class="fw-bold mb-0">{{ app.user.get_full_name|default:app.user.username }}</h6>
               <a href="mailto:{{ app.user.email }}" class="text-muted"><i class="bi bi-envelope"></i></a>
             </div>
 
-            <div class="mb-2 d-flex flex-wrap gap-1">
-              {% for skill in app.user.profile.parsed_resume_skills|split:"," %}
-                  <span class="badge bg-light text-dark border">{{ skill }}</span>
-              {% endfor %}
-            </div>
-
-        
-
-            <div class="small text-muted mb-3">Drag to move applicant</div>
+            <div class="small text-muted mb-1">Drag to move applicant</div>
             {% if app.status != 'rejected' and app.status != 'closed' %}
-            <div class="small mb-2 {% if app.response_due_within_7_days %}text-danger{% else %}text-muted{% endif %}">
+            <div class="small mb-1 {% if app.response_due_within_7_days %}text-danger{% else %}text-muted{% endif %}">
               Response required by {{ app.response_due_on|date:"M j, Y" }}.
             </div>
             {% endif %}
             {% if app.status == 'rejected' %}
-            <div class="small text-muted mb-2">
+            <div class="small text-muted mb-1">
               Auto-archives on {{ app.auto_archive_on|date:"M j, Y" }}.
             </div>
             {% if app.rejected_offer_by_applicant %}
-            <div class="small text-warning mb-2 offer-rejected-by-applicant-label">
+            <div class="small text-warning mb-1 offer-rejected-by-applicant-label">
               Offer rejected by applicant.
             </div>
             {% endif %}
             {% if app.auto_rejected_for_timeout %}
-            <div class="small text-danger mb-2">
+            <div class="small text-danger mb-1">
               Auto-rejected after no employer response for 30 days.
             </div>
             {% endif %}
-            <form method="post" action="{% url 'apply:archive_rejected_applicant' app.id %}" class="mb-2">
+            <form method="post" action="{% url 'apply:archive_rejected_applicant' app.id %}" class="mb-1">
               {% csrf_token %}
               <button type="submit" class="secondary-btn btn-compact border-0 w-100 offer-archive-employer-btn">Archive Rejected Applicant</button>
             </form>
             {% endif %}
-            <form method="post" action="{% url 'apply:save_employer_private_note' app.id %}" class="mb-3">
+            <form method="post" action="{% url 'apply:save_employer_private_note' app.id %}" class="mb-2 applicant-note-form">
               {% csrf_token %}
               <label class="small fw-semibold mb-1" for="employerPrivateNote{{ app.id }}">Private Employer Note</label>
               <textarea
                 id="employerPrivateNote{{ app.id }}"
                 name="employer_private_note"
                 class="form-control form-control-sm"
-                rows="3"
+                rows="2"
                 maxlength="2000"
                 placeholder="Add internal notes about this applicant."
               >{{ app.employer_private_note }}</textarea>
-              <div class="d-flex justify-content-between align-items-center gap-2 mt-2 flex-wrap">
-                <div class="small text-muted">Visible only to employers on this job.</div>
-                <button type="submit" class="secondary-btn btn-compact border-0 offer-archive-btn">
-                  Save Note
-                </button>
+              <div class="d-flex justify-content-between align-items-center gap-2 mt-2 flex-wrap applicant-card-note-actions">
+                <div class="small text-muted">Private to employers on this job.</div>
+                <div class="d-flex align-items-center gap-2 flex-wrap applicant-card-inline-actions">
+                  <button type="submit" class="secondary-btn btn-compact border-0 offer-archive-btn">
+                    Save Note
+                  </button>
+                  <a href="{% url 'accounts.profile_with_id' app.user.id %}?return_to={{ current_url|urlencode }}" class="secondary-btn btn-compact applicant-card-profile-link">Applicant Profile</a>
+                </div>
               </div>
             </form>
-            <div class="d-grid gap-2">
+            <div class="d-grid gap-1 applicant-card-links">
               {% if app.resume_file %}<a href="{{ app.resume_file.url }}" target="_blank" class="secondary-btn btn-compact">View Resume</a>{% endif %}
               {% if not app.resume_file and app.resume_type == "profile" and app.user.profile.resume_file %}
                 <a href="{{ app.user.profile.resume_file.url }}" target="_blank" class="resume-action-btn resume-action-btn-outline btn-compact">View Profile Resume</a>
               {% endif %}
-              <a href="{% url 'accounts.profile_with_id' app.user.id %}?return_to={{ current_url|urlencode }}" class="secondary-btn btn-compact">View Applicant Profile</a>
               {% if app.status == 'offer' or app.status == 'closed' %}
               <a href="{% url 'apply:customize_offer_letter' app.id %}?return_to={{ current_url|urlencode }}" class="primary-btn btn-compact border-0">Customize Offer Letter</a>
               <a href="{% url 'apply:offer_letter' app.id %}?return_to={{ current_url|urlencode }}" class="secondary-btn btn-compact">Preview Offer Letter</a>
@@ -101,18 +95,19 @@
         </div>
       </div>
       {% endfor %}
+      </div>
     </div>
 
     <div class="surface-card mt-3">
       <h5 class="surface-title mb-3">Archived Rejected Applicants</h5>
-      <div class="vstack gap-2">
+      <div class="vstack gap-2 pipeline-archived-list">
         {% for app in archived_rejected %}
         <div class="d-flex justify-content-between align-items-center border rounded p-2">
           <div>
             <div class="fw-semibold">{{ app.user.get_full_name|default:app.user.username }}</div>
             <div class="small text-muted">Archived rejected applicant</div>
           </div>
-          <a href="{% url 'accounts.profile_with_id' app.user.id %}" class="secondary-btn btn-compact">View Profile</a>
+          <a href="{% url 'accounts.profile_with_id' app.user.id %}?return_to={{ current_url|urlencode }}" class="secondary-btn btn-compact">View Profile</a>
         </div>
         {% empty %}
         <p class="text-muted mb-0">No archived rejected applicants yet.</p>
@@ -299,7 +294,7 @@ function showUndoToast(appId, oldStatus) {
   toast.className = 'fixed-bottom m-4 p-3 bg-dark text-white rounded-3 shadow-lg d-flex justify-content-between align-items-center';
   toast.style.zIndex = '1050';
   toast.style.width = '300px';
-  toast.innerHTML = `<span>Status updated!</span><button class="secondary-btn btn-compact border-0" onclick="undoChange('${appId}', '${oldStatus}')">UNDO</button>`;
+  toast.innerHTML = `<span>Status updated!</span><button class="pipeline-toast-undo-btn btn-compact border-0" onclick="undoChange('${appId}', '${oldStatus}')">UNDO</button>`;
   document.body.appendChild(toast);
   setTimeout(() => { if (toast) toast.remove(); }, 6000);
 }
