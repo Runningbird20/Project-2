@@ -163,7 +163,7 @@
               </div>
             </div>
             <div class="surface-card p-0 overflow-hidden">
-              <div class="px-4 py-3 border-bottom"><h3 class="surface-title mb-0">My Job Listing</h3></div>
+              <div class="px-4 py-3 border-bottom"><h3 class="surface-title mb-0">My Job Listings</h3></div>
               <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 job-table">
                   <thead class="table-light"><tr><th class="ps-4 py-3">Job Details</th><th class="py-3 text-center">Posted On</th><th class="py-3 text-center">Total Apps</th><th class="py-3 text-center">New</th><th class="py-3 text-end pe-4">Manage</th></tr></thead>
@@ -197,168 +197,230 @@
 
           <div class="tab-pane fade" id="emp-interviews" role="tabpanel" aria-labelledby="emp-interviews-btn" tabindex="0">
             {% include "interviews/partials/interview_calendar.html" with interview_tab_target="emp-interviews" interview_calendar_interactive=True %}
-            <div class="surface-card mb-3">
-              <h3 class="surface-title mb-2">Propose Interview Slots</h3>
-              <p class="text-muted mb-2">
-                Click a day on the calendar to add a time option for an applicant.
-              </p>
-              <p class="small text-muted mb-0">
-                Best practice: propose at least 2-3 time slots for each applicant to improve scheduling speed.
-              </p>
-            </div>
-            <div class="surface-card mb-3">
-              <h3 class="surface-title mb-3">Open Slots</h3>
-              <div class="vstack gap-2">
-                {% for slot in open_interview_slots %}
-                <div class="border rounded-4 p-3">
-                  <div class="fw-semibold">{{ slot.applicant.username }} - {{ slot.application.job.title }}</div>
-                  <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
+            <div class="surface-card p-0 overflow-hidden mb-3">
+              <div class="px-4 py-3 border-bottom d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <h3 class="surface-title mb-0">Propose Interview Slots</h3>
+                <button
+                  type="button"
+                  class="pipeline-card-toggle"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#employerInterviewProposeBody"
+                  aria-expanded="false"
+                  aria-controls="employerInterviewProposeBody"
+                >
+                  <span class="visually-hidden">Toggle propose interview slots section</span>
+                  <i class="bi bi-chevron-down pipeline-card-toggle-icon"></i>
+                </button>
+              </div>
+              <div class="collapse" id="employerInterviewProposeBody">
+                <div class="px-4 py-3">
+                  <p class="text-muted mb-2">
+                    Click a day on the calendar to add a time option for an applicant.
+                  </p>
+                  <p class="small text-muted mb-0">
+                    Best practice: propose at least 2-3 time slots for each applicant to improve scheduling speed.
+                  </p>
                 </div>
-                {% empty %}
-                <p class="text-muted mb-0">No open interview slots.</p>
-                {% endfor %}
               </div>
             </div>
             <div class="surface-card p-0 overflow-hidden mb-3">
-              <div class="px-4 py-3 border-bottom"><h3 class="surface-title mb-0">Upcoming Scheduled Interviews</h3></div>
-              <div class="px-4 py-3 vstack gap-2">
-                {% for slot in upcoming_interviews %}
-                <div class="border rounded-4 p-3">
-                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div>
-                      <div class="fw-semibold">{{ slot.applicant.username }} - {{ slot.application.job.title }}</div>
-                      <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
-                    </div>
-                    <div class="form-actions">
-                      <a class="secondary-btn btn-compact" href="{{ slot.google_calendar_url }}">Google Calendar</a>
-                      <a class="secondary-btn btn-compact" href="{% url 'interviews:download_ics' slot.id %}">Download ICS</a>
-                    </div>
+              <div class="px-4 py-3 border-bottom d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <h3 class="surface-title mb-0">Open Slots</h3>
+                <button
+                  type="button"
+                  class="pipeline-card-toggle"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#employerInterviewOpenSlotsBody"
+                  aria-expanded="false"
+                  aria-controls="employerInterviewOpenSlotsBody"
+                >
+                  <span class="visually-hidden">Toggle open interview slots section</span>
+                  <i class="bi bi-chevron-down pipeline-card-toggle-icon"></i>
+                </button>
+              </div>
+              <div class="collapse" id="employerInterviewOpenSlotsBody">
+                <div class="px-4 py-3 vstack gap-2">
+                  {% for slot in open_interview_slots %}
+                  <div class="border rounded-4 p-3">
+                    <div class="fw-semibold">{{ slot.applicant.username }} - {{ slot.application.job.title }}</div>
+                    <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
                   </div>
+                  {% empty %}
+                  <p class="text-muted mb-0">No open interview slots.</p>
+                  {% endfor %}
                 </div>
-                {% empty %}
-                <p class="text-muted mb-0">No upcoming scheduled interviews.</p>
-                {% endfor %}
               </div>
             </div>
-            <div class="surface-card p-0 overflow-hidden">
-              <div class="px-4 py-3 border-bottom"><h3 class="surface-title mb-0">Past Interviews</h3></div>
-              <div class="px-4 py-3 vstack gap-2">
-                {% for slot in past_interviews %}
-                <div class="border rounded-4 p-3">
-                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div>
-                      <div class="fw-semibold">{{ slot.applicant.username }} - {{ slot.application.job.title }}</div>
-                      <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
-                    </div>
-                    <div class="form-actions">
-                      <a class="secondary-btn btn-compact" href="{{ slot.google_calendar_url }}">Google Calendar</a>
-                      <a class="secondary-btn btn-compact" href="{% url 'interviews:download_ics' slot.id %}">Download ICS</a>
-                    </div>
-                  </div>
-                  <div class="mt-3 pt-3 border-top">
+            <div class="surface-card p-0 overflow-hidden mb-3">
+              <div class="px-4 py-3 border-bottom d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <h3 class="surface-title mb-0">Upcoming Scheduled Interviews</h3>
+                <button
+                  type="button"
+                  class="pipeline-card-toggle"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#employerInterviewUpcomingBody"
+                  aria-expanded="false"
+                  aria-controls="employerInterviewUpcomingBody"
+                >
+                  <span class="visually-hidden">Toggle upcoming interviews section</span>
+                  <i class="bi bi-chevron-down pipeline-card-toggle-icon"></i>
+                </button>
+              </div>
+              <div class="collapse" id="employerInterviewUpcomingBody">
+                <div class="px-4 py-3 vstack gap-2">
+                  {% for slot in upcoming_interviews %}
+                  <div class="border rounded-4 p-3">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                       <div>
-                        <h4 class="surface-title mb-0">Internal Interview Feedback</h4>
-                        {% if slot.feedback %}
-                          <span class="small text-muted">Last updated {{ slot.feedback.updated_at|date:"M j, Y g:i A" }}</span>
+                        <div class="fw-semibold">{{ slot.applicant.username }} - {{ slot.application.job.title }}</div>
+                        <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
+                      </div>
+                      <div class="form-actions">
+                        <a class="secondary-btn btn-compact" href="{{ slot.google_calendar_url }}">Google Calendar</a>
+                        <a class="secondary-btn btn-compact" href="{% url 'interviews:download_ics' slot.id %}">Download ICS</a>
+                      </div>
+                    </div>
+                  </div>
+                  {% empty %}
+                  <p class="text-muted mb-0">No upcoming scheduled interviews.</p>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+            <div class="surface-card p-0 overflow-hidden mb-3">
+              <div class="px-4 py-3 border-bottom d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <h3 class="surface-title mb-0">Past Interviews</h3>
+                <button
+                  type="button"
+                  class="pipeline-card-toggle"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#employerInterviewPastBody"
+                  aria-expanded="false"
+                  aria-controls="employerInterviewPastBody"
+                >
+                  <span class="visually-hidden">Toggle past interviews section</span>
+                  <i class="bi bi-chevron-down pipeline-card-toggle-icon"></i>
+                </button>
+              </div>
+              <div class="collapse" id="employerInterviewPastBody">
+                <div class="px-4 py-3 vstack gap-2">
+                  {% for slot in past_interviews %}
+                  <div class="border rounded-4 p-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                      <div>
+                        <div class="fw-semibold">{{ slot.applicant.username }} - {{ slot.application.job.title }}</div>
+                        <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
+                      </div>
+                      <div class="form-actions">
+                        <a class="secondary-btn btn-compact" href="{{ slot.google_calendar_url }}">Google Calendar</a>
+                        <a class="secondary-btn btn-compact" href="{% url 'interviews:download_ics' slot.id %}">Download ICS</a>
+                      </div>
+                    </div>
+                    <div class="mt-3 pt-3 border-top">
+                      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                          <div class="fw-semibold">Internal Interview Feedback</div>
+                          {% if slot.feedback %}
+                            <span class="small text-muted">Last updated {{ slot.feedback.updated_at|date:"M j, Y g:i A" }}</span>
+                          {% else %}
+                            <span class="small text-muted">Not submitted yet</span>
+                          {% endif %}
+                        </div>
+                        {% if slot.feedback_allowed %}
+                          <button
+                            type="button"
+                            class="primary-btn btn-compact border-0"
+                            data-bs-toggle="modal"
+                            data-bs-target="#interviewFeedbackModal{{ slot.id }}"
+                          >
+                            {% if slot.feedback %}Edit Feedback{% else %}Add Feedback{% endif %}
+                          </button>
                         {% else %}
-                          <span class="small text-muted">Not submitted yet</span>
+                          <span class="small text-muted">Feedback unlocks after this interview ends.</span>
                         {% endif %}
                       </div>
-                      {% if slot.feedback_allowed %}
-                        <button
-                          type="button"
-                          class="primary-btn btn-compact border-0"
-                          data-bs-toggle="modal"
-                          data-bs-target="#interviewFeedbackModal{{ slot.id }}"
-                        >
-                          {% if slot.feedback %}Edit Feedback{% else %}Add Feedback{% endif %}
-                        </button>
-                      {% else %}
-                        <span class="small text-muted">Feedback unlocks after this interview ends.</span>
-                      {% endif %}
                     </div>
                   </div>
-                </div>
-                {% if slot.feedback_allowed %}
-                <div class="modal fade" id="interviewFeedbackModal{{ slot.id }}" tabindex="-1" aria-hidden="true">
-                  <div class="modal-dialog modal-lg modal-dialog-centered">
-                    <div class="modal-content border-0 shadow rounded-4">
-                      <form method="post" action="{% url 'interviews:save_feedback' slot.id %}">
-                        {% csrf_token %}
-                        <div class="modal-header border-0 pb-0">
-                          <h5 class="modal-title fw-bold">Internal Interview Feedback</h5>
-                          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body py-4">
-                          <div class="row g-3">
-                            <div class="col-md-4">
-                              <label class="form-label fw-semibold" for="{{ slot.feedback_form.technical_score.id_for_label }}">Technical</label>
-                              {{ slot.feedback_form.technical_score }}
-                            </div>
-                            <div class="col-md-4">
-                              <label class="form-label fw-semibold" for="{{ slot.feedback_form.communication_score.id_for_label }}">Communication</label>
-                              {{ slot.feedback_form.communication_score }}
-                            </div>
-                            <div class="col-md-4">
-                              <label class="form-label fw-semibold" for="{{ slot.feedback_form.problem_solving_score.id_for_label }}">Problem Solving</label>
-                              {{ slot.feedback_form.problem_solving_score }}
-                            </div>
-                            <div class="col-md-6">
-                              <label class="form-label fw-semibold" for="{{ slot.feedback_form.recommendation.id_for_label }}">Recommendation</label>
-                              {{ slot.feedback_form.recommendation }}
-                            </div>
-                            <div class="col-md-6">
-                              <label class="form-label fw-semibold" for="{{ slot.feedback_form.decision_rationale.id_for_label }}">Decision Rationale</label>
-                              {{ slot.feedback_form.decision_rationale }}
-                            </div>
-                            <div class="col-md-6">
-                              <label class="form-label fw-semibold" for="{{ slot.feedback_form.strengths.id_for_label }}">Strengths</label>
-                              {{ slot.feedback_form.strengths }}
-                            </div>
-                            <div class="col-md-6">
-                              <label class="form-label fw-semibold" for="{{ slot.feedback_form.concerns.id_for_label }}">Concerns</label>
-                              {{ slot.feedback_form.concerns }}
-                            </div>
-                            <div class="col-12">
-                              <label class="form-label fw-semibold mb-2">Skill Endorsements</label>
-                              {% if slot.skill_endorsement_options %}
-                              <div class="d-flex flex-wrap gap-2">
-                                {% for option in slot.skill_endorsement_options %}
-                                <input
-                                  class="btn-check"
-                                  type="checkbox"
-                                  name="endorsed_skills"
-                                  id="endorseSkill{{ slot.id }}{{ forloop.counter }}"
-                                  value="{{ option.value }}"
-                                  {% if option.endorsed %}checked{% endif %}
-                                >
-                                <label class="badge rounded-pill endorsement-chip" for="endorseSkill{{ slot.id }}{{ forloop.counter }}">
-                                  {{ option.label }}
-                                </label>
-                                {% endfor %}
+                  {% if slot.feedback_allowed %}
+                  <div class="modal fade" id="interviewFeedbackModal{{ slot.id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                      <div class="modal-content border-0 shadow rounded-4">
+                        <form method="post" action="{% url 'interviews:save_feedback' slot.id %}">
+                          {% csrf_token %}
+                          <div class="modal-header border-0 pb-0">
+                            <h5 class="modal-title fw-bold">Internal Interview Feedback</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                          </div>
+                          <div class="modal-body py-4">
+                            <div class="row g-3">
+                              <div class="col-md-4">
+                                <label class="form-label fw-semibold" for="{{ slot.feedback_form.technical_score.id_for_label }}">Technical</label>
+                                {{ slot.feedback_form.technical_score }}
                               </div>
-                              <div class="form-text">One-click endorsements: click any skill to endorse it.</div>
-                              {% else %}
-                              <div class="small text-muted">Applicant has no listed skills to endorse.</div>
-                              {% endif %}
+                              <div class="col-md-4">
+                                <label class="form-label fw-semibold" for="{{ slot.feedback_form.communication_score.id_for_label }}">Communication</label>
+                                {{ slot.feedback_form.communication_score }}
+                              </div>
+                              <div class="col-md-4">
+                                <label class="form-label fw-semibold" for="{{ slot.feedback_form.problem_solving_score.id_for_label }}">Problem Solving</label>
+                                {{ slot.feedback_form.problem_solving_score }}
+                              </div>
+                              <div class="col-md-6">
+                                <label class="form-label fw-semibold" for="{{ slot.feedback_form.recommendation.id_for_label }}">Recommendation</label>
+                                {{ slot.feedback_form.recommendation }}
+                              </div>
+                              <div class="col-md-6">
+                                <label class="form-label fw-semibold" for="{{ slot.feedback_form.decision_rationale.id_for_label }}">Decision Rationale</label>
+                                {{ slot.feedback_form.decision_rationale }}
+                              </div>
+                              <div class="col-md-6">
+                                <label class="form-label fw-semibold" for="{{ slot.feedback_form.strengths.id_for_label }}">Strengths</label>
+                                {{ slot.feedback_form.strengths }}
+                              </div>
+                              <div class="col-md-6">
+                                <label class="form-label fw-semibold" for="{{ slot.feedback_form.concerns.id_for_label }}">Concerns</label>
+                                {{ slot.feedback_form.concerns }}
+                              </div>
+                              <div class="col-12">
+                                <label class="form-label fw-semibold mb-2">Skill Endorsements</label>
+                                {% if slot.skill_endorsement_options %}
+                                <div class="d-flex flex-wrap gap-2">
+                                  {% for option in slot.skill_endorsement_options %}
+                                  <input
+                                    class="btn-check"
+                                    type="checkbox"
+                                    name="endorsed_skills"
+                                    id="endorseSkill{{ slot.id }}{{ forloop.counter }}"
+                                    value="{{ option.value }}"
+                                    {% if option.endorsed %}checked{% endif %}
+                                  >
+                                  <label class="badge rounded-pill endorsement-chip" for="endorseSkill{{ slot.id }}{{ forloop.counter }}">
+                                    {{ option.label }}
+                                  </label>
+                                  {% endfor %}
+                                </div>
+                                <div class="form-text">One-click endorsements: click any skill to endorse it.</div>
+                                {% else %}
+                                <div class="small text-muted">Applicant has no listed skills to endorse.</div>
+                                {% endif %}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div class="modal-footer border-0 pt-0">
-                          <button type="button" class="secondary-btn btn-compact border-0" data-bs-dismiss="modal">Cancel</button>
-                          <button type="submit" class="primary-btn btn-compact border-0">
-                            {% if slot.feedback %}Update Feedback{% else %}Save Feedback{% endif %}
-                          </button>
-                        </div>
-                      </form>
+                          <div class="modal-footer border-0 pt-0">
+                            <button type="button" class="secondary-btn btn-compact border-0" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="primary-btn btn-compact border-0">
+                              {% if slot.feedback %}Update Feedback{% else %}Save Feedback{% endif %}
+                            </button>
+                          </div>
+                        </form>
+                      </div>
                     </div>
                   </div>
+                  {% endif %}
+                  {% empty %}
+                  <p class="text-muted mb-0">No past interviews yet.</p>
+                  {% endfor %}
                 </div>
-                {% endif %}
-                {% empty %}
-                <p class="text-muted mb-0">No past interviews yet.</p>
-                {% endfor %}
               </div>
             </div>
           </div>
@@ -411,42 +473,99 @@
 
           <div class="tab-pane fade" id="emp-matches" role="tabpanel" aria-labelledby="emp-matches-btn" tabindex="0">
             <div class="surface-card">
-              <h3 class="surface-title mb-2">Matched Candidates</h3>
+              <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+                <div>
+                  <h3 class="surface-title mb-1">Matched Candidates</h3>
+                  <p class="text-muted mb-0">Expand a candidate to review every matching role, including jobs they already applied to.</p>
+                </div>
+                {% if matched_candidates %}
+                  <span class="badge bg-dark-subtle text-dark">{{ matched_candidates|length }} candidate{{ matched_candidates|length|pluralize }}</span>
+                {% endif %}
+              </div>
               <div class="vstack gap-3">
                 {% for match in matched_candidates %}
-                  <div class="border rounded-4 p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div>
-                      <div class="fw-semibold">{{ match.candidate.user.get_full_name|default:match.candidate.user.username }}</div>
-                      {% if match.candidate.headline %}
-                        <div class="small text-muted">{{ match.candidate.headline }}</div>
-                      {% endif %}
-                      <div class="small text-success fw-semibold mt-1">
-                        <span class="me-1" aria-hidden="true">&#9679;</span>
-                        Matched {{ match.job.title }}
-                      </div>
-                      {% if match.overlap_skill_badges %}
-                        <div class="small text-muted mt-2">Why matched</div>
-                        <div class="d-flex flex-wrap gap-1 mt-1">
-                          {% for skill in match.overlap_skill_badges %}
-                            <span
-                              class="badge rounded-pill skill-indicator {% if skill.endorsed %}is-endorsed{% else %}is-default{% endif %}"
-                              {% if skill.endorsed_by %}
-                                title="Endorsed by {{ skill.endorsed_by }}"
-                                data-bs-toggle="tooltip"
-                                data-bs-placement="top"
-                                data-bs-custom-class="endorsement-tooltip"
-                                data-bs-title="Endorsed by {{ skill.endorsed_by }}"
-                              {% endif %}
-                            >
-                              {{ skill.name }}
-                            </span>
-                          {% endfor %}
+                  <div class="border rounded-4 p-3 dashboard-match-card">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 dashboard-match-card-header">
+                      <div class="dashboard-match-summary">
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                          <div class="fw-semibold">{{ match.candidate.user.get_full_name|default:match.candidate.user.username }}</div>
+                          <span class="badge bg-dark-subtle text-dark">{{ match.match_count }} match{{ match.match_count|pluralize }}</span>
+                          {% if match.has_applied_match %}
+                            <span class="badge bg-success-subtle text-success">Includes applied role</span>
+                          {% endif %}
                         </div>
-                      {% endif %}
+                        {% if match.candidate.headline %}
+                          <div class="small text-muted mt-1">{{ match.candidate.headline }}</div>
+                        {% endif %}
+                        <div class="small text-success fw-semibold mt-2">
+                          <span class="me-1" aria-hidden="true">&#9679;</span>
+                          Top match: {{ match.top_match.job.title }} ({{ match.top_match.score }}%)
+                        </div>
+                      </div>
+                      <div class="d-flex align-items-center gap-2 flex-wrap dashboard-match-header-actions">
+                        <a href="{% url 'accounts.public_profile' match.candidate.user.username %}?return_to={{ dashboard_return_urls.matches|urlencode }}" class="secondary-btn btn-compact">View Profile</a>
+                        <a href="{% url 'messaging:chat_detail' match.candidate.user_id %}" class="primary-btn btn-compact border-0">Message Candidate</a>
+                        <button
+                          type="button"
+                          class="pipeline-card-toggle"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#dashboardMatchBody{{ match.candidate.user_id }}"
+                          aria-expanded="false"
+                          aria-controls="dashboardMatchBody{{ match.candidate.user_id }}"
+                        >
+                          <span class="visually-hidden">Toggle matched roles</span>
+                          <i class="bi bi-chevron-down pipeline-card-toggle-icon"></i>
+                        </button>
+                      </div>
                     </div>
-                    <div class="form-actions">
-                      <a href="{% url 'accounts.public_profile' match.candidate.user.username %}?return_to={{ dashboard_return_urls.matches|urlencode }}" class="secondary-btn btn-compact">View Profile</a>
-                      <a href="{{ candidate_search_matches_url }}" class="secondary-btn btn-compact">Open Search</a>
+                    <div class="collapse dashboard-match-card-body" id="dashboardMatchBody{{ match.candidate.user_id }}">
+                      <div class="dashboard-match-job-list">
+                        {% for job_match in match.matched_jobs %}
+                          <div class="border rounded-4 p-3 dashboard-match-job">
+                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                              <div>
+                                <div class="fw-semibold">{{ job_match.job.title }}</div>
+                                <div class="small text-muted">{{ job_match.job.company }} &middot; {{ job_match.job.location }}</div>
+                                <div class="small mt-1">
+                                  <span class="fw-semibold text-success">{{ job_match.score }}% match</span>
+                                  {% if job_match.has_application %}
+                                    <span class="text-muted">&middot; Already applied</span>
+                                    <span class="badge bg-info-subtle text-info-emphasis ms-1">{{ job_match.application_status_label }}</span>
+                                  {% else %}
+                                    <span class="text-muted">&middot; Not yet applied</span>
+                                  {% endif %}
+                                </div>
+                              </div>
+                              <div class="form-actions">
+                                {% if job_match.has_application %}
+                                  <a href="{% url 'apply:employer_pipeline' job_match.job.id %}" class="secondary-btn btn-compact">Open Pipeline</a>
+                                {% else %}
+                                  <a href="{% url 'jobposts.detail' job_match.job.id %}" class="secondary-btn btn-compact">View Job</a>
+                                {% endif %}
+                              </div>
+                            </div>
+                            {% if job_match.overlap_skill_badges %}
+                              <div class="small text-muted mt-2">Why matched</div>
+                              <div class="d-flex flex-wrap gap-1 mt-1">
+                                {% for skill in job_match.overlap_skill_badges %}
+                                  <span
+                                    class="badge rounded-pill skill-indicator {% if skill.endorsed %}is-endorsed{% else %}is-default{% endif %}"
+                                    {% if skill.endorsed_by %}
+                                      title="Endorsed by {{ skill.endorsed_by }}"
+                                      data-bs-toggle="tooltip"
+                                      data-bs-placement="top"
+                                      data-bs-custom-class="endorsement-tooltip"
+                                      data-bs-title="Endorsed by {{ skill.endorsed_by }}"
+                                    {% endif %}
+                                  >
+                                    {{ skill.name }}
+                                  </span>
+                                {% endfor %}
+                              </div>
+                            {% endif %}
+                          </div>
+                        {% endfor %}
+                      </div>
                     </div>
                   </div>
                 {% empty %}

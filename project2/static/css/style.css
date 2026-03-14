@@ -1517,8 +1517,20 @@ html.dark-mode .pipeline-archived-list::-webkit-scrollbar-thumb {
   cursor: grab;
 }
 
+.applicant-card-header {
+  gap: 0.5rem;
+}
+
 .applicant-card h6 {
   font-size: 0.98rem;
+}
+
+.applicant-card-header-actions {
+  flex-shrink: 0;
+}
+
+.applicant-card-body {
+  margin-top: 0.35rem;
 }
 
 .applicant-card .form-control-sm {
@@ -1548,6 +1560,62 @@ html.dark-mode .pipeline-archived-list::-webkit-scrollbar-thumb {
 
 .applicant-card-links {
   margin-top: 0.15rem;
+}
+
+.dashboard-match-card-header {
+  gap: 0.75rem;
+}
+
+.dashboard-match-summary {
+  min-width: 0;
+}
+
+.dashboard-match-header-actions {
+  flex-shrink: 0;
+}
+
+.dashboard-match-card-body {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #e1e7f0;
+}
+
+.dashboard-match-job-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.dashboard-match-job {
+  background: #f8fafc;
+  border-color: #d9e2ee !important;
+}
+
+.pipeline-card-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid #cfd6e2;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #425166;
+  transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.pipeline-card-toggle:hover,
+.pipeline-card-toggle:focus {
+  background: #eef3f9;
+  border-color: #b8c4d6;
+  color: #1f2937;
+}
+
+.pipeline-card-toggle-icon {
+  transition: transform 0.18s ease;
+}
+
+.pipeline-card-toggle[aria-expanded="true"] .pipeline-card-toggle-icon {
+  transform: rotate(180deg);
 }
 
 .applicant-card.dragging {
@@ -1616,6 +1684,28 @@ html.dark-mode .applicant-card-profile-link:focus {
   background: #8eb9ff;
   color: #0b1526;
   border-color: #8eb9ff;
+}
+
+html.dark-mode .pipeline-card-toggle {
+  background: #21324a;
+  color: #d6dff2;
+  border-color: #4a5d7d;
+}
+
+html.dark-mode .pipeline-card-toggle:hover,
+html.dark-mode .pipeline-card-toggle:focus {
+  background: #8eb9ff;
+  color: #0b1526;
+  border-color: #8eb9ff;
+}
+
+html.dark-mode .dashboard-match-card-body {
+  border-top-color: #33465f;
+}
+
+html.dark-mode .dashboard-match-job {
+  background: rgba(28, 42, 61, 0.82);
+  border-color: #3d5675 !important;
 }
 
 .offer-archive-btn {

@@ -16,6 +16,7 @@ from map.forms import OfficeLocationForm
 from map.models import OfficeLocation
 from map.services import OfficeLocationGeocodingError, geocode_office_address
 from project2.navigation import build_back_navigation, current_request_url, safe_local_navigation_url
+from project2.response_sla import build_response_sla_by_employer_ids
 from .forms import JobPostForm
 from .models import ApplicantJobMatch, JobPost
 from .matching import sync_applicant_job_matches
@@ -73,6 +74,115 @@ def _combined_skill_set(*raw_values):
     for raw_value in raw_values:
         combined.update(_skill_set(raw_value))
     return combined
+
+
+def _build_overlap_skill_badges(overlap_skills, candidate_skill_badges):
+    return [
+        {
+            "name": skill,
+            "endorsed": candidate_skill_badges.get(skill.lower(), {}).get("endorsed", False),
+            "endorsed_by": candidate_skill_badges.get(skill.lower(), {}).get("endorsed_by", ""),
+        }
+        for skill in overlap_skills
+    ]
+
+
+def _build_employer_candidate_matches(employer_user, employer_jobs):
+    if not employer_jobs:
+        return []
+
+    job_skill_sets = []
+    for job in employer_jobs:
+        job_skills = _skill_set(job.skills)
+        if not job_skills:
+            continue
+        job_skill_sets.append((job, job_skills))
+
+    if not job_skill_sets:
+        return []
+
+    applications_by_pair = {
+        (application.user_id, application.job_id): application
+        for application in (
+            Application.objects.filter(job__owner=employer_user)
+            .select_related("job", "user")
+            .order_by("-applied_at")
+        )
+    }
+
+    candidate_matches = []
+    applicant_profiles = (
+        Profile.objects.filter(
+            account_type=Profile.AccountType.APPLICANT,
+            visible_to_recruiters=True,
+        )
+        .select_related("user")
+        .order_by("user__username")
+    )
+
+    for candidate in applicant_profiles:
+        candidate_combined_skills = merge_skills_csv(candidate.skills, candidate.parsed_resume_skills)
+        candidate_skills = _combined_skill_set(candidate.skills, candidate.parsed_resume_skills)
+        if not candidate_skills:
+            continue
+
+        candidate_skill_badges = {
+            item["name"].lower(): item for item in build_skill_badges_for_applicant(candidate.user)
+        }
+        matched_jobs = []
+        for job, job_skills in job_skill_sets:
+            score = _skill_overlap_percent(candidate_skills, job_skills)
+            if score < MIN_MATCH_PERCENT:
+                continue
+
+            overlap_skills = _ordered_overlap_skills(job.skills, candidate_combined_skills)
+            if not overlap_skills:
+                continue
+
+            application = applications_by_pair.get((candidate.user_id, job.id))
+            matched_jobs.append(
+                {
+                    "job": job,
+                    "score": score,
+                    "application": application,
+                    "has_application": application is not None,
+                    "application_status_label": application.get_status_display() if application else "",
+                    "overlap_skills": overlap_skills,
+                    "overlap_skill_badges": _build_overlap_skill_badges(
+                        overlap_skills,
+                        candidate_skill_badges,
+                    ),
+                }
+            )
+
+        if not matched_jobs:
+            continue
+
+        matched_jobs.sort(
+            key=lambda item: (
+                -item["score"],
+                -int(item["has_application"]),
+                item["job"].title.lower(),
+            )
+        )
+        candidate_matches.append(
+            {
+                "candidate": candidate,
+                "match_count": len(matched_jobs),
+                "matched_jobs": matched_jobs,
+                "top_match": matched_jobs[0],
+                "has_applied_match": any(item["has_application"] for item in matched_jobs),
+            }
+        )
+
+    candidate_matches.sort(
+        key=lambda item: (
+            -item["top_match"]["score"],
+            -item["match_count"],
+            item["candidate"].user.username.lower(),
+        )
+    )
+    return candidate_matches
 
 
 def _haversine_miles(lat1, lon1, lat2, lon2):
@@ -146,69 +256,7 @@ def dashboard(request):
 
         overall_total = sum(job.total_apps for job in my_jobs)
         employer_jobs = list(my_jobs)
-
-        def _skill_set(raw_value):
-            if not raw_value:
-                return set()
-            return {token.strip().lower() for token in raw_value.split(",") if token.strip()}
-
-        applied_pairs = set(
-            Application.objects.filter(job__owner=request.user).values_list("user_id", "job_id")
-        )
-        job_skill_sets = [(job, _skill_set(job.skills)) for job in employer_jobs]
-        candidate_matches = []
-        applicant_profiles = Profile.objects.filter(
-            account_type=Profile.AccountType.APPLICANT,
-            visible_to_recruiters=True,
-        ).select_related("user").order_by("user__username")
-
-        for candidate in applicant_profiles:
-            candidate_combined_skills = merge_skills_csv(candidate.skills, candidate.parsed_resume_skills)
-            candidate_skills = _combined_skill_set(candidate.skills, candidate.parsed_resume_skills)
-            candidate_skill_list = _skill_list(candidate_combined_skills)
-            candidate_skill_map = {skill.lower(): skill for skill in candidate_skill_list}
-            if not candidate_skills:
-                continue
-
-            best_job = None
-            best_score = 0
-            best_matched_skills = []
-            for job, job_skills in job_skill_sets:
-                if (candidate.user_id, job.id) in applied_pairs:
-                    continue
-                score = _skill_overlap_percent(candidate_skills, job_skills)
-                if score <= MIN_MATCH_PERCENT:
-                    continue
-                if score > best_score:
-                    job_skill_list = _skill_list(job.skills)
-                    matched_skills = [
-                        candidate_skill_map.get(skill.lower(), skill)
-                        for skill in job_skill_list
-                        if skill.lower() in candidate_skills
-                    ]
-                    best_score = score
-                    best_job = job
-                    best_matched_skills = matched_skills
-
-            if best_job:
-                overlap_skills = _ordered_overlap_skills(best_job.skills, candidate_combined_skills)
-                candidate_skill_badges = {
-                    item["name"].lower(): item for item in build_skill_badges_for_applicant(candidate.user)
-                }
-                candidate_matches.append({
-                    "candidate": candidate,
-                    "job": best_job,
-                    "score": best_score,
-                    "overlap_skills": overlap_skills,
-                    "overlap_skill_badges": [
-                        {
-                            "name": skill,
-                            "endorsed": candidate_skill_badges.get(skill.lower(), {}).get("endorsed", False),
-                            "endorsed_by": candidate_skill_badges.get(skill.lower(), {}).get("endorsed_by", ""),
-                        }
-                        for skill in overlap_skills
-                    ],
-                })
+        candidate_matches = _build_employer_candidate_matches(request.user, employer_jobs)
     
         saved_searches = list(request.user.saved_searches.order_by("-created_at"))
         saved_search_new_alert_count = 0
@@ -521,6 +569,12 @@ def search(request):
                         radius_warning = 'Could not map your home address right now. Showing all search results.'
 
     posts_sequence = list(posts)
+    response_sla_by_owner = build_response_sla_by_employer_ids(
+        {post.owner_id for post in posts_sequence}
+    )
+    for post in posts_sequence:
+        post.response_sla = response_sla_by_owner.get(post.owner_id)
+
     matched_posts = []
     other_posts = posts_sequence
     if is_applicant and request.user.is_authenticated and applicant_profile:
@@ -609,6 +663,7 @@ def delete_job(request, job_id):
 
 def job_detail(request, post_id):
     job = get_object_or_404(JobPost.objects.select_related('office_location'), pk=post_id)
+    job.response_sla = build_response_sla_by_employer_ids([job.owner_id]).get(job.owner_id)
     has_applied = False
     skill_overlap_percent = None
     has_profile_resume = False

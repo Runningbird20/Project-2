@@ -34,9 +34,11 @@ from project2.navigation import (
     current_request_url,
     safe_local_navigation_url,
 )
+from project2.response_sla import build_response_sla_by_employer_ids
 from project2.skills import get_skill_options, merge_skills_csv, normalize_skills_csv, register_skill_options
 from interviews.services import build_skill_badges_for_applicant
 from apply.models import Application
+from jobposts.matching import MIN_MATCH_PERCENT
 
 from .forms import CompanyProfileForm, CustomErrorList, ProfileEditForm, SignupWithProfileForm
 from .models import Profile, SavedCandidateSearch
@@ -124,67 +126,6 @@ def _candidate_search_url_with_return_to(back_url):
     if not back_url:
         return candidate_search_url
     return f"{candidate_search_url}?return_to={quote(back_url, safe='')}"
-
-
-def _format_response_time_window(avg_hours):
-    if avg_hours < 24:
-        rounded_hours = max(1, int(round(avg_hours)))
-        label = "hour" if rounded_hours == 1 else "hours"
-        return f"~{rounded_hours} {label}"
-    rounded_days = max(1, int(round(avg_hours / 24)))
-    label = "day" if rounded_days == 1 else "days"
-    return f"~{rounded_days} {label}"
-
-
-def _response_sla_tone(avg_hours):
-    if avg_hours < 49:
-        return "green"
-    if avg_hours > 7 * 24:
-        return "red"
-    return "yellow"
-
-
-def _build_response_sla(avg_hours):
-    if avg_hours is None:
-        return {
-            "label": "Response time unavailable",
-            "css_class": "is-neutral",
-            "hours": None,
-        }
-    return {
-        "label": f"Responds in {_format_response_time_window(avg_hours)}",
-        "css_class": f"is-{_response_sla_tone(avg_hours)}",
-        "hours": round(avg_hours, 1),
-    }
-
-
-def _build_response_sla_by_employer_ids(employer_ids):
-    owner_ids = [owner_id for owner_id in employer_ids if owner_id]
-    if not owner_ids:
-        return {}
-
-    aggregates = {owner_id: {"total_hours": 0.0, "count": 0} for owner_id in owner_ids}
-    response_rows = Application.objects.filter(
-        job__owner_id__in=owner_ids,
-        responded_at__isnull=False,
-    ).values_list("job__owner_id", "applied_at", "responded_at")
-
-    for owner_id, applied_at, responded_at in response_rows:
-        if not applied_at or not responded_at or responded_at < applied_at:
-            continue
-        delta_hours = (responded_at - applied_at).total_seconds() / 3600
-        bucket = aggregates[owner_id]
-        bucket["total_hours"] += delta_hours
-        bucket["count"] += 1
-
-    sla_by_owner = {}
-    for owner_id in owner_ids:
-        bucket = aggregates[owner_id]
-        avg_hours = None
-        if bucket["count"] > 0:
-            avg_hours = bucket["total_hours"] / bucket["count"]
-        sla_by_owner[owner_id] = _build_response_sla(avg_hours)
-    return sla_by_owner
 
 
 superuser_required = user_passes_test(lambda u: u.is_authenticated and u.is_superuser)
@@ -716,6 +657,12 @@ def candidate_search(request):
             return set()
         return {token.strip().lower() for token in raw_value.split(",") if token.strip()}
 
+    def _skill_overlap_percent(candidate_skills, job_skills):
+        if not candidate_skills or not job_skills:
+            return 0
+        overlap_count = len(candidate_skills.intersection(job_skills))
+        return round((overlap_count / len(job_skills)) * 100)
+
     employer_jobs = list(
         JobPost.objects.filter(owner=request.user)
         .only("title", "skills", "created_at")
@@ -725,15 +672,24 @@ def candidate_search(request):
 
     for candidate in candidates:
         best_job = None
-        best_score = 0
+        best_match_percent = 0
+        best_overlap_count = 0
         candidate_skills = _skill_set(candidate.skills).union(_skill_set(candidate.parsed_resume_skills))
         for job, job_skills in job_skill_sets:
-            score = len(candidate_skills.intersection(job_skills))
-            if score > best_score:
+            overlap_count = len(candidate_skills.intersection(job_skills))
+            match_percent = _skill_overlap_percent(candidate_skills, job_skills)
+            if match_percent < MIN_MATCH_PERCENT:
+                continue
+            if (
+                match_percent > best_match_percent
+                or (match_percent == best_match_percent and overlap_count > best_overlap_count)
+            ):
                 best_job = job
-                best_score = score
+                best_match_percent = match_percent
+                best_overlap_count = overlap_count
         candidate.has_skill_match = best_job is not None
         candidate.matched_job_title = best_job.title if best_job else ""
+        candidate.matched_job_percent = best_match_percent if best_job else 0
         candidate.skill_badges = build_skill_badges_for_applicant(candidate.user)
     candidates.sort(key=lambda c: (not c.has_skill_match, c.user.username.lower()))
 
@@ -814,7 +770,7 @@ def company_profile(request, username):
         .order_by("-created_at")
     )
     perks = [perk.strip() for perk in (profile.company_perks or "").splitlines() if perk.strip()]
-    response_sla = _build_response_sla_by_employer_ids([company_user.id]).get(company_user.id)
+    response_sla = build_response_sla_by_employer_ids([company_user.id]).get(company_user.id)
     default_back_url = reverse("jobposts.dashboard") if is_owner else reverse("accounts.company_search")
     default_back_label = "Dashboard" if is_owner else "Company Search"
 
@@ -876,7 +832,7 @@ def company_search(request):
 
     companies = list(qs.distinct())
     company_user_ids = [company_profile.user_id for company_profile in companies]
-    response_sla_by_owner = _build_response_sla_by_employer_ids(company_user_ids)
+    response_sla_by_owner = build_response_sla_by_employer_ids(company_user_ids)
     for company_profile in companies:
         company_profile.open_roles_count = JobPost.objects.filter(owner=company_profile.user).count()
         company_profile.response_sla = response_sla_by_owner.get(company_profile.user_id)

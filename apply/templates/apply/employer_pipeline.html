@@ -27,11 +27,26 @@
         <div class="kanban-scroll vstack gap-2 drop-zone" data-status="{{ status_key }}">
           {% for app in apps %}
           <div class="surface-card p-2 applicant-card" draggable="true" data-app-id="{{ app.id }}" data-current-status="{{ app.status }}" data-applicant-name="{{ app.user.get_full_name|default:app.user.username }}">
-            <div class="d-flex justify-content-between align-items-start mb-1">
+            <div class="d-flex justify-content-between align-items-start applicant-card-header">
               <h6 class="fw-bold mb-0">{{ app.user.get_full_name|default:app.user.username }}</h6>
-              <a href="mailto:{{ app.user.email }}" class="text-muted"><i class="bi bi-envelope"></i></a>
+              <div class="d-flex align-items-center gap-1 applicant-card-header-actions">
+                <a href="mailto:{{ app.user.email }}" class="text-muted" draggable="false"><i class="bi bi-envelope"></i></a>
+                <button
+                  type="button"
+                  class="pipeline-card-toggle"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#applicantCardBody{{ app.id }}"
+                  aria-expanded="false"
+                  aria-controls="applicantCardBody{{ app.id }}"
+                  draggable="false"
+                >
+                  <span class="visually-hidden">Toggle applicant details</span>
+                  <i class="bi bi-chevron-down pipeline-card-toggle-icon"></i>
+                </button>
+              </div>
             </div>
 
+            <div class="collapse applicant-card-body" id="applicantCardBody{{ app.id }}">
             <div class="small text-muted mb-1">Drag to move applicant</div>
             {% if app.status != 'rejected' and app.status != 'closed' %}
             <div class="small mb-1 {% if app.response_due_within_7_days %}text-danger{% else %}text-muted{% endif %}">
@@ -69,7 +84,6 @@
                 placeholder="Add internal notes about this applicant."
               >{{ app.employer_private_note }}</textarea>
               <div class="d-flex justify-content-between align-items-center gap-2 mt-2 flex-wrap applicant-card-note-actions">
-                <div class="small text-muted">Private to employers on this job.</div>
                 <div class="d-flex align-items-center gap-2 flex-wrap applicant-card-inline-actions">
                   <button type="submit" class="secondary-btn btn-compact border-0 offer-archive-btn">
                     Save Note
@@ -87,6 +101,7 @@
               <a href="{% url 'apply:customize_offer_letter' app.id %}?return_to={{ current_url|urlencode }}" class="primary-btn btn-compact border-0">Customize Offer Letter</a>
               <a href="{% url 'apply:offer_letter' app.id %}?return_to={{ current_url|urlencode }}" class="secondary-btn btn-compact">Preview Offer Letter</a>
               {% endif %}
+            </div>
             </div>
           </div>
           {% empty %}

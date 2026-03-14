@@ -151,6 +151,13 @@
                           <span class="badge bg-primary-subtle text-primary text-uppercase">{{ post.distance_from_home_miles }} mi</span>
                         {% endif %}
                       </div>
+                      {% if post.response_sla %}
+                        <div class="text-end">
+                          <span class="sla-badge {{ post.response_sla.css_class }}">
+                            {{ post.response_sla.label }}
+                          </span>
+                        </div>
+                      {% endif %}
                     </div>
                   </div>
 
@@ -246,6 +253,13 @@
                         <span class="badge bg-primary-subtle text-primary text-uppercase">{{ post.distance_from_home_miles }} mi</span>
                       {% endif %}
                     </div>
+                    {% if post.response_sla %}
+                      <div class="text-end">
+                        <span class="sla-badge {{ post.response_sla.css_class }}">
+                          {{ post.response_sla.label }}
+                        </span>
+                      </div>
+                    {% endif %}
                   </div>
                 </div>
 

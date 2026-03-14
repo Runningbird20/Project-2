@@ -19,6 +19,13 @@
                   <span class="badge bg-success-subtle text-success ms-2">Visa</span>
                 {% endif %}
               </p>
+              {% if job.response_sla %}
+                <div class="mt-2">
+                  <span class="sla-badge {{ job.response_sla.css_class }}">
+                    {{ job.response_sla.label }}
+                  </span>
+                </div>
+              {% endif %}
             </div>
             <a href="{{ back_navigation.url }}" class="secondary-btn">{{ back_navigation.text }}</a>
           </div>
