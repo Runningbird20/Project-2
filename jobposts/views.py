@@ -22,7 +22,7 @@ from django.views.decorators.http import require_POST
 from apply.models import Application
 from apply.services import auto_archive_old_rejections, enforce_employer_response_deadline
 from project2.location_search import location_search_terms
-from project2.skills import COMMON_SKILLS
+from project2.skills import get_skill_options, merge_skills_csv, register_skill_options
 from django.contrib.admin.views.decorators import staff_member_required
 
 from django.db.models import Count
@@ -67,6 +67,13 @@ def _skill_overlap_percent(applicant_skills, job_skills):
     return round((overlap_count / len(job_skills)) * 100)
 
 
+def _combined_skill_set(*raw_values):
+    combined = set()
+    for raw_value in raw_values:
+        combined.update(_skill_set(raw_value))
+    return combined
+
+
 def _haversine_miles(lat1, lon1, lat2, lon2):
     """Calculate great-circle distance in miles between two lat/lon points."""
     earth_radius_miles = 3958.8
@@ -109,7 +116,7 @@ def dashboard(request):
         
         context.update({
             'recommendations': recommendations,
-            'skills': profile.skills,
+            'skills': merge_skills_csv(profile.skills, profile.parsed_resume_skills),
             'apps_sent_count': apps_sent_count,
             'success_count': success_count,
             'recent_applications': apps.select_related('job').order_by('-applied_at')[:5],
@@ -155,8 +162,9 @@ def dashboard(request):
         ).select_related("user").order_by("user__username")
 
         for candidate in applicant_profiles:
-            candidate_skills = _skill_set(candidate.skills)
-            candidate_skill_list = _skill_list(candidate.skills)
+            candidate_combined_skills = merge_skills_csv(candidate.skills, candidate.parsed_resume_skills)
+            candidate_skills = _combined_skill_set(candidate.skills, candidate.parsed_resume_skills)
+            candidate_skill_list = _skill_list(candidate_combined_skills)
             candidate_skill_map = {skill.lower(): skill for skill in candidate_skill_list}
             if not candidate_skills:
                 continue
@@ -182,7 +190,7 @@ def dashboard(request):
                     best_matched_skills = matched_skills
 
             if best_job:
-                overlap_skills = _ordered_overlap_skills(best_job.skills, candidate.skills)
+                overlap_skills = _ordered_overlap_skills(best_job.skills, candidate_combined_skills)
                 candidate_skill_badges = {
                     item["name"].lower(): item for item in build_skill_badges_for_applicant(candidate.user)
                 }
@@ -274,6 +282,7 @@ def create(request):
             post = form.save(commit=False)
             post.owner = request.user
             post.save()
+            register_skill_options(post.skills, created_by=request.user)
             try:
                 _save_office_location(post, map_form)
                 if request.user.email:
@@ -310,7 +319,7 @@ def create(request):
     template_data['form'] = form
     template_data['map_form'] = map_form
     template_data['submit_label'] = 'Create Job Post'
-    template_data['skill_options'] = COMMON_SKILLS
+    template_data['skill_options'] = get_skill_options()
     return render(request, 'jobposts/create.html', {'template_data': template_data})
 
 
@@ -331,6 +340,7 @@ def edit(request, post_id):
             updated_post = form.save(commit=False)
             updated_post.owner = request.user
             updated_post.save()
+            register_skill_options(updated_post.skills, created_by=request.user)
             try:
                 _save_office_location(updated_post, map_form)
                 return redirect('jobposts.search')
@@ -343,7 +353,7 @@ def edit(request, post_id):
     template_data['form'] = form
     template_data['map_form'] = map_form
     template_data['submit_label'] = 'Save Changes'
-    template_data['skill_options'] = COMMON_SKILLS
+    template_data['skill_options'] = get_skill_options()
     return render(request, 'jobposts/create.html', {'template_data': template_data})
 
 
@@ -375,13 +385,17 @@ def search(request):
     applicant_profile = None
     has_home_address = False
     home_address = ''
+    has_profile_resume = False
+    profile_resume_name = ''
 
     if title:
         posts = posts.filter(title__icontains=title)
     if skills:
         skill_terms = [term.strip() for term in skills.split(',') if term.strip()]
+        skill_query = Q()
         for term in skill_terms:
-            posts = posts.filter(skills__icontains=term)
+            skill_query |= Q(skills__icontains=term)
+        posts = posts.filter(skill_query)
     if location:
         parsed_location = location_search_terms(location)
         location_query = Q()
@@ -429,6 +443,8 @@ def search(request):
             is_applicant = True
             home_address = profile.full_address
             has_home_address = bool(home_address)
+            has_profile_resume = bool(profile.resume_file)
+            profile_resume_name = profile.resume_file_name if profile.resume_file else ""
 
             session_use_home_radius = request.session.get('job_search_use_home_radius', False)
             session_radius_miles = request.session.get('job_search_radius_miles', '25')
@@ -488,7 +504,10 @@ def search(request):
     if is_applicant and request.user.is_authenticated and applicant_profile:
         sync_applicant_job_matches(request.user)
 
-        applicant_skills = _skill_set(applicant_profile.skills)
+        applicant_skills = _combined_skill_set(
+            applicant_profile.skills,
+            applicant_profile.parsed_resume_skills,
+        )
         matched_posts = []
         other_posts = []
         for post in posts_sequence:
@@ -521,7 +540,11 @@ def search(request):
     template_data['home_address'] = home_address
     template_data['radius_warning'] = radius_warning
     template_data['radius_active'] = radius_active
+    template_data['parsed_resume_skills'] = applicant_profile.parsed_resume_skills if applicant_profile else ''
+    template_data['has_profile_resume'] = has_profile_resume
+    template_data['profile_resume_name'] = profile_resume_name
     return render(request, 'jobposts/search.html', {'template_data': template_data})
+
 
 def _save_office_location(post, map_form):
     if not getattr(map_form, 'has_location_data', False):
@@ -564,12 +587,16 @@ def job_detail(request, post_id):
     job = get_object_or_404(JobPost.objects.select_related('office_location'), pk=post_id)
     has_applied = False
     skill_overlap_percent = None
+    has_profile_resume = False
+    profile_resume_name = ""
     
     if request.user.is_authenticated:
         has_applied = Application.objects.filter(user=request.user, job=job).exists()
         profile = Profile.objects.filter(user=request.user).first()
         if profile and profile.account_type == Profile.AccountType.APPLICANT:
-            applicant_skills = _skill_set(profile.skills)
+            has_profile_resume = bool(profile.resume_file)
+            profile_resume_name = profile.resume_file_name if profile.resume_file else ""
+            applicant_skills = _combined_skill_set(profile.skills, profile.parsed_resume_skills)
             job_skills = _skill_set(job.skills)
             skill_overlap_percent = _skill_overlap_percent(applicant_skills, job_skills)
     
@@ -578,6 +605,8 @@ def job_detail(request, post_id):
         'has_applied': has_applied,
         'skill_overlap_percent': skill_overlap_percent,
         'job_skill_list': _skill_list(job.skills),
+        'has_profile_resume': has_profile_resume,
+        'profile_resume_name': profile_resume_name,
     })
 
 
@@ -592,6 +621,7 @@ def edit_post(request, post_id):
         if form.is_valid():
             updated_post = form.save(commit=False)
             updated_post.save()
+            register_skill_options(updated_post.skills, created_by=request.user)
             return redirect('jobposts.search')
     else:
         form = JobPostForm(instance=post)
@@ -599,7 +629,7 @@ def edit_post(request, post_id):
     template_data['form'] = form
     template_data['submit_label'] = 'Save Changes'
     template_data['post_id'] = post_id
-    template_data['skill_options'] = COMMON_SKILLS
+    template_data['skill_options'] = get_skill_options()
     return render(request, 'jobposts/edit_post.html', {'template_data': template_data})
 
 @staff_member_required

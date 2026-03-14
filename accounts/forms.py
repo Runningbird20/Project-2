@@ -486,6 +486,7 @@ class ProfileEditForm(ApplicantAddressFieldsMixin, forms.ModelForm):
         model = Profile
         fields = [
             "profile_picture",
+            "resume_file",
             "account_type",
             "headline",
             "skills",
@@ -509,6 +510,12 @@ class ProfileEditForm(ApplicantAddressFieldsMixin, forms.ModelForm):
         ]
         widgets = {
             "profile_picture": forms.ClearableFileInput(attrs={"class": "form-control"}),
+            "resume_file": forms.FileInput(
+                attrs={
+                    "class": "form-control",
+                    "accept": ".pdf",
+                }
+            ),
             "account_type": forms.Select(attrs={"class": "form-control"}),
             "headline": forms.TextInput(attrs={"class": "form-control"}),
             "skills": forms.TextInput(attrs={"class": "form-control"}),
@@ -531,6 +538,7 @@ class ProfileEditForm(ApplicantAddressFieldsMixin, forms.ModelForm):
         }
         labels = {
             "profile_picture": "Profile picture",
+            "resume_file": "Profile resume",
             "account_type": "Account type",
             "visible_to_recruiters": "Visible to recruiters",
             "show_headline": "Show headline",
@@ -565,6 +573,16 @@ class ProfileEditForm(ApplicantAddressFieldsMixin, forms.ModelForm):
 
     def clean_skills(self):
         return normalize_skills_csv(self.cleaned_data.get("skills", ""))
+
+    def clean_resume_file(self):
+        resume_file = self.cleaned_data.get("resume_file")
+        if not resume_file:
+            return resume_file
+
+        file_name = (getattr(resume_file, "name", "") or "").strip().lower()
+        if not file_name.endswith(".pdf"):
+            raise forms.ValidationError("Upload a PDF resume.")
+        return resume_file
 
 
 class CompanyProfileForm(ApplicantAddressFieldsMixin, forms.ModelForm):

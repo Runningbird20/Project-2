@@ -28,8 +28,9 @@ from django.views.decorators.http import require_POST
 
 from django.core.mail import EmailMessage
 
+from apply.resume_parser import parse_resume
 from map.services import OfficeLocationGeocodingError, geocode_office_address
-from project2.skills import COMMON_SKILLS
+from project2.skills import get_skill_options, merge_skills_csv, normalize_skills_csv, register_skill_options
 from interviews.services import build_skill_badges_for_applicant
 from apply.models import Application
 
@@ -41,6 +42,28 @@ from jobposts.models import JobPost
 class Echo:
     def write(self, value):
         return value
+
+
+def _sync_profile_resume_skills(profile, *, created_by):
+    if not profile.resume_file:
+        return False
+
+    try:
+        parsed_resume = parse_resume(profile.resume_file.path)
+    except Exception as exc:
+        if settings.DEBUG:
+            print("Profile resume parsing failed:", exc)
+        return False
+
+    skills_csv = normalize_skills_csv(", ".join(parsed_resume.get("skills", [])))
+    if not skills_csv:
+        return False
+
+    profile.parsed_resume_skills = skills_csv
+    profile.skills = merge_skills_csv(profile.skills, skills_csv)
+    profile.save(update_fields=["parsed_resume_skills", "skills"])
+    register_skill_options(profile.skills, created_by=created_by)
+    return True
 
 
 @method_decorator(never_cache, name="dispatch")
@@ -328,13 +351,13 @@ def signup(request):
     template_data = {"title": "Sign Up"}
     if request.method == "GET":
         template_data["form"] = SignupWithProfileForm()
-        template_data["skill_options"] = COMMON_SKILLS
+        template_data["skill_options"] = get_skill_options()
         return render(request, "accounts/signup.html", {"template_data": template_data})
 
     form = SignupWithProfileForm(request.POST, request.FILES, error_class=CustomErrorList)
     if not form.is_valid():
         template_data["form"] = form
-        template_data["skill_options"] = COMMON_SKILLS
+        template_data["skill_options"] = get_skill_options()
         return render(request, "accounts/signup.html", {"template_data": template_data})
 
     acct = form.cleaned_data.get("account_type", Profile.AccountType.APPLICANT)
@@ -349,14 +372,14 @@ def signup(request):
         if not location_value:
             form.add_error("address_line_1", "Address is required for applicants.")
             template_data["form"] = form
-            template_data["skill_options"] = COMMON_SKILLS
+            template_data["skill_options"] = get_skill_options()
             return render(request, "accounts/signup.html", {"template_data": template_data})
         try:
             geocode_office_address(location_value)
         except OfficeLocationGeocodingError as exc:
             form.add_error("address_line_1", str(exc))
             template_data["form"] = form
-            template_data["skill_options"] = COMMON_SKILLS
+            template_data["skill_options"] = get_skill_options()
             return render(request, "accounts/signup.html", {"template_data": template_data})
 
     try:
@@ -390,6 +413,7 @@ def signup(request):
                 profile.company_name = profile.company_website = profile.company_description = ""
 
             profile.save()
+            register_skill_options(profile.skills, created_by=user)
 
             for i in range(2):
                 label = request.POST.get(f"link_label_{i}", "").strip()
@@ -399,7 +423,7 @@ def signup(request):
     except IntegrityError:
         form.add_error("username", "This username is already taken.")
         template_data["form"] = form
-        template_data["skill_options"] = COMMON_SKILLS
+        template_data["skill_options"] = get_skill_options()
         return render(request, "accounts/signup.html", {"template_data": template_data})
 
     if user.email:
@@ -490,13 +514,23 @@ def edit_profile(request, username=None):
                     prof.headline = prof.skills = prof.education = prof.work_experience = ""
 
                 prof.save()
+                uploaded_resume = request.FILES.get("resume_file")
+                resume_synced = False
+                if prof.account_type == Profile.AccountType.APPLICANT and uploaded_resume:
+                    resume_synced = _sync_profile_resume_skills(prof, created_by=request.user)
+                register_skill_options(prof.skills, created_by=request.user)
 
                 submitted_email = (form.cleaned_data.get("email") or "").strip()
                 if submitted_email and submitted_email != request.user.email:
                     request.user.email = submitted_email
                     request.user.save(update_fields=["email"])
 
-                messages.success(request, "Profile updated successfully!")
+                if uploaded_resume and resume_synced:
+                    messages.success(request, "Profile updated. Parsed resume skills were added to your profile and shared skill options.")
+                elif uploaded_resume:
+                    messages.success(request, "Profile updated. Your PDF resume was saved, but no skills were extracted.")
+                else:
+                    messages.success(request, "Profile updated successfully!")
                 return redirect("accounts.profile")
     else:
         form = ProfileEditForm(instance=profile, user=request.user)
@@ -504,7 +538,7 @@ def edit_profile(request, username=None):
     return render(
         request,
         "accounts/edit_profile.html",
-        {"template_data": {"title": "Edit Profile", "form": form, "skill_options": COMMON_SKILLS}},
+        {"template_data": {"title": "Edit Profile", "form": form, "skill_options": get_skill_options()}},
     )
 
 
@@ -537,6 +571,9 @@ def edit_user(request, user_id):
                     prof.headline = prof.skills = prof.education = prof.work_experience = ""
 
                 prof.save()
+                if prof.account_type == Profile.AccountType.APPLICANT and request.FILES.get("resume_file"):
+                    _sync_profile_resume_skills(prof, created_by=request.user)
+                register_skill_options(prof.skills, created_by=request.user)
 
                 submitted_email = (form.cleaned_data.get("email") or "").strip()
                 if submitted_email and submitted_email != profile.user.email:
@@ -650,7 +687,7 @@ def candidate_search(request):
     for candidate in candidates:
         best_job = None
         best_score = 0
-        candidate_skills = _skill_set(candidate.skills)
+        candidate_skills = _skill_set(candidate.skills).union(_skill_set(candidate.parsed_resume_skills))
         for job, job_skills in job_skill_sets:
             score = len(candidate_skills.intersection(job_skills))
             if score > best_score:

@@ -53,20 +53,54 @@
 
             <div id="applicant_fields">
               <div class="field-block">{{ template_data.form.headline.label_tag }} {{ template_data.form.headline }}</div>
+              <div class="field-block">
+                <div class="resume-upload-panel">
+                  <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                    <div>
+                      <div class="text-uppercase text-muted small mb-2">Profile Resume</div>
+                      <h5 class="surface-title mb-2">Upload one PDF to power applications and skill parsing</h5>
+                      <p class="surface-copy mb-0">We keep your resume on your profile, merge parsed skills into your profile, and add new skills to the shared dropdown for everyone.</p>
+                    </div>
+                    {% if template_data.form.instance.resume_file %}
+                      <a href="{{ template_data.form.instance.resume_file.url }}" target="_blank" rel="noopener noreferrer" class="resume-action-btn resume-action-btn-outline">View Current Resume</a>
+                    {% endif %}
+                  </div>
+                  <div class="mt-3">
+                    {{ template_data.form.resume_file.label_tag }}
+                    {{ template_data.form.resume_file }}
+                    {{ template_data.form.resume_file.errors }}
+                    <div class="form-text mt-2">Upload a PDF resume. Parsed skills are added to your profile skills automatically when we find them.</div>
+                  </div>
+                  {% if template_data.form.instance.resume_file %}
+                    <div class="resume-meta-pill mt-3">
+                      Current file: {{ template_data.form.instance.resume_file_name }}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
               <div class="field-block">{{ template_data.form.projects.label_tag }} {{ template_data.form.projects }}</div>
               <div class="field-block">
                 <label for="id_skills">{{ template_data.form.skills.label }}</label>
                 <input type="hidden" id="id_skills" name="skills" value="{{ template_data.form.skills.value|default_if_none:'' }}">
                 <div class="skill-picker" data-hidden-input-id="id_skills">
                   <div class="skill-chip-list"></div>
-                  <div class="mt-2">
-                    <select class="form-select skill-select" style="max-width: 260px;">
-                      <option value="">Select a skill</option>
-                      {% for skill in template_data.skill_options %}
-                      <option value="{{ skill }}">{{ skill }}</option>
-                      {% endfor %}
-                    </select>
+                  <div class="row g-2 mt-2 skill-picker-controls">
+                    <div class="col-lg-4 col-md-5">
+                      <select class="form-select skill-select">
+                        <option value="">Select a skill</option>
+                        {% for skill in template_data.skill_options %}
+                        <option value="{{ skill }}">{{ skill }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-lg-5 col-md-4">
+                      <input type="text" class="form-control custom-skill-input" placeholder="Add a custom skill">
+                    </div>
+                    <div class="col-lg-3 col-md-3 d-grid">
+                      <button type="button" class="primary-btn btn-compact border-0 w-100 custom-skill-add">Add Skill</button>
+                    </div>
                   </div>
+                  <div class="form-text mt-2">Choose from shared skills or add a new one for everyone.</div>
                 </div>
               </div>
               <div class="field-block">{{ template_data.form.education.label_tag }} {{ template_data.form.education }}</div>
@@ -132,6 +166,8 @@
 
     const chipList = picker.querySelector('.skill-chip-list');
     const select = picker.querySelector('.skill-select');
+    const customInput = picker.querySelector('.custom-skill-input');
+    const addButton = picker.querySelector('.custom-skill-add');
 
     let skills = hiddenInput.value
       .split(',')
@@ -148,11 +184,24 @@
       });
     }
 
+    function ensureOption(skill) {
+      if (!select) return;
+      const exists = Array.from(select.options).some(function (option) {
+        return (option.value || '').trim().toLowerCase() === skill.toLowerCase();
+      });
+      if (exists) return;
+      const option = document.createElement('option');
+      option.value = skill;
+      option.textContent = skill;
+      select.appendChild(option);
+    }
+
     function sync() {
       skills = normalizeUnique(skills);
       hiddenInput.value = skills.join(', ');
       chipList.innerHTML = '';
       skills.forEach(function (skill, index) {
+        ensureOption(skill);
         const chip = document.createElement('span');
         chip.className = 'skill-chip';
         chip.innerHTML = skill + '<button type="button" class="skill-chip-remove" aria-label="Remove skill">&times;</button>';
@@ -172,7 +221,32 @@
       sync();
     }
 
+    function addCustomSkill() {
+      if (!customInput) return;
+      const values = (customInput.value || '')
+        .split(',')
+        .map(function (value) { return value.trim(); })
+        .filter(Boolean);
+      if (!values.length) return;
+      values.forEach(function (value) {
+        skills.push(value);
+      });
+      customInput.value = '';
+      sync();
+    }
+
     select.addEventListener('change', addFromSelect);
+    if (addButton) {
+      addButton.addEventListener('click', addCustomSkill);
+    }
+    if (customInput) {
+      customInput.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          addCustomSkill();
+        }
+      });
+    }
 
     sync();
   });

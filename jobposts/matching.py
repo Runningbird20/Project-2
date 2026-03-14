@@ -28,12 +28,16 @@ def _skill_overlap_percent(applicant_skills, job_skills):
     return round((overlap_count / len(job_skills)) * 100)
 
 
+def _profile_skill_set(profile):
+    return _skill_set(profile.skills).union(_skill_set(profile.parsed_resume_skills))
+
+
 def sync_applicant_job_matches(applicant_user):
     profile = Profile.objects.filter(user=applicant_user).first()
     if not profile or profile.account_type != Profile.AccountType.APPLICANT:
         return []
 
-    applicant_skills = _skill_set(profile.skills)
+    applicant_skills = _profile_skill_set(profile)
     if not applicant_skills:
         return []
 

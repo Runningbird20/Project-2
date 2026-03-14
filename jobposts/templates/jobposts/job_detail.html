@@ -131,12 +131,17 @@
           <div class="mb-3">
             <label class="form-label fw-bold">Resume</label>
             <select name="resume_type" id="resumeSelect" class="form-select" onchange="toggleUpload()">
-              <option value="profile">Use my Profile Resume</option>
-              <option value="uploaded">Upload a New Resume (PDF)</option>
+              <option value="profile" {% if not has_profile_resume %}disabled{% endif %} {% if has_profile_resume %}selected{% endif %}>Use my Profile Resume</option>
+              <option value="uploaded" {% if not has_profile_resume %}selected{% endif %}>Upload a New Resume (PDF)</option>
             </select>
+            {% if has_profile_resume %}
+              <div class="resume-meta-pill mt-2">Current profile resume: {{ profile_resume_name }}</div>
+            {% else %}
+              <div class="small text-muted mt-2">No profile resume uploaded yet. Add one in <a href="{% url 'accounts.profile_edit' %}" class="resume-helper-link">Edit Profile</a>, or upload a new PDF here.</div>
+            {% endif %}
           </div>
 
-          <div id="uploadField" class="mb-3 d-none">
+          <div id="uploadField" class="mb-3 {% if has_profile_resume %}d-none{% endif %}">
             <label class="form-label">Upload PDF</label>
             <input type="file" name="resume_file" class="form-control" accept=".pdf">
           </div>

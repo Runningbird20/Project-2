@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.conf import settings
 from django.core.mail import send_mail
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from accounts.views import profile
 from .models import Application
@@ -25,8 +26,20 @@ from .services import (
 )
 from interviews.services import get_applicant_interview_context
 from apply.resume_parser import parse_resume
+from project2.skills import merge_skills_csv, normalize_skills_csv, register_skill_options
 
 PRIVATE_NOTE_MAX_LENGTH = 2000
+
+
+def _application_return_url(request, job_id):
+    referer = (request.META.get("HTTP_REFERER") or "").strip()
+    if referer and url_has_allowed_host_and_scheme(
+        url=referer,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return referer
+    return reverse("jobposts.detail", args=[job_id])
 
 def _benefits_score_from_company_perks(company_perks_text):
     perks_text = (company_perks_text or "").strip()
@@ -168,6 +181,14 @@ def submit_application(request, job_id):
     if resume_type not in ("profile", "uploaded"):
         resume_type = "profile"
 
+    profile = Profile.objects.filter(user=request.user).first()
+    if resume_type == "profile" and (not profile or not profile.resume_file):
+        messages.warning(
+            request,
+            "Upload a PDF resume in your profile first, or choose Upload a New Resume for this application.",
+        )
+        return redirect(_application_return_url(request, job.id))
+
     application = Application.objects.create(
         user=request.user,
         job=job,
@@ -180,10 +201,12 @@ def submit_application(request, job_id):
         try:
             parsed = parse_resume(application.resume_file.path)
             skills_list = parsed.get("skills", [])
-            skills_csv = ", ".join(skills_list)
+            skills_csv = normalize_skills_csv(", ".join(skills_list))
             profile = request.user.profile
             profile.parsed_resume_skills = skills_csv
-            profile.save()
+            profile.skills = merge_skills_csv(profile.skills, skills_csv)
+            profile.save(update_fields=["parsed_resume_skills", "skills"])
+            register_skill_options(profile.skills, created_by=request.user)
 
         except Exception as exc:
             if settings.DEBUG:

@@ -18,6 +18,10 @@ def _skill_set(raw_value):
     return {token.strip().lower() for token in raw_value.split(",") if token.strip()}
 
 
+def _profile_skill_set(profile):
+    return _skill_set(profile.skills).union(_skill_set(profile.parsed_resume_skills))
+
+
 def _skill_overlap_percent(applicant_skills, job_skills):
     if not applicant_skills or not job_skills:
         return 0
@@ -76,7 +80,7 @@ class Command(BaseCommand):
             return
 
         applied_pairs = set(Application.objects.values_list("user_id", "job_id"))
-        applicant_skill_map = {p.user_id: _skill_set(p.skills) for p in applicants}
+        applicant_skill_map = {p.user_id: _profile_skill_set(p) for p in applicants}
         job_skill_map = {job.id: _skill_set(job.skills) for job in jobs}
 
         applicant_sent = 0

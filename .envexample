@@ -11,4 +11,6 @@ DEFAULT_FROM_EMAIL=example@gmail.com
 
 GOOGLE_MAPS_API_KEY=examplekey
 OPENROUTER_API_KEY=examplekey
+OPENAI_API_KEY=examplekey
+OPENAI_RESUME_PARSER_MODEL=gpt-4.1-mini
 

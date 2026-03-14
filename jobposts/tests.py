@@ -540,6 +540,50 @@ class JobPostViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Resume Match 67%')
 
+    def test_search_page_uses_profile_resume_for_application_flow_only(self):
+        JobPost.objects.create(
+            owner=self.employer_user,
+            title='Backend Engineer',
+            company='Acme Inc',
+            location='Atlanta, GA',
+            pay_range='$80k-$100k',
+            skills='Python, Django',
+            work_setting='hybrid',
+            description='Build APIs',
+        )
+        self.client.login(username='applicant', password='pass12345')
+        response = self.client.get(reverse('jobposts.search'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Upload Resume Skills')
+        self.assertContains(response, 'Use my Profile Resume')
+
+    def test_search_uses_parsed_resume_skills_for_matching_when_profile_skills_are_blank(self):
+        profile = Profile.objects.get(user=self.applicant_user)
+        profile.skills = ''
+        profile.parsed_resume_skills = 'python, django'
+        profile.save(update_fields=['skills', 'parsed_resume_skills'])
+
+        job = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Backend Engineer',
+            company='Acme Inc',
+            location='Atlanta, GA',
+            pay_range='$80k-$100k',
+            skills='Python, Django, SQL',
+            work_setting='hybrid',
+            description='Build APIs',
+        )
+
+        self.client.login(username='applicant', password='pass12345')
+        response = self.client.get(reverse('jobposts.search'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Resume Match 67%')
+        self.assertTrue(
+            ApplicantJobMatch.objects.filter(applicant=self.applicant_user, job=job).exists()
+        )
+
     def test_dashboard_prefills_interview_form_from_query_param(self):
         job = JobPost.objects.create(
             owner=self.employer_user,

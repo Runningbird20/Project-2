@@ -21,7 +21,7 @@
             <div>
               <label class="form-label">Skills</label>
               <input type="text" name="skills" class="form-control" placeholder="e.g. SQL, Python, React" value="{{ template_data.filters.skills }}">
-              <div class="form-text">Comma-separated skills.</div>
+              <div class="form-text">Comma-separated skills. We'll match roles with any listed skill.</div>
             </div>
             <div>
               <label class="form-label">Location</label>
@@ -324,13 +324,18 @@
                         <div class="mb-3">
                           <label class="form-label fw-semibold">Resume Source</label>
                           <select name="resume_type" class="form-select" onchange="toggleResumeUpload(this, '{{ post.id }}')">
-                            <option value="profile">Use my Profile Details</option>
-                            <option value="uploaded">Upload a New Resume</option>
+                            <option value="profile" {% if not template_data.has_profile_resume %}disabled{% endif %} {% if template_data.has_profile_resume %}selected{% endif %}>Use my Profile Resume</option>
+                            <option value="uploaded" {% if not template_data.has_profile_resume %}selected{% endif %}>Upload a New Resume</option>
                           </select>
+                          {% if template_data.has_profile_resume %}
+                            <div class="resume-meta-pill mt-2">Current profile resume: {{ template_data.profile_resume_name }}</div>
+                          {% else %}
+                            <div class="small text-muted mt-2">No profile resume uploaded yet. Add one in <a href="{% url 'accounts.profile_edit' %}" class="resume-helper-link">Edit Profile</a>, or upload a fresh file here.</div>
+                          {% endif %}
                         </div>
-                        <div id="uploadField{{ post.id }}" style="display:none;" class="mb-3 bg-light p-3 rounded-3">
-                          <label class="form-label fw-semibold">Upload PDF/DOCX</label>
-                          <input type="file" name="resume_file" class="form-control">
+                        <div id="uploadField{{ post.id }}" style="display:{% if template_data.has_profile_resume %}none{% else %}block{% endif %};" class="mb-3 bg-light p-3 rounded-3">
+                          <label class="form-label fw-semibold">Upload PDF</label>
+                          <input type="file" name="resume_file" class="form-control" accept=".pdf">
                         </div>
                       </div>
                       <div class="modal-footer border-0 pt-0">

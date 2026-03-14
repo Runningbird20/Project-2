@@ -1,10 +1,40 @@
+import os
+from datetime import timedelta
+import re
+
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import Q
-from django.contrib.auth.models import User
-from datetime import timedelta
 from django.utils import timezone
-import re
+
+
+def _normalize_skill_option_name(raw_value):
+    return re.sub(r"\s+", " ", (raw_value or "").strip())
+
+
+class SkillOption(models.Model):
+    name = models.CharField(max_length=120)
+    normalized_name = models.CharField(max_length=120, unique=True, db_index=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_skill_options",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def save(self, *args, **kwargs):
+        self.name = _normalize_skill_option_name(self.name)
+        self.normalized_name = self.name.lower()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
 
 class Profile(models.Model):
 
@@ -27,6 +57,11 @@ class Profile(models.Model):
         upload_to="profile_pics/",
         blank=True,
         null=True
+    )
+    resume_file = models.FileField(
+        upload_to="profile_resumes/",
+        blank=True,
+        null=True,
     )
 
     # Applicant fields
@@ -73,6 +108,12 @@ class Profile(models.Model):
         if self.profile_picture:
             return self.profile_picture.url
         return f"{settings.MEDIA_URL}profile_pics/default-icon.png"
+
+    @property
+    def resume_file_name(self):
+        if not self.resume_file:
+            return ""
+        return os.path.basename(self.resume_file.name)
 
     @property
     def location_city_state(self):
