@@ -72,6 +72,7 @@
     } catch (e) {}
   }
 
+  // loadPos is kept for internal logic but NOT called on window load anymore
   function loadPos() {
     try {
       const raw = sessionStorage.getItem(config.storageKey);
@@ -199,15 +200,6 @@
   });
   window.addEventListener("panda:celebrate", (e) => celebrate(e?.detail?.text || "Lets go."));
 
-  function anchorLeftTopOnce() {
-    const rect = getRect();
-    mascot.style.left = `${rect.left}px`;
-    mascot.style.top = `${rect.top}px`;
-    mascot.style.right = "auto";
-    mascot.style.bottom = "auto";
-    updateBubblePlacement();
-  }
-
   function onPointerDown(e) {
     if (!wrap || moving) return;
     dragging = true;
@@ -248,11 +240,15 @@
     window.addEventListener("pointercancel", endDrag);
   }
 
-  window.setTimeout(() => {
-    anchorLeftTopOnce();
-    loadPos();
+  // INITIALIZATION: Always reset to bottom right on load
+  window.addEventListener("load", () => {
+    sessionStorage.removeItem(config.storageKey);
+    const pandaSize = 65;
+    const startX = window.innerWidth - pandaSize - config.edgePadding;
+    const startY = window.innerHeight - pandaSize - config.edgePadding;
+    setPos(startX, startY);
     runPageHooks();
-  }, 80);
+  });
 
   window.addEventListener("resize", () => {
     const rect = getRect();
