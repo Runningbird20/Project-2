@@ -23,7 +23,6 @@ from messaging.models import Message
 from .services import (
     auto_archive_old_rejections,
     enforce_employer_response_deadline,
-    calculate_application_streak,
 )
 from interviews.services import get_applicant_interview_context
 from apply.resume_parser import parse_resume
@@ -411,7 +410,6 @@ def application_status(request):
             "archived_applications": archived_applications,
             "matched_jobs": matched_jobs,
             "activity_events": activity_events,
-            "application_streak": calculate_application_streak(request.user),
             "current_url": current_request_url(request),
             **interview_context,
         },

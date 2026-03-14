@@ -6,7 +6,6 @@ from datetime import timedelta
 
 from jobposts.models import JobPost
 from .models import Application
-from .services import calculate_application_streak
 
 
 class SubmitApplicationTests(TestCase):
@@ -87,6 +86,7 @@ class EmployerViewedStatusTests(TestCase):
         self.client.login(username="applicant2", password="pass12345")
         response = self.client.get(reverse("apply:application_status"))
         self.assertContains(response, "Not viewed by employer yet")
+        self.assertNotContains(response, "Application streak")
 
     def test_application_status_page_shows_viewed_message(self):
         self.application.employer_viewed = True
@@ -96,6 +96,7 @@ class EmployerViewedStatusTests(TestCase):
         self.client.login(username="applicant2", password="pass12345")
         response = self.client.get(reverse("apply:application_status"))
         self.assertContains(response, "Viewed by employer")
+        self.assertNotContains(response, "Application streak")
 
 
 class ApplicationArchiveTests(TestCase):
@@ -149,60 +150,6 @@ class ApplicationArchiveTests(TestCase):
         self.application.refresh_from_db()
         self.assertTrue(self.application.archived_by_applicant)
         self.assertTrue(self.application.archived_by_employer)
-
-
-<<<<<<< HEAD
-class ApplicationStreakTests(TestCase):
-    def setUp(self):
-        self.applicant = User.objects.create_user(username="streak_user", password="pass12345")
-        self.employer = User.objects.create_user(username="streak_employer", password="pass12345")
-        self.job = JobPost.objects.create(
-            owner=self.employer,
-            title="Data Engineer",
-            company="Acme",
-            location="Atlanta",
-            pay_range="$100k-$130k",
-            skills="Python",
-            description="Build data systems",
-        )
-        self._job_counter = 0
-
-    def _create_application_days_ago(self, days_ago):
-        self._job_counter += 1
-        day_job = JobPost.objects.create(
-            owner=self.employer,
-            title=f"Data Engineer {self._job_counter}",
-            company="Acme",
-            location="Atlanta",
-            pay_range="$100k-$130k",
-            skills="Python",
-            description="Build data systems",
-        )
-        app = Application.objects.create(
-            user=self.applicant,
-            job=day_job,
-            note="Applying",
-            resume_type="profile",
-        )
-        target = timezone.now() - timedelta(days=days_ago)
-        Application.objects.filter(id=app.id).update(applied_at=target)
-
-    def test_streak_counts_consecutive_days_including_today(self):
-        self._create_application_days_ago(0)
-        self._create_application_days_ago(1)
-        self._create_application_days_ago(2)
-        self.assertEqual(calculate_application_streak(self.applicant), 3)
-
-    def test_streak_counts_from_yesterday_if_none_today(self):
-        self._create_application_days_ago(1)
-        self._create_application_days_ago(2)
-        self.assertEqual(calculate_application_streak(self.applicant), 2)
-
-    def test_streak_resets_when_gap_exists(self):
-        self._create_application_days_ago(0)
-        self._create_application_days_ago(2)
-        self.assertEqual(calculate_application_streak(self.applicant), 1)
-=======
 class EmployerResponseDeadlineTests(TestCase):
     def setUp(self):
         self.applicant = User.objects.create_user(username="applicant4", password="pass12345")
@@ -274,4 +221,3 @@ class EmployerResponseDeadlineTests(TestCase):
         self.application.refresh_from_db()
         self.assertEqual(self.application.status, "interview")
         self.assertFalse(self.application.auto_rejected_for_timeout)
->>>>>>> 5f102835f2ff5a38ed5e7b3f18d107ef5c6ec893
