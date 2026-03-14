@@ -839,6 +839,121 @@ class EmployerDashboardMatchedCandidatesTests(TestCase):
         self.assertContains(response, reverse("messaging:chat_detail", args=[grouped_candidate.id]))
         self.assertContains(response, reverse("apply:employer_pipeline", args=[applied_job.id]))
 
+    def test_dashboard_tools_shows_applicant_comparison_for_submitted_applicants_by_job(self):
+        backend_job = JobPost.objects.create(
+            owner=self.employer,
+            title="Backend Engineer",
+            company="Acme",
+            location="Atlanta, GA",
+            pay_range="$100k-$120k",
+            skills="Python, Django, SQL, AWS",
+            work_setting="hybrid",
+            description="Build APIs",
+        )
+        frontend_job = JobPost.objects.create(
+            owner=self.employer,
+            title="Frontend Engineer",
+            company="Acme",
+            location="Atlanta, GA",
+            pay_range="$100k-$120k",
+            skills="React, TypeScript, JavaScript",
+            work_setting="remote",
+            description="Build polished interfaces",
+        )
+        no_applicants_job = JobPost.objects.create(
+            owner=self.employer,
+            title="Data Engineer",
+            company="Acme",
+            location="Atlanta, GA",
+            pay_range="$110k-$135k",
+            skills="Python, Spark, Airflow",
+            work_setting="hybrid",
+            description="Build pipelines",
+        )
+
+        submitted_candidate = self._create_applicant(
+            "compare_candidate_submitted",
+            skills="Python, Django, SQL",
+            headline="Backend specialist",
+        )
+        low_match_candidate = self._create_applicant(
+            "compare_candidate_low_match",
+            skills="Sales, CRM, Outreach",
+            headline="Career pivoting into tech",
+        )
+        matched_only_candidate = self._create_applicant(
+            "compare_candidate_hidden",
+            skills="Python, Django, SQL, AWS",
+        )
+
+        Application.objects.create(
+            user=submitted_candidate,
+            job=backend_job,
+            resume_type="profile",
+            status="review",
+        )
+        Application.objects.create(
+            user=low_match_candidate,
+            job=frontend_job,
+            resume_type="profile",
+            status="interview",
+        )
+
+        self._login_employer()
+        response = self.client.get(reverse("jobposts.dashboard"), {"tab": "emp-tools"})
+        compare_groups = response.context["applicant_compare_groups"]
+        compared_job_ids = {group["job"].id for group in compare_groups}
+        compared_usernames = {
+            row["application"].user.username
+            for group in compare_groups
+            for row in group["rows"]
+        }
+        profile_return_url = f"{reverse('jobposts.dashboard')}%3Ftab%3Demp-tools"
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(compare_groups), 2)
+        self.assertEqual(compared_job_ids, {backend_job.id, frontend_job.id})
+        self.assertEqual(
+            compared_usernames,
+            {submitted_candidate.username, low_match_candidate.username},
+        )
+        self.assertContains(response, "Applicant Comparison Tool")
+        self.assertContains(response, 'id="applicant-comparison-tool"')
+        self.assertContains(response, 'id="applicantComparisonJobSelect"')
+        self.assertContains(response, 'id="candidateCompareRows"')
+        self.assertContains(response, "more-tools-card-header")
+        self.assertContains(response, "more-tools-card-toggle")
+        self.assertContains(response, 'data-bs-target="#employerApplicantCompareBody"')
+        self.assertContains(response, 'aria-controls="employerApplicantCompareBody"')
+        self.assertContains(response, 'data-bs-target="#dashboardAlertsBody"')
+        self.assertContains(response, 'aria-controls="dashboardAlertsBody"')
+        self.assertContains(response, 'id="weightApplicantMatchScore"')
+        self.assertContains(response, 'id="weightApplicantStage"')
+        self.assertContains(response, 'id="weightApplicantSkills"')
+        self.assertContains(response, 'id="weightApplicantEndorsements"')
+        self.assertContains(response, "candidate-compare-card-header")
+        self.assertContains(response, "candidate-compare-card-actions")
+        self.assertContains(response, "Backend Engineer (1 applicant)")
+        self.assertContains(response, "Frontend Engineer (1 applicant)")
+        self.assertNotContains(response, "Data Engineer (0 applicants)")
+        self.assertContains(response, "compare_candidate_submitted")
+        self.assertContains(response, "compare_candidate_low_match")
+        self.assertNotIn(matched_only_candidate.username, compared_usernames)
+        self.assertContains(response, 'data-match-score="75"')
+        self.assertContains(response, 'data-match-score="0"')
+        self.assertContains(response, 'data-stage-score="65"')
+        self.assertContains(response, 'data-stage-score="82"')
+        self.assertContains(response, "Pipeline Stage")
+        self.assertContains(response, reverse("messaging:chat_detail", args=[submitted_candidate.id]))
+        self.assertContains(response, reverse("accounts.public_profile", args=[submitted_candidate.username]))
+        self.assertContains(
+            response,
+            f"return_to={profile_return_url}",
+            html=False,
+        )
+        self.assertContains(response, reverse("apply:employer_pipeline", args=[backend_job.id]))
+        self.assertContains(response, reverse("apply:employer_pipeline", args=[frontend_job.id]))
+
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
 class ApplicantMatchingTests(TestCase):

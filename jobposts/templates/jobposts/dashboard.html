@@ -642,57 +642,224 @@
               <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
                 <div>
                   <h3 class="surface-title mb-1">More Tools</h3>
-                  <p class="text-muted mb-0">Quick access to recruiter workflows and alert management.</p>
+                  <p class="text-muted mb-0">Quick access to recruiter workflows, applicant comparison, and alert management.</p>
                 </div>
               </div>
 
-              <div id="saved-alert-management" class="border rounded-4 p-3 mt-3">
-                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+              <div id="applicant-comparison-tool" data-more-tools-section class="border rounded-4 p-3 p-md-4 offer-compare-panel">
+                <div class="more-tools-card-header" style="position: relative; padding-right: 3.75rem;">
+                  <button
+                    type="button"
+                    class="pipeline-card-toggle more-tools-card-toggle"
+                    style="position: absolute; top: 0; right: 0; left: auto;"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#employerApplicantCompareBody"
+                    aria-expanded="false"
+                    aria-controls="employerApplicantCompareBody"
+                  >
+                    <span class="visually-hidden">Toggle applicant comparison tool</span>
+                    <i class="bi bi-chevron-down pipeline-card-toggle-icon"></i>
+                  </button>
+                  <div>
+                    <h4 class="surface-title mb-1">Applicant Comparison Tool</h4>
+                    <p class="text-muted mb-0">Compare applicants who already submitted to a specific role and re-rank them around the hiring signals you care about most.</p>
+                  </div>
+                  <div class="small text-muted mt-2">
+                    {{ applicant_compare_groups|length }} job{{ applicant_compare_groups|length|pluralize }} ready to compare
+                  </div>
+                </div>
+
+                <div class="collapse mt-3" id="employerApplicantCompareBody">
+                  {% if applicant_compare_groups %}
+                    <div class="row g-3 mb-3">
+                      <div class="col-lg-6">
+                        <label class="form-label fw-semibold" for="applicantComparisonJobSelect">Select Job</label>
+                        <select id="applicantComparisonJobSelect" class="form-select">
+                          {% for compare_group in applicant_compare_groups %}
+                            <option
+                              value="{{ compare_group.job.id }}"
+                              data-job-title="{{ compare_group.job.title }}"
+                              data-applicant-count="{{ compare_group.applicant_count }}"
+                            >
+                              {{ compare_group.job.title }} ({{ compare_group.applicant_count }} applicant{{ compare_group.applicant_count|pluralize }})
+                            </option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="col-lg-6 d-flex align-items-end">
+                        <div class="small text-muted mb-2" id="candidateCompareJobSummary">
+                          Compare applicants submitted to the selected role.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                      <div class="col-12">
+                        <h6 class="surface-title mb-2">Comparison Weights</h6>
+                      </div>
+                      <div class="col-sm-6 col-lg-3">
+                        <label class="form-label mb-1" for="weightApplicantMatchScore">Resume Match Weight</label>
+                        <input type="number" id="weightApplicantMatchScore" class="form-control form-control-sm offer-weight-input" min="0" step="1" value="40">
+                      </div>
+                      <div class="col-sm-6 col-lg-3">
+                        <label class="form-label mb-1" for="weightApplicantStage">Pipeline Stage Weight</label>
+                        <input type="number" id="weightApplicantStage" class="form-control form-control-sm offer-weight-input" min="0" step="1" value="25">
+                      </div>
+                      <div class="col-sm-6 col-lg-3">
+                        <label class="form-label mb-1" for="weightApplicantSkills">Shared Skills Weight</label>
+                        <input type="number" id="weightApplicantSkills" class="form-control form-control-sm offer-weight-input" min="0" step="1" value="20">
+                      </div>
+                      <div class="col-sm-6 col-lg-3">
+                        <label class="form-label mb-1" for="weightApplicantEndorsements">Endorsed Skills Weight</label>
+                        <input type="number" id="weightApplicantEndorsements" class="form-control form-control-sm offer-weight-input" min="0" step="1" value="15">
+                      </div>
+                    </div>
+                    <small class="text-muted d-block mb-3" id="candidateWeightSummaryText">Weights are normalized automatically.</small>
+
+                    <div class="vstack gap-2" id="candidateCompareRows">
+                      {% for compare_group in applicant_compare_groups %}
+                        {% for applicant_row in compare_group.rows %}
+                          <div
+                            class="candidate-compare-row border rounded-4 p-3{% if not forloop.parentloop.first %} d-none{% endif %}"
+                            data-job-id="{{ compare_group.job.id }}"
+                            data-match-score="{{ applicant_row.match_score }}"
+                            data-shared-skills="{{ applicant_row.shared_skill_count }}"
+                            data-endorsed-skills="{{ applicant_row.endorsed_shared_skill_count }}"
+                            data-stage-score="{{ applicant_row.stage_score }}"
+                            data-stage-label="{{ applicant_row.application.get_status_display }}"
+                          >
+                            <div class="candidate-compare-card-header d-flex justify-content-between align-items-start gap-3 mb-1">
+                              <div class="candidate-compare-card-primary">
+                                <div class="fw-semibold candidate-name">{{ applicant_row.candidate_name }}</div>
+                              </div>
+                              <div class="candidate-compare-card-actions form-actions justify-content-end">
+                                <a href="{% url 'accounts.public_profile' applicant_row.application.user.username %}?return_to={{ dashboard_return_urls.tools|urlencode }}" class="secondary-btn btn-compact">View Profile</a>
+                                <a href="{% url 'messaging:chat_detail' applicant_row.application.user_id %}" class="primary-btn btn-compact border-0">Message Candidate</a>
+                                <a href="{% url 'apply:employer_pipeline' compare_group.job.id %}" class="secondary-btn btn-compact">Open Pipeline</a>
+                              </div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+                              <div class="small text-muted candidate-compare-card-subtitle">
+                                Applied {{ applicant_row.application.applied_at|date:"M j, Y" }} for {{ compare_group.job.title }}
+                                {% if applicant_row.candidate.headline %}
+                                  &middot; {{ applicant_row.candidate.headline }}
+                                {% endif %}
+                              </div>
+                              <div class="candidate-total-score small fw-semibold text-end"></div>
+                            </div>
+                            <div class="row g-2 small">
+                              <div class="col-sm-6 col-lg-3">
+                                <div class="text-muted">Resume Match</div>
+                                <div class="offer-readonly-value">{{ applicant_row.match_score }}%</div>
+                              </div>
+                              <div class="col-sm-6 col-lg-3">
+                                <div class="text-muted">Pipeline Stage</div>
+                                <div class="offer-readonly-value">{{ applicant_row.application.get_status_display }}</div>
+                              </div>
+                              <div class="col-sm-6 col-lg-3">
+                                <div class="text-muted">Shared Skills</div>
+                                <div class="offer-readonly-value">{{ applicant_row.shared_skill_count }}</div>
+                              </div>
+                              <div class="col-sm-6 col-lg-3">
+                                <div class="text-muted">Endorsed Skills</div>
+                                <div class="offer-readonly-value">{{ applicant_row.endorsed_shared_skill_count }}</div>
+                              </div>
+                            </div>
+                            {% if applicant_row.shared_skill_badges %}
+                              <div class="small text-muted mt-2">Shared skills</div>
+                              <div class="d-flex flex-wrap gap-1 mt-1">
+                                {% for skill in applicant_row.shared_skill_badges %}
+                                  <span
+                                    class="badge rounded-pill skill-indicator {% if skill.endorsed %}is-endorsed{% else %}is-default{% endif %}"
+                                    {% if skill.endorsed_by %}
+                                      title="Endorsed by {{ skill.endorsed_by }}"
+                                      data-bs-toggle="tooltip"
+                                      data-bs-placement="top"
+                                      data-bs-custom-class="endorsement-tooltip"
+                                      data-bs-title="Endorsed by {{ skill.endorsed_by }}"
+                                    {% endif %}
+                                  >
+                                    {{ skill.name }}
+                                  </span>
+                                {% endfor %}
+                              </div>
+                            {% endif %}
+                            <div class="small text-muted mt-2 candidate-match-meta"></div>
+                          </div>
+                        {% endfor %}
+                      {% endfor %}
+                    </div>
+                  {% else %}
+                    <div id="noCandidateCompareRow" class="border rounded-4 p-3 text-muted">
+                      No submitted applicants yet. Applicants will appear here after someone applies to one of your jobs.
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div id="saved-alert-management" data-more-tools-section class="border rounded-4 p-3 mt-3">
+                <div class="more-tools-card-header" style="position: relative; padding-right: 3.75rem;">
+                  <button
+                    type="button"
+                    class="pipeline-card-toggle more-tools-card-toggle"
+                    style="position: absolute; top: 0; right: 0; left: auto;"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#dashboardAlertsBody"
+                    aria-expanded="false"
+                    aria-controls="dashboardAlertsBody"
+                  >
+                    <span class="visually-hidden">Toggle alerts section</span>
+                    <i class="bi bi-chevron-down pipeline-card-toggle-icon"></i>
+                  </button>
                   <div>
                     <h3 class="surface-title mb-1">Alerts</h3>
                     <p class="text-muted mb-0">Open a saved alert to rerun the search and review or remove alerts from one place.</p>
                   </div>
-                  <button type="button" class="primary-btn btn-compact border-0" data-bs-toggle="modal" data-bs-target="#dashboardCreateAlertModal">Create Alert</button>
+                  <div class="mt-3">
+                    <button type="button" class="primary-btn btn-compact border-0" data-bs-toggle="modal" data-bs-target="#dashboardCreateAlertModal">Create Alert</button>
+                  </div>
                 </div>
 
-                <div class="vstack gap-3">
-                  {% for saved_search in saved_searches %}
-                    <div class="border rounded-4 p-3">
-                      <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-                        <div>
-                          <div class="d-flex align-items-center flex-wrap gap-2">
-                            <div class="fw-semibold">{{ saved_search.search_name }}</div>
-                            {% if saved_search.pending_new_match_count %}
-                              <span class="badge bg-success-subtle text-success">
-                                {{ saved_search.pending_new_match_count }} new candidate{{ saved_search.pending_new_match_count|pluralize }}
-                              </span>
-                            {% endif %}
+                <div class="collapse mt-3" id="dashboardAlertsBody">
+                  <div class="vstack gap-3">
+                    {% for saved_search in saved_searches %}
+                      <div class="border rounded-4 p-3">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                          <div>
+                            <div class="d-flex align-items-center flex-wrap gap-2">
+                              <div class="fw-semibold">{{ saved_search.search_name }}</div>
+                              {% if saved_search.pending_new_match_count %}
+                                <span class="badge bg-success-subtle text-success">
+                                  {{ saved_search.pending_new_match_count }} new candidate{{ saved_search.pending_new_match_count|pluralize }}
+                                </span>
+                              {% endif %}
+                            </div>
+                            <div class="small text-muted mt-1">{{ saved_search.filters_summary }}</div>
+                            <div class="small text-muted mt-2">
+                              {{ saved_search.current_match_count }} current matching candidate{{ saved_search.current_match_count|pluralize }}
+                              &middot; Saved {{ saved_search.created_at|date:"M j, Y" }}
+                              {% if saved_search.last_viewed_at %}
+                                &middot; Last reviewed {{ saved_search.last_viewed_at|date:"M j, Y g:i A" }}
+                              {% endif %}
+                            </div>
                           </div>
-                          <div class="small text-muted mt-1">{{ saved_search.filters_summary }}</div>
-                          <div class="small text-muted mt-2">
-                            {{ saved_search.current_match_count }} current matching candidate{{ saved_search.current_match_count|pluralize }}
-                            &middot; Saved {{ saved_search.created_at|date:"M j, Y" }}
-                            {% if saved_search.last_viewed_at %}
-                              &middot; Last reviewed {{ saved_search.last_viewed_at|date:"M j, Y g:i A" }}
-                            {% endif %}
+                          <div class="form-actions">
+                            <a href="{% url 'accounts.candidate_search' %}?saved_search={{ saved_search.id }}&return_to={{ dashboard_tools_alerts_return_param }}" class="secondary-btn btn-compact">View Matches</a>
+                            <form action="{% url 'accounts.delete_search' saved_search.id %}" method="post" onsubmit="return confirm('Delete this saved alert?');">
+                              {% csrf_token %}
+                              <input type="hidden" name="return_to" value="{{ dashboard_tools_alerts_return_url }}">
+                              <button type="submit" class="danger-btn btn-compact border-0">Delete</button>
+                            </form>
                           </div>
-                        </div>
-                        <div class="form-actions">
-                          <a href="{% url 'accounts.candidate_search' %}?saved_search={{ saved_search.id }}&return_to={{ dashboard_tools_alerts_return_param }}" class="secondary-btn btn-compact">View Matches</a>
-                          <form action="{% url 'accounts.delete_search' saved_search.id %}" method="post" onsubmit="return confirm('Delete this saved alert?');">
-                            {% csrf_token %}
-                            <input type="hidden" name="return_to" value="{{ dashboard_tools_alerts_return_url }}">
-                            <button type="submit" class="danger-btn btn-compact border-0">Delete</button>
-                          </form>
                         </div>
                       </div>
-                    </div>
-                  {% empty %}
-                    <div class="border rounded-4 p-4 text-center">
-                      <h4 class="surface-title mb-2">No saved alerts yet</h4>
-                      <p class="text-muted mb-3">Save a candidate search to reuse filters and spot new matching applicants faster.</p>
-                    </div>
-                  {% endfor %}
+                    {% empty %}
+                      <div class="border rounded-4 p-4 text-center">
+                        <h4 class="surface-title mb-2">No saved alerts yet</h4>
+                        <p class="text-muted mb-3">Save a candidate search to reuse filters and spot new matching applicants faster.</p>
+                      </div>
+                    {% endfor %}
+                  </div>
                 </div>
               </div>
             </div>
@@ -851,6 +1018,229 @@
       });
     }
 
+    function openMoreToolsSectionFromHash() {
+      if (typeof bootstrap === "undefined" || !bootstrap.Collapse) return;
+
+      var hash = window.location.hash;
+      if (!hash) return;
+
+      var section = document.querySelector(hash + "[data-more-tools-section]");
+      if (!section) return;
+
+      var collapseBody = section.querySelector(".collapse");
+      if (!collapseBody) return;
+
+      bootstrap.Collapse.getOrCreateInstance(collapseBody, { toggle: false }).show();
+      setTimeout(function () {
+        if (typeof section.scrollIntoView === "function") {
+          section.scrollIntoView({ block: "start" });
+        }
+      }, 150);
+    }
+
+    function parseNumber(value) {
+      var n = Number(value);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function collectCandidateCompareRows() {
+      return Array.prototype.slice.call(document.querySelectorAll("#candidateCompareRows .candidate-compare-row"));
+    }
+
+    function applicantWeightIds() {
+      return [
+        "weightApplicantMatchScore",
+        "weightApplicantStage",
+        "weightApplicantSkills",
+        "weightApplicantEndorsements"
+      ];
+    }
+
+    function applicantWeightValue(id, fallback) {
+      var el = document.getElementById(id);
+      if (!el) return fallback;
+      return Math.max(0, parseNumber(el.value));
+    }
+
+    function applicantWeightInputs() {
+      return applicantWeightIds().map(function (id) {
+        return document.getElementById(id);
+      }).filter(Boolean);
+    }
+
+    function enforceApplicantWeightCap(changedInput) {
+      var inputs = applicantWeightInputs();
+      if (!inputs.length) return;
+
+      inputs.forEach(function (input) {
+        var current = Math.max(0, parseNumber(input.value));
+        input.value = String(current);
+      });
+
+      if (!changedInput) return;
+
+      var othersTotal = inputs.reduce(function (sum, input) {
+        if (input === changedInput) return sum;
+        return sum + Math.max(0, parseNumber(input.value));
+      }, 0);
+      var maxForChanged = Math.max(0, 100 - othersTotal);
+      var changedValue = Math.max(0, parseNumber(changedInput.value));
+      if (changedValue > maxForChanged) {
+        changedInput.value = String(maxForChanged);
+      }
+    }
+
+    function normalizedApplicantWeights() {
+      var rawMatchScore = applicantWeightValue("weightApplicantMatchScore", 40);
+      var rawStage = applicantWeightValue("weightApplicantStage", 25);
+      var rawSkills = applicantWeightValue("weightApplicantSkills", 20);
+      var rawEndorsements = applicantWeightValue("weightApplicantEndorsements", 15);
+      var rawTotal = rawMatchScore + rawStage + rawSkills + rawEndorsements;
+      if (rawTotal <= 0) {
+        return { matchScore: 0.4, stage: 0.25, sharedSkills: 0.2, endorsements: 0.15 };
+      }
+      return {
+        matchScore: rawMatchScore / rawTotal,
+        stage: rawStage / rawTotal,
+        sharedSkills: rawSkills / rawTotal,
+        endorsements: rawEndorsements / rawTotal
+      };
+    }
+
+    function renderApplicantWeightSummary(weights) {
+      var node = document.getElementById("candidateWeightSummaryText");
+      if (!node) return;
+      var rawMatchScore = applicantWeightValue("weightApplicantMatchScore", 40);
+      var rawStage = applicantWeightValue("weightApplicantStage", 25);
+      var rawSkills = applicantWeightValue("weightApplicantSkills", 20);
+      var rawEndorsements = applicantWeightValue("weightApplicantEndorsements", 15);
+      var rawTotal = rawMatchScore + rawStage + rawSkills + rawEndorsements;
+      var remaining = Math.max(0, 100 - rawTotal);
+      node.textContent =
+        "Total entered: " + rawTotal.toFixed(0) + "/100 (remaining " + remaining.toFixed(0) + "). " +
+        "Weighted score: Resume match " + (weights.matchScore * 100).toFixed(0) + "%, " +
+        "Pipeline stage " + (weights.stage * 100).toFixed(0) + "%, " +
+        "Shared skills " + (weights.sharedSkills * 100).toFixed(0) + "%, " +
+        "Endorsed skills " + (weights.endorsements * 100).toFixed(0) + "%";
+    }
+
+    function selectedApplicantComparisonJobId() {
+      var jobSelect = document.getElementById("applicantComparisonJobSelect");
+      return jobSelect ? jobSelect.value : "";
+    }
+
+    function updateApplicantComparisonJobSummary() {
+      var summaryNode = document.getElementById("candidateCompareJobSummary");
+      var jobSelect = document.getElementById("applicantComparisonJobSelect");
+      if (!summaryNode || !jobSelect || !jobSelect.options.length) return;
+
+      var selectedOption = jobSelect.options[jobSelect.selectedIndex];
+      var applicantCount = parseNumber(selectedOption.getAttribute("data-applicant-count"));
+      var jobTitle = selectedOption.getAttribute("data-job-title") || "this role";
+      summaryNode.textContent =
+        "Comparing " + applicantCount.toFixed(0) + " submitted applicant" +
+        (applicantCount === 1 ? "" : "s") +
+        " for " + jobTitle + ".";
+    }
+
+    function renderApplicantComparison() {
+      var rows = collectCandidateCompareRows();
+      var rowsContainer = document.getElementById("candidateCompareRows");
+      if (!rowsContainer) return;
+
+      var weights = normalizedApplicantWeights();
+      renderApplicantWeightSummary(weights);
+      updateApplicantComparisonJobSummary();
+      if (!rows.length) return;
+
+      var selectedJobId = selectedApplicantComparisonJobId();
+      var visibleRows = rows.filter(function (row) {
+        return !selectedJobId || row.dataset.jobId === selectedJobId;
+      });
+      rows.forEach(function (row) {
+        row.classList.toggle("d-none", visibleRows.indexOf(row) === -1);
+      });
+      if (!visibleRows.length) return;
+
+      var maxSharedSkills = Math.max.apply(null, visibleRows.map(function (row) {
+        return parseNumber(row.dataset.sharedSkills);
+      }).concat([0]));
+      var maxEndorsedSkills = Math.max.apply(null, visibleRows.map(function (row) {
+        return parseNumber(row.dataset.endorsedSkills);
+      }).concat([0]));
+
+      var scored = visibleRows.map(function (row, idx) {
+        var nameNode = row.querySelector(".candidate-name");
+        var name = nameNode ? nameNode.textContent.trim() : ("Candidate " + (idx + 1));
+        var matchScore = Math.max(0, Math.min(100, parseNumber(row.dataset.matchScore)));
+        var sharedSkills = parseNumber(row.dataset.sharedSkills);
+        var endorsedSkills = parseNumber(row.dataset.endorsedSkills);
+        var stageScore = Math.max(0, Math.min(100, parseNumber(row.dataset.stageScore)));
+        var sharedSkillsComponent = maxSharedSkills > 0 ? (sharedSkills / maxSharedSkills) * 100 : 0;
+        var endorsedSkillsComponent = maxEndorsedSkills > 0 ? (endorsedSkills / maxEndorsedSkills) * 100 : 0;
+        var total =
+          (matchScore * weights.matchScore) +
+          (stageScore * weights.stage) +
+          (sharedSkillsComponent * weights.sharedSkills) +
+          (endorsedSkillsComponent * weights.endorsements);
+
+        return {
+          row: row,
+          name: name,
+          total: total,
+          matchScore: matchScore,
+          stageScore: stageScore,
+          stageLabel: row.dataset.stageLabel || "Applied",
+          sharedSkills: sharedSkillsComponent,
+          endorsedSkills: endorsedSkillsComponent
+        };
+      });
+
+      scored.sort(function (a, b) { return b.total - a.total; });
+      scored.forEach(function (item, idx) {
+        var scoreEl = item.row.querySelector(".candidate-total-score");
+        var metaEl = item.row.querySelector(".candidate-match-meta");
+        if (scoreEl) {
+          if (idx === 0) {
+            scoreEl.innerHTML = 'Match Score: ' + item.total.toFixed(1) + ' <span class="badge bg-success-subtle text-success">Top</span>';
+          } else {
+            scoreEl.textContent = "Match Score: " + item.total.toFixed(1);
+          }
+        }
+        if (metaEl) {
+          metaEl.textContent =
+            "Resume match " + item.matchScore.toFixed(0) +
+            " | Stage " + item.stageScore.toFixed(0) + " (" + item.stageLabel + ")" +
+            " | Shared skills " + item.sharedSkills.toFixed(0) +
+            " | Endorsed skills " + item.endorsedSkills.toFixed(0);
+        }
+      });
+      scored.forEach(function (item) {
+        rowsContainer.appendChild(item.row);
+      });
+    }
+
+    function initApplicantComparisonTool() {
+      var rowsContainer = document.getElementById("candidateCompareRows");
+      if (!rowsContainer) return;
+      var jobSelect = document.getElementById("applicantComparisonJobSelect");
+
+      applicantWeightIds().forEach(function (id) {
+        var input = document.getElementById(id);
+        if (!input) return;
+        input.addEventListener("input", function () {
+          enforceApplicantWeightCap(input);
+          renderApplicantComparison();
+        });
+      });
+      if (jobSelect) {
+        jobSelect.addEventListener("change", renderApplicantComparison);
+      }
+
+      enforceApplicantWeightCap(null);
+      renderApplicantComparison();
+    }
+
     function restoreScrollAfterMonthChange() {
       try {
         var raw = sessionStorage.getItem(SCROLL_KEY);
@@ -867,6 +1257,8 @@
       bindInterviewMonthLinks();
       bindInterviewDaySlotPicker();
       bindCreateAlertModalValidation();
+      openMoreToolsSectionFromHash();
+      initApplicantComparisonTool();
       restoreScrollAfterMonthChange();
     });
   })();
