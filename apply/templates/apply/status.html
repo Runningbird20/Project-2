@@ -210,131 +210,176 @@
 
           <div class="tab-pane fade" id="tab-interviews" role="tabpanel" aria-labelledby="tab-interviews-btn" tabindex="0">
             {% include "interviews/partials/interview_calendar.html" with interview_tab_target="tab-interviews" %}
-            <div class="surface-card mb-3">
-              <h3 class="surface-title mb-3">Available Interview Slots</h3>
-              <div class="vstack gap-2">
-                {% for slot in open_interview_slots %}
-                <div class="border rounded-4 p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                  <div>
-                    <div class="fw-semibold">{{ slot.application.job.title }} at {{ slot.application.job.company }}</div>
-                    <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
-                    {% if slot.meeting_link %}
-                      <div class="small"><a href="{{ slot.meeting_link }}" target="_blank" rel="noopener noreferrer">Meeting link</a></div>
-                    {% endif %}
-                    {% if slot.notes %}
-                      <div class="small text-muted">{{ slot.notes }}</div>
-                    {% endif %}
+            <div class="surface-card p-0 overflow-hidden mb-3">
+              <div class="px-4 py-3 border-bottom d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <h3 class="surface-title mb-0">Available Interview Slots</h3>
+                <button
+                  type="button"
+                  class="pipeline-card-toggle"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#applicantInterviewOpenSlotsBody"
+                  aria-expanded="false"
+                  aria-controls="applicantInterviewOpenSlotsBody"
+                >
+                  <span class="visually-hidden">Toggle available interview slots section</span>
+                  <i class="bi bi-chevron-down pipeline-card-toggle-icon"></i>
+                </button>
+              </div>
+              <div class="collapse" id="applicantInterviewOpenSlotsBody">
+                <div class="px-4 py-3 vstack gap-2">
+                  {% for slot in open_interview_slots %}
+                  <div class="border rounded-4 p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                      <div class="fw-semibold">{{ slot.application.job.title }} at {{ slot.application.job.company }}</div>
+                      <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
+                      {% if slot.meeting_link %}
+                        <div class="small"><a href="{{ slot.meeting_link }}" target="_blank" rel="noopener noreferrer">Meeting link</a></div>
+                      {% endif %}
+                      {% if slot.notes %}
+                        <div class="small text-muted">{{ slot.notes }}</div>
+                      {% endif %}
+                    </div>
+                    <form method="post" action="{% url 'interviews:book' slot.id %}">
+                      {% csrf_token %}
+                      <button type="submit" class="primary-btn btn-compact border-0">Choose Slot</button>
+                    </form>
                   </div>
-                  <form method="post" action="{% url 'interviews:book' slot.id %}">
-                    {% csrf_token %}
-                    <button type="submit" class="primary-btn btn-compact border-0">Choose Slot</button>
-                  </form>
+                  {% empty %}
+                  <p class="text-muted mb-0">No pending slots to choose right now.</p>
+                  {% endfor %}
                 </div>
-                {% empty %}
-                <p class="text-muted mb-0">No pending slots to choose right now.</p>
-                {% endfor %}
               </div>
             </div>
-            <div class="surface-card mb-3">
-              <h3 class="surface-title mb-3">Upcoming Scheduled Interviews</h3>
-              <div class="vstack gap-2">
-                {% for slot in upcoming_interviews %}
-                <div class="border rounded-4 p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                  <div>
-                    <div class="fw-semibold">{{ slot.application.job.title }} at {{ slot.application.job.company }}</div>
-                    <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
-                    {% if slot.meeting_link %}
-                      <div class="small"><a href="{{ slot.meeting_link }}" target="_blank" rel="noopener noreferrer">Meeting link</a></div>
-                    {% endif %}
+            <div class="surface-card p-0 overflow-hidden mb-3">
+              <div class="px-4 py-3 border-bottom d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <h3 class="surface-title mb-0">Upcoming Scheduled Interviews</h3>
+                <button
+                  type="button"
+                  class="pipeline-card-toggle"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#applicantInterviewUpcomingBody"
+                  aria-expanded="false"
+                  aria-controls="applicantInterviewUpcomingBody"
+                >
+                  <span class="visually-hidden">Toggle upcoming interviews section</span>
+                  <i class="bi bi-chevron-down pipeline-card-toggle-icon"></i>
+                </button>
+              </div>
+              <div class="collapse" id="applicantInterviewUpcomingBody">
+                <div class="px-4 py-3 vstack gap-2">
+                  {% for slot in upcoming_interviews %}
+                  <div class="border rounded-4 p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                      <div class="fw-semibold">{{ slot.application.job.title }} at {{ slot.application.job.company }}</div>
+                      <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
+                      {% if slot.meeting_link %}
+                        <div class="small"><a href="{{ slot.meeting_link }}" target="_blank" rel="noopener noreferrer">Meeting link</a></div>
+                      {% endif %}
+                    </div>
+                    <div class="form-actions">
+                      <a class="secondary-btn btn-compact" href="{{ slot.google_calendar_url }}">Google Calendar</a>
+                      <a class="secondary-btn btn-compact" href="{% url 'interviews:download_ics' slot.id %}">Download ICS</a>
+                    </div>
                   </div>
-                  <div class="form-actions">
-                    <a class="secondary-btn btn-compact" href="{{ slot.google_calendar_url }}">Google Calendar</a>
-                    <a class="secondary-btn btn-compact" href="{% url 'interviews:download_ics' slot.id %}">Download ICS</a>
-                  </div>
+                  {% empty %}
+                  <p class="text-muted mb-0">No upcoming scheduled interviews.</p>
+                  {% endfor %}
                 </div>
-                {% empty %}
-                <p class="text-muted mb-0">No upcoming scheduled interviews.</p>
-                {% endfor %}
               </div>
             </div>
-            <div class="surface-card">
-              <h3 class="surface-title mb-3">Past Interviews</h3>
-              <div class="vstack gap-2">
-                {% for slot in past_interviews %}
-                <div class="border rounded-4 p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                  <div>
-                    <div class="fw-semibold">{{ slot.application.job.title }} at {{ slot.application.job.company }}</div>
-                    <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
-                    {% if slot.meeting_link %}
-                      <div class="small"><a href="{{ slot.meeting_link }}" target="_blank" rel="noopener noreferrer">Meeting link</a></div>
-                    {% endif %}
+            <div class="surface-card p-0 overflow-hidden mb-3">
+              <div class="px-4 py-3 border-bottom d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <h3 class="surface-title mb-0">Past Interviews</h3>
+                <button
+                  type="button"
+                  class="pipeline-card-toggle"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#applicantInterviewPastBody"
+                  aria-expanded="false"
+                  aria-controls="applicantInterviewPastBody"
+                >
+                  <span class="visually-hidden">Toggle past interviews section</span>
+                  <i class="bi bi-chevron-down pipeline-card-toggle-icon"></i>
+                </button>
+              </div>
+              <div class="collapse" id="applicantInterviewPastBody">
+                <div class="px-4 py-3 vstack gap-2">
+                  {% for slot in past_interviews %}
+                  <div class="border rounded-4 p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                      <div class="fw-semibold">{{ slot.application.job.title }} at {{ slot.application.job.company }}</div>
+                      <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
+                      {% if slot.meeting_link %}
+                        <div class="small"><a href="{{ slot.meeting_link }}" target="_blank" rel="noopener noreferrer">Meeting link</a></div>
+                      {% endif %}
+                    </div>
+                    <div class="form-actions">
+                      <a class="secondary-btn btn-compact" href="{% url 'interviews:download_ics' slot.id %}">Download ICS</a>
+                      {% if slot.feedback_visible_to_applicant %}
+                      <button
+                        type="button"
+                        class="primary-btn btn-compact border-0"
+                        data-bs-toggle="modal"
+                        data-bs-target="#applicantFeedbackModal{{ slot.id }}"
+                      >
+                        View Feedback
+                      </button>
+                      {% else %}
+                      <span class="small text-muted">No feedback shared yet.</span>
+                      {% endif %}
+                    </div>
                   </div>
-                  <div class="form-actions">
-                    <a class="secondary-btn btn-compact" href="{% url 'interviews:download_ics' slot.id %}">Download ICS</a>
-                    {% if slot.feedback_visible_to_applicant %}
-                    <button
-                      type="button"
-                      class="primary-btn btn-compact border-0"
-                      data-bs-toggle="modal"
-                      data-bs-target="#applicantFeedbackModal{{ slot.id }}"
-                    >
-                      View Feedback
-                    </button>
-                    {% else %}
-                    <span class="small text-muted">No feedback shared yet.</span>
-                    {% endif %}
-                  </div>
-                </div>
-                {% if slot.feedback_visible_to_applicant %}
-                <div class="modal fade" id="applicantFeedbackModal{{ slot.id }}" tabindex="-1" aria-hidden="true">
-                  <div class="modal-dialog modal-lg modal-dialog-centered">
-                    <div class="modal-content border-0 shadow rounded-4">
-                      <div class="modal-header border-0 pb-0">
-                        <h5 class="modal-title fw-bold">Interview Feedback</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                      </div>
-                      <div class="modal-body py-4">
-                        <div class="row g-3">
-                          <div class="col-md-6">
-                            <div class="small text-muted">Recommendation</div>
-                            <div class="fw-semibold">{{ slot.feedback.get_recommendation_display }}</div>
-                          </div>
-                          <div class="col-md-2">
-                            <div class="small text-muted">Technical</div>
-                            <div class="fw-semibold">{{ slot.feedback.technical_score }}/5</div>
-                          </div>
-                          <div class="col-md-2">
-                            <div class="small text-muted">Communication</div>
-                            <div class="fw-semibold">{{ slot.feedback.communication_score }}/5</div>
-                          </div>
-                          <div class="col-md-2">
-                            <div class="small text-muted">Problem Solving</div>
-                            <div class="fw-semibold">{{ slot.feedback.problem_solving_score }}/5</div>
-                          </div>
-                          <div class="col-md-6">
-                            <div class="small text-muted">Strengths</div>
-                            <div>{{ slot.feedback.strengths|default:"No strengths provided." }}</div>
-                          </div>
-                          <div class="col-md-6">
-                            <div class="small text-muted">Areas to Improve</div>
-                            <div>{{ slot.feedback.concerns|default:"No concerns provided." }}</div>
-                          </div>
-                          <div class="col-12">
-                            <div class="small text-muted">Decision Rationale</div>
-                            <div>{{ slot.feedback.decision_rationale|default:"No rationale provided." }}</div>
+                  {% if slot.feedback_visible_to_applicant %}
+                  <div class="modal fade" id="applicantFeedbackModal{{ slot.id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                      <div class="modal-content border-0 shadow rounded-4">
+                        <div class="modal-header border-0 pb-0">
+                          <h5 class="modal-title fw-bold">Interview Feedback</h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body py-4">
+                          <div class="row g-3">
+                            <div class="col-md-6">
+                              <div class="small text-muted">Recommendation</div>
+                              <div class="fw-semibold">{{ slot.feedback.get_recommendation_display }}</div>
+                            </div>
+                            <div class="col-md-2">
+                              <div class="small text-muted">Technical</div>
+                              <div class="fw-semibold">{{ slot.feedback.technical_score }}/5</div>
+                            </div>
+                            <div class="col-md-2">
+                              <div class="small text-muted">Communication</div>
+                              <div class="fw-semibold">{{ slot.feedback.communication_score }}/5</div>
+                            </div>
+                            <div class="col-md-2">
+                              <div class="small text-muted">Problem Solving</div>
+                              <div class="fw-semibold">{{ slot.feedback.problem_solving_score }}/5</div>
+                            </div>
+                            <div class="col-md-6">
+                              <div class="small text-muted">Strengths</div>
+                              <div>{{ slot.feedback.strengths|default:"No strengths provided." }}</div>
+                            </div>
+                            <div class="col-md-6">
+                              <div class="small text-muted">Areas to Improve</div>
+                              <div>{{ slot.feedback.concerns|default:"No concerns provided." }}</div>
+                            </div>
+                            <div class="col-12">
+                              <div class="small text-muted">Decision Rationale</div>
+                              <div>{{ slot.feedback.decision_rationale|default:"No rationale provided." }}</div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div class="modal-footer border-0 pt-0">
-                        <button type="button" class="secondary-btn btn-compact border-0" data-bs-dismiss="modal">Close</button>
+                        <div class="modal-footer border-0 pt-0">
+                          <button type="button" class="secondary-btn btn-compact border-0" data-bs-dismiss="modal">Close</button>
+                        </div>
                       </div>
                     </div>
                   </div>
+                  {% endif %}
+                  {% empty %}
+                  <p class="text-muted mb-0">No past interviews yet.</p>
+                  {% endfor %}
                 </div>
-                {% endif %}
-                {% empty %}
-                <p class="text-muted mb-0">No past interviews yet.</p>
-                {% endfor %}
               </div>
             </div>
           </div>
