@@ -1,4 +1,5 @@
 import csv
+from urllib.parse import quote
 from collections import Counter
 from smtplib import SMTPAuthenticationError
 
@@ -18,16 +19,26 @@ from django.db import transaction
 from django.db.models import Count, Q
 from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.http import require_POST
 
 from django.core.mail import EmailMessage
 
+from apply.resume_parser import parse_resume
 from map.services import OfficeLocationGeocodingError, geocode_office_address
-from project2.skills import COMMON_SKILLS
+from project2.navigation import (
+    build_back_navigation,
+    current_request_url,
+    safe_local_navigation_url,
+)
+from project2.response_sla import build_response_sla_by_employer_ids
+from project2.skills import get_skill_options, merge_skills_csv, normalize_skills_csv, register_skill_options
 from interviews.services import build_skill_badges_for_applicant
 from apply.models import Application
+from jobposts.matching import MIN_MATCH_PERCENT
 
 from .forms import CompanyProfileForm, CustomErrorList, ProfileEditForm, SignupWithProfileForm
 from .models import Profile, SavedCandidateSearch
@@ -37,6 +48,28 @@ from jobposts.models import JobPost
 class Echo:
     def write(self, value):
         return value
+
+
+def _sync_profile_resume_skills(profile, *, created_by):
+    if not profile.resume_file:
+        return False
+
+    try:
+        parsed_resume = parse_resume(profile.resume_file.path)
+    except Exception as exc:
+        if settings.DEBUG:
+            print("Profile resume parsing failed:", exc)
+        return False
+
+    skills_csv = normalize_skills_csv(", ".join(parsed_resume.get("skills", [])))
+    if not skills_csv:
+        return False
+
+    profile.parsed_resume_skills = skills_csv
+    profile.skills = merge_skills_csv(profile.skills, skills_csv)
+    profile.save(update_fields=["parsed_resume_skills", "skills"])
+    register_skill_options(profile.skills, created_by=created_by)
+    return True
 
 
 @method_decorator(never_cache, name="dispatch")
@@ -65,65 +98,34 @@ def _is_applicant(user):
     ).exists()
 
 
-def _format_response_time_window(avg_hours):
-    if avg_hours < 24:
-        rounded_hours = max(1, int(round(avg_hours)))
-        label = "hour" if rounded_hours == 1 else "hours"
-        return f"~{rounded_hours} {label}"
-    rounded_days = max(1, int(round(avg_hours / 24)))
-    label = "day" if rounded_days == 1 else "days"
-    return f"~{rounded_days} {label}"
+def _safe_local_return_url(request, candidate_url):
+    return safe_local_navigation_url(request, candidate_url)
 
 
-def _response_sla_tone(avg_hours):
-    if avg_hours < 49:
-        return "green"
-    if avg_hours > 7 * 24:
-        return "red"
-    return "yellow"
+def _candidate_search_back_url(request):
+    explicit_return_to = _safe_local_return_url(
+        request,
+        request.GET.get("return_to") or request.POST.get("return_to"),
+    )
+    if explicit_return_to:
+        return explicit_return_to
+
+    referrer = _safe_local_return_url(request, request.META.get("HTTP_REFERER", ""))
+    blocked_prefixes = [
+        reverse("accounts.candidate_search"),
+        reverse("accounts.save_search"),
+    ]
+    if referrer and not any(referrer.startswith(prefix) for prefix in blocked_prefixes):
+        return referrer
+
+    return f"{reverse('jobposts.dashboard')}?tab=emp-tools"
 
 
-def _build_response_sla(avg_hours):
-    if avg_hours is None:
-        return {
-            "label": "Response time unavailable",
-            "css_class": "is-neutral",
-            "hours": None,
-        }
-    return {
-        "label": f"Responds in {_format_response_time_window(avg_hours)}",
-        "css_class": f"is-{_response_sla_tone(avg_hours)}",
-        "hours": round(avg_hours, 1),
-    }
-
-
-def _build_response_sla_by_employer_ids(employer_ids):
-    owner_ids = [owner_id for owner_id in employer_ids if owner_id]
-    if not owner_ids:
-        return {}
-
-    aggregates = {owner_id: {"total_hours": 0.0, "count": 0} for owner_id in owner_ids}
-    response_rows = Application.objects.filter(
-        job__owner_id__in=owner_ids,
-        responded_at__isnull=False,
-    ).values_list("job__owner_id", "applied_at", "responded_at")
-
-    for owner_id, applied_at, responded_at in response_rows:
-        if not applied_at or not responded_at or responded_at < applied_at:
-            continue
-        delta_hours = (responded_at - applied_at).total_seconds() / 3600
-        bucket = aggregates[owner_id]
-        bucket["total_hours"] += delta_hours
-        bucket["count"] += 1
-
-    sla_by_owner = {}
-    for owner_id in owner_ids:
-        bucket = aggregates[owner_id]
-        avg_hours = None
-        if bucket["count"] > 0:
-            avg_hours = bucket["total_hours"] / bucket["count"]
-        sla_by_owner[owner_id] = _build_response_sla(avg_hours)
-    return sla_by_owner
+def _candidate_search_url_with_return_to(back_url):
+    candidate_search_url = reverse("accounts.candidate_search")
+    if not back_url:
+        return candidate_search_url
+    return f"{candidate_search_url}?return_to={quote(back_url, safe='')}"
 
 
 superuser_required = user_passes_test(lambda u: u.is_authenticated and u.is_superuser)
@@ -278,13 +280,13 @@ def signup(request):
     template_data = {"title": "Sign Up"}
     if request.method == "GET":
         template_data["form"] = SignupWithProfileForm()
-        template_data["skill_options"] = COMMON_SKILLS
+        template_data["skill_options"] = get_skill_options()
         return render(request, "accounts/signup.html", {"template_data": template_data})
 
     form = SignupWithProfileForm(request.POST, request.FILES, error_class=CustomErrorList)
     if not form.is_valid():
         template_data["form"] = form
-        template_data["skill_options"] = COMMON_SKILLS
+        template_data["skill_options"] = get_skill_options()
         return render(request, "accounts/signup.html", {"template_data": template_data})
 
     acct = form.cleaned_data.get("account_type", Profile.AccountType.APPLICANT)
@@ -299,14 +301,14 @@ def signup(request):
         if not location_value:
             form.add_error("address_line_1", "Address is required for applicants.")
             template_data["form"] = form
-            template_data["skill_options"] = COMMON_SKILLS
+            template_data["skill_options"] = get_skill_options()
             return render(request, "accounts/signup.html", {"template_data": template_data})
         try:
             geocode_office_address(location_value)
         except OfficeLocationGeocodingError as exc:
             form.add_error("address_line_1", str(exc))
             template_data["form"] = form
-            template_data["skill_options"] = COMMON_SKILLS
+            template_data["skill_options"] = get_skill_options()
             return render(request, "accounts/signup.html", {"template_data": template_data})
 
     try:
@@ -340,6 +342,7 @@ def signup(request):
                 profile.company_name = profile.company_website = profile.company_description = ""
 
             profile.save()
+            register_skill_options(profile.skills, created_by=user)
 
             for i in range(2):
                 label = request.POST.get(f"link_label_{i}", "").strip()
@@ -349,7 +352,7 @@ def signup(request):
     except IntegrityError:
         form.add_error("username", "This username is already taken.")
         template_data["form"] = form
-        template_data["skill_options"] = COMMON_SKILLS
+        template_data["skill_options"] = get_skill_options()
         return render(request, "accounts/signup.html", {"template_data": template_data})
 
     if user.email:
@@ -411,12 +414,29 @@ def profile(request, user_id=None):
         if prof.account_type != Profile.AccountType.APPLICANT or not prof.visible_to_recruiters:
             raise Http404("Profile not available.")
 
+    if is_own:
+        default_back_url = (
+            reverse("jobposts.dashboard")
+            if prof.account_type == Profile.AccountType.EMPLOYER
+            else reverse("apply:application_status")
+        )
+        default_back_label = "Dashboard"
+    else:
+        default_back_url = reverse("accounts.candidate_search")
+        default_back_label = "Find Candidates"
+
     template_data = {
         "title": f"{user_to_view.username}'s Profile" if user_id else "My Profile",
         "profile": prof,
         "viewed_user": user_to_view,
         "is_own_profile": is_own,
         "has_links": prof.links.exists(),
+        "current_url": current_request_url(request),
+        "back_navigation": build_back_navigation(
+            request,
+            default_back_url,
+            default_label=default_back_label,
+        ),
     }
     if prof.account_type == Profile.AccountType.APPLICANT:
         template_data["skill_badges"] = build_skill_badges_for_applicant(user_to_view)
@@ -429,6 +449,11 @@ def edit_profile(request, username=None):
         return HttpResponseForbidden("You can only edit your own profile.")
 
     profile, _ = Profile.objects.get_or_create(user=request.user)
+    back_navigation = build_back_navigation(
+        request,
+        reverse("accounts.profile"),
+        default_label="Profile",
+    )
 
     if request.method == "POST":
         form = ProfileEditForm(request.POST, request.FILES, instance=profile, user=request.user)
@@ -440,13 +465,23 @@ def edit_profile(request, username=None):
                     prof.headline = prof.skills = prof.education = prof.work_experience = ""
 
                 prof.save()
+                uploaded_resume = request.FILES.get("resume_file")
+                resume_synced = False
+                if prof.account_type == Profile.AccountType.APPLICANT and uploaded_resume:
+                    resume_synced = _sync_profile_resume_skills(prof, created_by=request.user)
+                register_skill_options(prof.skills, created_by=request.user)
 
                 submitted_email = (form.cleaned_data.get("email") or "").strip()
                 if submitted_email and submitted_email != request.user.email:
                     request.user.email = submitted_email
                     request.user.save(update_fields=["email"])
 
-                messages.success(request, "Profile updated successfully!")
+                if uploaded_resume and resume_synced:
+                    messages.success(request, "Profile updated. Parsed resume skills were added to your profile and shared skill options.")
+                elif uploaded_resume:
+                    messages.success(request, "Profile updated. Your PDF resume was saved, but no skills were extracted.")
+                else:
+                    messages.success(request, "Profile updated successfully!")
                 return redirect("accounts.profile")
     else:
         form = ProfileEditForm(instance=profile, user=request.user)
@@ -454,7 +489,15 @@ def edit_profile(request, username=None):
     return render(
         request,
         "accounts/edit_profile.html",
-        {"template_data": {"title": "Edit Profile", "form": form, "skill_options": COMMON_SKILLS}},
+        {
+            "template_data": {
+                "title": "Edit Profile",
+                "form": form,
+                "skill_options": get_skill_options(),
+                "current_url": current_request_url(request),
+                "back_navigation": back_navigation,
+            }
+        },
     )
 
 
@@ -487,6 +530,9 @@ def edit_user(request, user_id):
                     prof.headline = prof.skills = prof.education = prof.work_experience = ""
 
                 prof.save()
+                if prof.account_type == Profile.AccountType.APPLICANT and request.FILES.get("resume_file"):
+                    _sync_profile_resume_skills(prof, created_by=request.user)
+                register_skill_options(prof.skills, created_by=request.user)
 
                 submitted_email = (form.cleaned_data.get("email") or "").strip()
                 if submitted_email and submitted_email != profile.user.email:
@@ -524,6 +570,21 @@ def public_profile(request, username):
     if profile.account_type != Profile.AccountType.APPLICANT or (not is_owner and not profile.visible_to_recruiters):
         raise Http404("Profile not available.")
 
+    if is_owner:
+        default_back_url = (
+            reverse("jobposts.dashboard")
+            if profile.account_type == Profile.AccountType.EMPLOYER
+            else reverse("apply:application_status")
+        )
+        default_back_label = "Dashboard"
+    else:
+        default_back_url = (
+            reverse("accounts.candidate_search")
+            if request.user.is_authenticated
+            else reverse("home.index")
+        )
+        default_back_label = "Find Candidates" if request.user.is_authenticated else "Home"
+
     return render(
         request,
         "accounts/public_profile.html",
@@ -535,6 +596,12 @@ def public_profile(request, username):
                 "is_owner": is_owner,
                 "has_links": profile.links.exists(),
                 "skill_badges": build_skill_badges_for_applicant(user),
+                "current_url": current_request_url(request),
+                "back_navigation": build_back_navigation(
+                    request,
+                    default_back_url,
+                    default_label=default_back_label,
+                ),
             }
         },
     )
@@ -545,14 +612,30 @@ def candidate_search(request):
     if not _is_employer(request.user):
         return HttpResponseForbidden("Only employers can access candidate search.")
 
+    back_url = _candidate_search_back_url(request)
+    active_saved_search = None
+    saved_search_id = (request.GET.get("saved_search") or "").strip()
+
+    if saved_search_id:
+        active_saved_search = get_object_or_404(
+            SavedCandidateSearch,
+            id=saved_search_id,
+            employer=request.user,
+        )
+        filters = active_saved_search.normalized_filters
+        skills = filters["skills"]
+        location = filters["location"]
+        projects = filters["projects"]
+        active_saved_search.mark_viewed()
+    else:
+        skills = request.GET.get("skills", "").strip()
+        location = request.GET.get("location", "").strip()
+        projects = request.GET.get("projects", "").strip()
+
     qs = Profile.objects.filter(
         account_type=Profile.AccountType.APPLICANT,
         visible_to_recruiters=True,
     ).select_related("user").order_by("user__username")
-
-    skills = request.GET.get("skills", "").strip()
-    location = request.GET.get("location", "").strip()
-    projects = request.GET.get("projects", "").strip()
 
     if skills:
         for t in [t.strip() for t in skills.split(",") if t.strip()]:
@@ -574,6 +657,12 @@ def candidate_search(request):
             return set()
         return {token.strip().lower() for token in raw_value.split(",") if token.strip()}
 
+    def _skill_overlap_percent(candidate_skills, job_skills):
+        if not candidate_skills or not job_skills:
+            return 0
+        overlap_count = len(candidate_skills.intersection(job_skills))
+        return round((overlap_count / len(job_skills)) * 100)
+
     employer_jobs = list(
         JobPost.objects.filter(owner=request.user)
         .only("title", "skills", "created_at")
@@ -583,22 +672,49 @@ def candidate_search(request):
 
     for candidate in candidates:
         best_job = None
-        best_score = 0
-        candidate_skills = _skill_set(candidate.skills)
+        best_match_percent = 0
+        best_overlap_count = 0
+        candidate_skills = _skill_set(candidate.skills).union(_skill_set(candidate.parsed_resume_skills))
         for job, job_skills in job_skill_sets:
-            score = len(candidate_skills.intersection(job_skills))
-            if score > best_score:
+            overlap_count = len(candidate_skills.intersection(job_skills))
+            match_percent = _skill_overlap_percent(candidate_skills, job_skills)
+            if match_percent < MIN_MATCH_PERCENT:
+                continue
+            if (
+                match_percent > best_match_percent
+                or (match_percent == best_match_percent and overlap_count > best_overlap_count)
+            ):
                 best_job = job
-                best_score = score
+                best_match_percent = match_percent
+                best_overlap_count = overlap_count
         candidate.has_skill_match = best_job is not None
         candidate.matched_job_title = best_job.title if best_job else ""
+        candidate.matched_job_percent = best_match_percent if best_job else 0
         candidate.skill_badges = build_skill_badges_for_applicant(candidate.user)
     candidates.sort(key=lambda c: (not c.has_skill_match, c.user.username.lower()))
 
     return render(
         request,
         "accounts/candidate_search.html",
-        {"template_data": {"title": "Candidate Search", "candidates": candidates, "filters": {"skills": skills, "location": location, "projects": projects}}},
+        {
+            "template_data": {
+                "title": "Candidate Search",
+                "candidates": candidates,
+                "filters": {"skills": skills, "location": location, "projects": projects},
+                "active_saved_search": active_saved_search,
+                "back_url": back_url,
+                "encoded_back_url": quote(back_url, safe=""),
+                "current_url": current_request_url(request),
+                "back_navigation": build_back_navigation(
+                    request,
+                    back_url,
+                    blocked_prefixes=[
+                        reverse("accounts.candidate_search"),
+                        reverse("accounts.save_search"),
+                    ],
+                ),
+            }
+        },
     )
 
 
@@ -608,6 +724,11 @@ def company_profile_edit(request):
         return HttpResponseForbidden("Only employers can edit company profiles.")
 
     profile, _ = Profile.objects.get_or_create(user=request.user)
+    back_navigation = build_back_navigation(
+        request,
+        reverse("jobposts.dashboard"),
+        default_label="Dashboard",
+    )
     if request.method == "POST":
         form = CompanyProfileForm(request.POST, instance=profile)
         if form.is_valid():
@@ -620,7 +741,14 @@ def company_profile_edit(request):
     return render(
         request,
         "accounts/company_profile_edit.html",
-        {"template_data": {"title": "Edit Company Profile", "form": form}},
+        {
+            "template_data": {
+                "title": "Edit Company Profile",
+                "form": form,
+                "current_url": current_request_url(request),
+                "back_navigation": back_navigation,
+            }
+        },
     )
 
 
@@ -642,7 +770,9 @@ def company_profile(request, username):
         .order_by("-created_at")
     )
     perks = [perk.strip() for perk in (profile.company_perks or "").splitlines() if perk.strip()]
-    response_sla = _build_response_sla_by_employer_ids([company_user.id]).get(company_user.id)
+    response_sla = build_response_sla_by_employer_ids([company_user.id]).get(company_user.id)
+    default_back_url = reverse("jobposts.dashboard") if is_owner else reverse("accounts.company_search")
+    default_back_label = "Dashboard" if is_owner else "Company Search"
 
     return render(
         request,
@@ -656,6 +786,12 @@ def company_profile(request, username):
                 "perks": perks,
                 "office_jobs": office_jobs,
                 "response_sla": response_sla,
+                "current_url": current_request_url(request),
+                "back_navigation": build_back_navigation(
+                    request,
+                    default_back_url,
+                    default_label=default_back_label,
+                ),
             }
         },
     )
@@ -696,7 +832,7 @@ def company_search(request):
 
     companies = list(qs.distinct())
     company_user_ids = [company_profile.user_id for company_profile in companies]
-    response_sla_by_owner = _build_response_sla_by_employer_ids(company_user_ids)
+    response_sla_by_owner = build_response_sla_by_employer_ids(company_user_ids)
     for company_profile in companies:
         company_profile.open_roles_count = JobPost.objects.filter(owner=company_profile.user).count()
         company_profile.response_sla = response_sla_by_owner.get(company_profile.user_id)
@@ -713,35 +849,54 @@ def company_search(request):
                     "culture": culture,
                     "location": location,
                 },
+                "current_url": current_request_url(request),
             }
         },
     )
 
 
 @login_required
+@require_POST
 def save_candidate_search(request):
-    if request.method == "POST":
-        SavedCandidateSearch.objects.create(
-            employer=request.user,
-            search_name=request.POST.get("search_name"),
-            filters={
-                "skills": request.POST.get("skills", ""),
-                "location": request.POST.get("location", ""),
-                "projects": request.POST.get("projects", ""),
-            },
-        )
-        messages.success(request, "Alert created successfully!")
-    return redirect("jobposts.dashboard")
+    if not _is_employer(request.user):
+        return HttpResponseForbidden("Only employers can save candidate alerts.")
+
+    back_url = _candidate_search_back_url(request)
+    search_name = (request.POST.get("search_name") or "").strip()
+    filters = {
+        "skills": (request.POST.get("skills") or "").strip(),
+        "location": (request.POST.get("location") or "").strip(),
+        "projects": (request.POST.get("projects") or "").strip(),
+    }
+
+    if not search_name:
+        messages.warning(request, "Give your alert a name before saving it.")
+        return redirect(_candidate_search_url_with_return_to(back_url))
+    if not any(filters.values()):
+        messages.warning(request, "Add at least one filter before saving an alert.")
+        return redirect(_candidate_search_url_with_return_to(back_url))
+
+    SavedCandidateSearch.objects.create(
+        employer=request.user,
+        search_name=search_name,
+        filters=filters,
+    )
+    messages.success(request, f'Alert "{search_name}" created successfully!')
+    return redirect(back_url)
 
 
 @login_required
+@require_POST
 def delete_candidate_search(request, search_id):
+    if not _is_employer(request.user):
+        return HttpResponseForbidden("Only employers can delete candidate alerts.")
+
+    return_to = _safe_local_return_url(request, request.POST.get("return_to"))
     search = get_object_or_404(SavedCandidateSearch, id=search_id, employer=request.user)
-    if request.method == "POST":
-        name = search.search_name
-        search.delete()
-        messages.warning(request, f'Alert "{name}" deleted.')
-    return redirect("jobposts.dashboard")
+    name = search.search_name
+    search.delete()
+    messages.warning(request, f'Alert "{name}" deleted.')
+    return redirect(return_to or f"{reverse('jobposts.dashboard')}?tab=emp-tools")
 
 
 @login_required
@@ -773,6 +928,11 @@ def applicant_clusters_map(request):
         "title": "Applicant Clusters Map",
         "total_applicants": applicants.count(),
         "cluster_count": len(clusters),
+        "back_navigation": build_back_navigation(
+            request,
+            reverse("accounts.manage_users") if request.user.is_superuser else reverse("accounts.candidate_search"),
+            default_label="Manage Users" if request.user.is_superuser else "Find Candidates",
+        ),
     }
     return render(
         request,
@@ -793,6 +953,11 @@ def email_candidate(request, candidate_id):
     
     candidate = get_object_or_404(Profile, id=candidate_id)
     employer = request.user
+    back_navigation = build_back_navigation(
+        request,
+        reverse("accounts.public_profile", args=[candidate.user.username]),
+        default_label="Candidate Profile",
+    )
 
     # Candidate must have email visible
     if candidate.hide_email_from_employers:
@@ -808,7 +973,10 @@ def email_candidate(request, candidate_id):
 
         if not subject or not message:
             messages.error(request, "Subject and message are required.")
-            return redirect("accounts.email_candidate", candidate_id=candidate_id)
+            return redirect(
+                f"{reverse('accounts.email_candidate', args=[candidate_id])}?return_to="
+                f"{back_navigation['encoded_url']}"
+            )
         
         employer_name = request.user.username
         company_name = request.user.profile.company_name
@@ -828,15 +996,19 @@ def email_candidate(request, candidate_id):
             email.send(fail_silently=False)
 
             messages.success(request, "Your email has been sent.")
-            return redirect("accounts.candidate_search")
+            return redirect(back_navigation["url"])
         except Exception as exc:
             if settings.DEBUG:
                 messages.warning(request, f"Your email could not be sent: {exc}")
             else:
                 messages.warning(request, "Your email could not be sent.")
 
-
-    return render(request, "accounts/email_candidate.html", {
-        "candidate": candidate
-    })
+    return render(
+        request,
+        "accounts/email_candidate.html",
+        {
+            "candidate": candidate,
+            "back_navigation": back_navigation,
+        },
+    )
 

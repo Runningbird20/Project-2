@@ -5,6 +5,9 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from unittest.mock import patch
 from decimal import Decimal
+from datetime import timedelta
+from urllib.parse import quote
+from django.utils import timezone
 
 from accounts.models import Profile
 from map.models import OfficeLocation
@@ -29,6 +32,28 @@ class JobPostViewTests(TestCase):
         Profile.objects.create(
             user=self.applicant_user,
             account_type=Profile.AccountType.APPLICANT,
+        )
+
+    def _create_responded_application(self, job, hours_to_respond, username_suffix):
+        applicant = User.objects.create_user(
+            username=f'sla_job_applicant_{username_suffix}',
+            password='pass12345',
+        )
+        Profile.objects.create(
+            user=applicant,
+            account_type=Profile.AccountType.APPLICANT,
+        )
+        application = Application.objects.create(
+            user=applicant,
+            job=job,
+            resume_type='profile',
+            status='review',
+        )
+        responded_at = timezone.now() - timedelta(hours=1)
+        applied_at = responded_at - timedelta(hours=hours_to_respond)
+        Application.objects.filter(id=application.id).update(
+            applied_at=applied_at,
+            responded_at=responded_at,
         )
 
     def test_create_page_requires_login(self):
@@ -62,6 +87,25 @@ class JobPostViewTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertEqual(JobPost.objects.count(), 1)
+
+    def test_employer_post_redirects_back_to_open_positions_when_return_to_provided(self):
+        self.client.login(username='employer', password='pass12345')
+        return_to = f"{reverse('jobposts.dashboard')}?tab=emp-listings"
+        payload = {
+            'title': 'Backend Engineer',
+            'company': 'Acme Inc',
+            'company_size': 'mid_size',
+            'location': 'Remote',
+            'salary_min': 70000,
+            'salary_max': 90000,
+            'work_setting': 'remote',
+            'description': 'Build APIs and services.',
+            'return_to': return_to,
+        }
+
+        response = self.client.post(reverse('jobposts.create'), payload)
+
+        self.assertRedirects(response, return_to, fetch_redirect_response=False)
 
     def test_employer_post_does_not_require_address_when_country_prefilled(self):
         self.client.login(username='employer', password='pass12345')
@@ -415,6 +459,80 @@ class JobPostViewTests(TestCase):
         self.assertIn(matching, posts)
         self.assertNotIn(non_matching, posts)
 
+    def test_search_matches_full_state_name_to_abbreviated_location(self):
+        florida_job = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Miami Engineer',
+            company='Sunshine Tech',
+            location='Miami, FL',
+            pay_range='$80k-$100k',
+            work_setting='hybrid',
+            description='Florida role',
+        )
+        other_job = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Atlanta Engineer',
+            company='Peachtree Tech',
+            location='Atlanta, GA',
+            pay_range='$80k-$100k',
+            work_setting='hybrid',
+            description='Georgia role',
+        )
+
+        response = self.client.get(reverse('jobposts.search'), {'location': 'Florida'})
+
+        self.assertEqual(response.status_code, 200)
+        posts = list(response.context['template_data']['posts'])
+        self.assertIn(florida_job, posts)
+        self.assertNotIn(other_job, posts)
+
+    def test_search_matches_full_state_name_against_structured_office_location(self):
+        florida_job = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Miami Engineer',
+            company='Sunshine Tech',
+            location='Miami Office',
+            pay_range='$80k-$100k',
+            work_setting='onsite',
+            description='Florida office role',
+        )
+        OfficeLocation.objects.create(
+            job_post=florida_job,
+            address_line_1='200 Biscayne Blvd',
+            city='Miami',
+            state='FL',
+            postal_code='33131',
+            country='United States',
+            latitude=Decimal('25.761700'),
+            longitude=Decimal('-80.191800'),
+        )
+        other_job = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Austin Engineer',
+            company='Lone Star Tech',
+            location='Austin Office',
+            pay_range='$80k-$100k',
+            work_setting='onsite',
+            description='Texas office role',
+        )
+        OfficeLocation.objects.create(
+            job_post=other_job,
+            address_line_1='500 Congress Ave',
+            city='Austin',
+            state='TX',
+            postal_code='78701',
+            country='United States',
+            latitude=Decimal('30.267200'),
+            longitude=Decimal('-97.743100'),
+        )
+
+        response = self.client.get(reverse('jobposts.search'), {'location': 'Florida'})
+
+        self.assertEqual(response.status_code, 200)
+        posts = list(response.context['template_data']['posts'])
+        self.assertIn(florida_job, posts)
+        self.assertNotIn(other_job, posts)
+
     def test_search_filters_only_visa_sponsored_jobs(self):
         self.client.login(username='applicant', password='pass12345')
         visa_job = JobPost.objects.create(
@@ -466,6 +584,89 @@ class JobPostViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Resume Match 67%')
 
+    def test_search_shows_company_response_sla_badge_below_job_tags(self):
+        job = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Backend Engineer',
+            company='Acme Inc',
+            location='Atlanta, GA',
+            pay_range='$80k-$100k',
+            work_setting='hybrid',
+            description='Build APIs',
+        )
+        self._create_responded_application(job, hours_to_respond=48, username_suffix='search')
+
+        response = self.client.get(reverse('jobposts.search'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Responds in ~2 days')
+        self.assertContains(response, 'sla-badge is-green')
+
+    def test_search_page_uses_profile_resume_for_application_flow_only(self):
+        JobPost.objects.create(
+            owner=self.employer_user,
+            title='Backend Engineer',
+            company='Acme Inc',
+            location='Atlanta, GA',
+            pay_range='$80k-$100k',
+            skills='Python, Django',
+            work_setting='hybrid',
+            description='Build APIs',
+        )
+        self.client.login(username='applicant', password='pass12345')
+        response = self.client.get(reverse('jobposts.search'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Upload Resume Skills')
+        self.assertContains(response, 'Use my Profile Resume')
+
+    def test_job_detail_uses_return_to_for_back_navigation(self):
+        job = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Backend Engineer',
+            company='Acme Inc',
+            location='Atlanta, GA',
+            pay_range='$80k-$100k',
+            skills='Python, Django',
+            work_setting='hybrid',
+            description='Build APIs',
+        )
+        return_to = f"{reverse('jobposts.search')}?location=Atlanta%2C+GA"
+
+        response = self.client.get(
+            f"{reverse('jobposts.detail', args=[job.id])}?return_to={quote(return_to, safe='')}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Back to Open Positions')
+        self.assertContains(response, f'href="{return_to}"')
+
+    def test_search_uses_parsed_resume_skills_for_matching_when_profile_skills_are_blank(self):
+        profile = Profile.objects.get(user=self.applicant_user)
+        profile.skills = ''
+        profile.parsed_resume_skills = 'python, django'
+        profile.save(update_fields=['skills', 'parsed_resume_skills'])
+
+        job = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Backend Engineer',
+            company='Acme Inc',
+            location='Atlanta, GA',
+            pay_range='$80k-$100k',
+            skills='Python, Django, SQL',
+            work_setting='hybrid',
+            description='Build APIs',
+        )
+
+        self.client.login(username='applicant', password='pass12345')
+        response = self.client.get(reverse('jobposts.search'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Resume Match 67%')
+        self.assertTrue(
+            ApplicantJobMatch.objects.filter(applicant=self.applicant_user, job=job).exists()
+        )
+
     def test_dashboard_prefills_interview_form_from_query_param(self):
         job = JobPost.objects.create(
             owner=self.employer_user,
@@ -513,6 +714,130 @@ class JobPostViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Resume Match 67%')
+
+    def test_job_detail_shows_company_response_sla_badge_below_job_tags(self):
+        job = JobPost.objects.create(
+            owner=self.employer_user,
+            title='Backend Engineer',
+            company='Acme Inc',
+            location='Atlanta, GA',
+            pay_range='$80k-$100k',
+            work_setting='hybrid',
+            description='Build APIs',
+        )
+        self._create_responded_application(job, hours_to_respond=72, username_suffix='detail')
+
+        response = self.client.get(reverse('jobposts.detail', args=[job.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Responds in ~3 days')
+        self.assertContains(response, 'sla-badge is-yellow')
+
+
+class EmployerDashboardMatchedCandidatesTests(TestCase):
+    def setUp(self):
+        self.employer = User.objects.create_user(
+            username="dashboard_employer",
+            password="pass12345",
+        )
+        Profile.objects.create(
+            user=self.employer,
+            account_type=Profile.AccountType.EMPLOYER,
+        )
+
+    def _login_employer(self):
+        self.client.login(username="dashboard_employer", password="pass12345")
+
+    def _create_applicant(self, username, *, skills, headline=""):
+        applicant = User.objects.create_user(username=username, password="pass12345")
+        Profile.objects.create(
+            user=applicant,
+            account_type=Profile.AccountType.APPLICANT,
+            skills=skills,
+            headline=headline,
+            visible_to_recruiters=True,
+        )
+        return applicant
+
+    def test_dashboard_shows_applied_matches_all_matching_jobs_and_collapsible_cards(self):
+        applied_job = JobPost.objects.create(
+            owner=self.employer,
+            title="Backend Engineer",
+            company="Acme",
+            location="Atlanta, GA",
+            pay_range="$100k-$120k",
+            skills="Python, Django, SQL, AWS",
+            work_setting="hybrid",
+            description="Build APIs",
+        )
+        frontend_job = JobPost.objects.create(
+            owner=self.employer,
+            title="Frontend Engineer",
+            company="Acme",
+            location="Atlanta, GA",
+            pay_range="$100k-$120k",
+            skills="JavaScript, React, CSS",
+            work_setting="remote",
+            description="Build polished interfaces",
+        )
+        ui_job = JobPost.objects.create(
+            owner=self.employer,
+            title="UI Engineer",
+            company="Acme",
+            location="Atlanta, GA",
+            pay_range="$105k-$125k",
+            skills="React, TypeScript, JavaScript, Figma",
+            work_setting="hybrid",
+            description="Ship design systems",
+        )
+
+        applied_candidate = self._create_applicant(
+            "applied_match_candidate",
+            skills="Python, Django",
+            headline="Backend builder",
+        )
+        grouped_candidate = self._create_applicant(
+            "multi_match_candidate",
+            skills="JavaScript, React, TypeScript",
+            headline="Frontend specialist",
+        )
+
+        application = Application.objects.create(
+            user=applied_candidate,
+            job=applied_job,
+            resume_type="profile",
+            status="review",
+        )
+
+        self._login_employer()
+        response = self.client.get(reverse("jobposts.dashboard"), {"tab": "emp-matches"})
+
+        self.assertEqual(response.status_code, 200)
+
+        matched_candidates = response.context["matched_candidates"]
+        applied_entry = next(
+            item for item in matched_candidates if item["candidate"].user == applied_candidate
+        )
+        self.assertEqual(applied_entry["match_count"], 1)
+        self.assertTrue(applied_entry["has_applied_match"])
+        self.assertEqual(applied_entry["matched_jobs"][0]["job"], applied_job)
+        self.assertEqual(applied_entry["matched_jobs"][0]["score"], 50)
+        self.assertEqual(applied_entry["matched_jobs"][0]["application"], application)
+
+        grouped_entry = next(
+            item for item in matched_candidates if item["candidate"].user == grouped_candidate
+        )
+        self.assertEqual(grouped_entry["match_count"], 2)
+        self.assertEqual(
+            {item["job"] for item in grouped_entry["matched_jobs"]},
+            {frontend_job, ui_job},
+        )
+
+        self.assertContains(response, 'data-bs-toggle="collapse"')
+        self.assertContains(response, "Already applied")
+        self.assertContains(response, "multi_match_candidate")
+        self.assertContains(response, reverse("messaging:chat_detail", args=[grouped_candidate.id]))
+        self.assertContains(response, reverse("apply:employer_pipeline", args=[applied_job.id]))
 
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")

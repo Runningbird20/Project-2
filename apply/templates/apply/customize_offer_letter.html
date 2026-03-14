@@ -15,11 +15,12 @@
                 - {{ template_data.job.title }} at {{ template_data.job.company }}
               </p>
             </div>
-            <a href="{% url 'apply:employer_pipeline' template_data.job.id %}" class="secondary-btn btn-compact">Back to Pipeline</a>
+            <a href="{{ template_data.back_navigation.url }}" class="secondary-btn btn-compact">{{ template_data.back_navigation.text }}</a>
           </div>
 
           <form method="post" class="vstack gap-3">
             {% csrf_token %}
+            <input type="hidden" name="return_to" value="{{ template_data.back_navigation.url }}">
             <div>
               <label class="form-label fw-semibold" for="offer_letter_title">Letter Title</label>
               <input
@@ -89,7 +90,7 @@
 
             <div class="form-actions">
               <button type="submit" class="primary-btn border-0">Save Offer Letter</button>
-              <a href="{% url 'apply:offer_letter' template_data.application.id %}" class="secondary-btn">Preview Letter</a>
+              <a href="{% url 'apply:offer_letter' template_data.application.id %}?return_to={{ template_data.current_url|urlencode }}" class="secondary-btn">Preview Letter</a>
             </div>
           </form>
         </div>

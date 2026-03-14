@@ -59,7 +59,7 @@
                     </div>
                   </div>
                   <div class="text-end">
-                    <a class="secondary-btn candidate-action-btn" href="{% url 'accounts.company_profile' company.user.username %}">
+                    <a class="secondary-btn candidate-action-btn" href="{% url 'accounts.company_profile' company.user.username %}?return_to={{ template_data.current_url|urlencode }}">
                       View Company
                     </a>
                   </div>

@@ -21,7 +21,7 @@ class ProfileNavigationTests(TestCase):
         response = self.client.get(reverse("accounts.profile"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Return to Dashboard")
+        self.assertContains(response, "Back to Dashboard")
         self.assertContains(response, reverse("apply:application_status"))
         self.assertNotContains(response, reverse("jobposts.dashboard"))
 
@@ -40,5 +40,5 @@ class ProfileNavigationTests(TestCase):
         response = self.client.get(reverse("accounts.profile"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Return to Dashboard")
+        self.assertContains(response, "Back to Dashboard")
         self.assertContains(response, reverse("jobposts.dashboard"))

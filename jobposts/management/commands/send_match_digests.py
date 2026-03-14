@@ -5,7 +5,7 @@ from django.core.mail import send_mail
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from accounts.models import Profile
+from accounts.models import Profile, SavedCandidateSearch
 from apply.models import Application
 from jobposts.models import JobPost
 
@@ -18,6 +18,10 @@ def _skill_set(raw_value):
     return {token.strip().lower() for token in raw_value.split(",") if token.strip()}
 
 
+def _profile_skill_set(profile):
+    return _skill_set(profile.skills).union(_skill_set(profile.parsed_resume_skills))
+
+
 def _skill_overlap_percent(applicant_skills, job_skills):
     if not applicant_skills or not job_skills:
         return 0
@@ -27,8 +31,8 @@ def _skill_overlap_percent(applicant_skills, job_skills):
 
 class Command(BaseCommand):
     help = (
-        "Send match digest emails to applicants and employers on Tuesdays/Thursdays at 12 PM "
-        "(local server time)."
+        "Send match digest emails to applicants, employers, and recruiter saved-search alerts "
+        "on Tuesdays/Thursdays at 12 PM (local server time)."
     )
 
     def add_arguments(self, parser):
@@ -67,17 +71,21 @@ class Command(BaseCommand):
             ).select_related("user")
         )
         jobs = list(JobPost.objects.select_related("owner").all())
+        saved_searches = list(
+            SavedCandidateSearch.objects.select_related("employer").order_by("-created_at")
+        )
 
-        if not applicants or not jobs:
-            self.stdout.write(self.style.SUCCESS("Nothing to send: no applicants or jobs."))
+        if not applicants and not jobs and not saved_searches:
+            self.stdout.write(self.style.SUCCESS("Nothing to send: no applicants, jobs, or saved alerts."))
             return
 
         applied_pairs = set(Application.objects.values_list("user_id", "job_id"))
-        applicant_skill_map = {p.user_id: _skill_set(p.skills) for p in applicants}
+        applicant_skill_map = {p.user_id: _profile_skill_set(p) for p in applicants}
         job_skill_map = {job.id: _skill_set(job.skills) for job in jobs}
 
         applicant_sent = 0
         employer_sent = 0
+        saved_alert_sent = 0
 
         # Applicant digests: matching jobs not yet applied.
         for profile in applicants:
@@ -167,11 +175,55 @@ class Command(BaseCommand):
                 )
                 employer_sent += 1
 
+        for saved_search in saved_searches:
+            employer = saved_search.employer
+            if not employer or not employer.email:
+                continue
+
+            matched_profiles = list(saved_search.matches_to_notify_queryset()[:25])
+            if not matched_profiles:
+                continue
+
+            lines = []
+            for profile in matched_profiles:
+                headline = f" - {profile.headline}" if profile.headline else ""
+                location = f" ({profile.location_city_state})" if profile.location_city_state else ""
+                lines.append(f"- {profile.user.username}{headline}{location}")
+
+            filter_summary = saved_search.filters_summary
+
+            message = (
+                f"Hi {employer.username},\n\n"
+                f'Your PandaPulse saved alert "{saved_search.search_name}" has new matching candidates.\n\n'
+                f"Alert filters: {filter_summary}\n\n"
+                "New candidate matches:\n\n"
+                f"{chr(10).join(lines)}\n\n"
+                "Log in to PandaPulse to review the candidates and continue outreach.\n\n"
+                "Best regards,\n"
+                "The PandaPulse Team"
+            )
+
+            if dry_run:
+                self.stdout.write(
+                    f'[DRY RUN] Saved alert email -> {employer.email} ("{saved_search.search_name}", {len(matched_profiles)} matches)'
+                )
+            else:
+                send_mail(
+                    subject=f'PandaPulse Alert: {saved_search.search_name}',
+                    message=message,
+                    from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "no-reply@pandapulse.local"),
+                    recipient_list=[employer.email],
+                    fail_silently=False,
+                )
+                saved_search.mark_notified()
+                saved_alert_sent += 1
+
         if dry_run:
             self.stdout.write(self.style.SUCCESS("Dry run complete."))
         else:
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"Digests sent. Applicant emails: {applicant_sent}. Employer emails: {employer_sent}."
+                    f"Digests sent. Applicant emails: {applicant_sent}. Employer emails: {employer_sent}. "
+                    f"Saved alert emails: {saved_alert_sent}."
                 )
             )

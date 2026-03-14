@@ -111,8 +111,8 @@
       </div>
       <div class="form-actions">
         <a href="{% url 'messaging:inbox' %}" class="secondary-btn">Messages</a>
-        <a href="{% url 'accounts.company_profile_edit' %}" class="secondary-btn">Company Profile</a>
-        <a href="{% url 'jobposts.create' %}" class="primary-btn border-0 post-job-btn">Post New Job</a>
+        <a href="{% url 'accounts.company_profile_edit' %}?return_to={{ dashboard_return_urls.profile|urlencode }}" class="secondary-btn">Company Profile</a>
+        <a href="{% url 'jobposts.create' %}?return_to={{ dashboard_return_urls.listings|urlencode }}" class="primary-btn border-0 post-job-btn">Post New Job</a>
       </div>
     </div>
 
@@ -148,10 +148,22 @@
             <div class="row g-4 mb-4">
               <div class="col-md-4"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Active Postings</div><h3 class="surface-title mb-0">{{ jobs.count }}</h3></div></div>
               <div class="col-md-4"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Total Applicants</div><h3 class="surface-title mb-0">{{ overall_total|default:'0' }}</h3></div></div>
-              <div class="col-md-4"><div class="surface-card h-100"><div class="text-uppercase small text-muted">Active Alerts</div><h3 class="surface-title mb-0">{{ saved_searches.count|default:'0' }}</h3></div></div>
+              <div class="col-md-4">
+                <div class="surface-card h-100">
+                  <div class="text-uppercase small text-muted">Active Alerts</div>
+                  <h3 class="surface-title mb-1">{{ saved_searches_count|default:'0' }}</h3>
+                  {% if saved_search_new_alert_count %}
+                    <div class="small text-success fw-semibold">
+                      {{ saved_search_new_alert_count }} alert{{ saved_search_new_alert_count|pluralize }} with {{ saved_search_new_match_total }} new candidate{{ saved_search_new_match_total|pluralize }}
+                    </div>
+                  {% else %}
+                    <div class="small text-muted">No new alert matches</div>
+                  {% endif %}
+                </div>
+              </div>
             </div>
             <div class="surface-card p-0 overflow-hidden">
-              <div class="px-4 py-3 border-bottom"><h3 class="surface-title mb-0">My Job Listing</h3></div>
+              <div class="px-4 py-3 border-bottom"><h3 class="surface-title mb-0">My Job Listings</h3></div>
               <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 job-table">
                   <thead class="table-light"><tr><th class="ps-4 py-3">Job Details</th><th class="py-3 text-center">Posted On</th><th class="py-3 text-center">Total Apps</th><th class="py-3 text-center">New</th><th class="py-3 text-end pe-4">Manage</th></tr></thead>
@@ -172,7 +184,7 @@
                       <td class="small text-muted text-center posted-on-cell">{{ job.created_at|date:'M d, Y' }}</td>
                       <td class="text-center">{{ job.total_apps }}</td>
                       <td class="text-center">{% if job.new_apps > 0 %}<span class="badge bg-success-subtle text-success">{{ job.new_apps }} New</span>{% else %}<span class="text-muted">-</span>{% endif %}</td>
-                      <td class="text-end pe-4"><div class="form-actions justify-content-end"><a href="{% url 'apply:employer_pipeline' job.id %}" class="secondary-btn">Pipeline</a><a href="{% url 'jobposts.edit' job.id %}" class="secondary-btn">Edit</a><form action="{% url 'jobposts.delete' job.id %}" method="POST" onsubmit="return confirm('Delete this listing?');">{% csrf_token %}<button type="submit" class="danger-btn border-0">Delete</button></form></div></td>
+                      <td class="text-end pe-4"><div class="form-actions justify-content-end"><a href="{% url 'apply:employer_pipeline' job.id %}" class="secondary-btn">Pipeline</a><a href="{% url 'jobposts.edit' job.id %}?return_to={{ dashboard_return_urls.listings|urlencode }}" class="secondary-btn">Edit</a><form action="{% url 'jobposts.delete' job.id %}" method="POST" onsubmit="return confirm('Delete this listing?');">{% csrf_token %}<input type="hidden" name="return_to" value="{{ dashboard_return_urls.listings }}"><button type="submit" class="danger-btn border-0">Delete</button></form></div></td>
                     </tr>
                     {% empty %}
                     <tr><td colspan="5" class="text-center py-5 text-muted">No active job posts yet.</td></tr>
@@ -185,168 +197,230 @@
 
           <div class="tab-pane fade" id="emp-interviews" role="tabpanel" aria-labelledby="emp-interviews-btn" tabindex="0">
             {% include "interviews/partials/interview_calendar.html" with interview_tab_target="emp-interviews" interview_calendar_interactive=True %}
-            <div class="surface-card mb-3">
-              <h3 class="surface-title mb-2">Propose Interview Slots</h3>
-              <p class="text-muted mb-2">
-                Click a day on the calendar to add a time option for an applicant.
-              </p>
-              <p class="small text-muted mb-0">
-                Best practice: propose at least 2-3 time slots for each applicant to improve scheduling speed.
-              </p>
-            </div>
-            <div class="surface-card mb-3">
-              <h3 class="surface-title mb-3">Open Slots</h3>
-              <div class="vstack gap-2">
-                {% for slot in open_interview_slots %}
-                <div class="border rounded-4 p-3">
-                  <div class="fw-semibold">{{ slot.applicant.username }} - {{ slot.application.job.title }}</div>
-                  <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
+            <div class="surface-card p-0 overflow-hidden mb-3">
+              <div class="px-4 py-3 border-bottom d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <h3 class="surface-title mb-0">Propose Interview Slots</h3>
+                <button
+                  type="button"
+                  class="pipeline-card-toggle"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#employerInterviewProposeBody"
+                  aria-expanded="false"
+                  aria-controls="employerInterviewProposeBody"
+                >
+                  <span class="visually-hidden">Toggle propose interview slots section</span>
+                  <i class="bi bi-chevron-down pipeline-card-toggle-icon"></i>
+                </button>
+              </div>
+              <div class="collapse" id="employerInterviewProposeBody">
+                <div class="px-4 py-3">
+                  <p class="text-muted mb-2">
+                    Click a day on the calendar to add a time option for an applicant.
+                  </p>
+                  <p class="small text-muted mb-0">
+                    Best practice: propose at least 2-3 time slots for each applicant to improve scheduling speed.
+                  </p>
                 </div>
-                {% empty %}
-                <p class="text-muted mb-0">No open interview slots.</p>
-                {% endfor %}
               </div>
             </div>
             <div class="surface-card p-0 overflow-hidden mb-3">
-              <div class="px-4 py-3 border-bottom"><h3 class="surface-title mb-0">Upcoming Scheduled Interviews</h3></div>
-              <div class="px-4 py-3 vstack gap-2">
-                {% for slot in upcoming_interviews %}
-                <div class="border rounded-4 p-3">
-                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div>
-                      <div class="fw-semibold">{{ slot.applicant.username }} - {{ slot.application.job.title }}</div>
-                      <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
-                    </div>
-                    <div class="form-actions">
-                      <a class="secondary-btn btn-compact" href="{{ slot.google_calendar_url }}">Google Calendar</a>
-                      <a class="secondary-btn btn-compact" href="{% url 'interviews:download_ics' slot.id %}">Download ICS</a>
-                    </div>
+              <div class="px-4 py-3 border-bottom d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <h3 class="surface-title mb-0">Open Slots</h3>
+                <button
+                  type="button"
+                  class="pipeline-card-toggle"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#employerInterviewOpenSlotsBody"
+                  aria-expanded="false"
+                  aria-controls="employerInterviewOpenSlotsBody"
+                >
+                  <span class="visually-hidden">Toggle open interview slots section</span>
+                  <i class="bi bi-chevron-down pipeline-card-toggle-icon"></i>
+                </button>
+              </div>
+              <div class="collapse" id="employerInterviewOpenSlotsBody">
+                <div class="px-4 py-3 vstack gap-2">
+                  {% for slot in open_interview_slots %}
+                  <div class="border rounded-4 p-3">
+                    <div class="fw-semibold">{{ slot.applicant.username }} - {{ slot.application.job.title }}</div>
+                    <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
                   </div>
+                  {% empty %}
+                  <p class="text-muted mb-0">No open interview slots.</p>
+                  {% endfor %}
                 </div>
-                {% empty %}
-                <p class="text-muted mb-0">No upcoming scheduled interviews.</p>
-                {% endfor %}
               </div>
             </div>
-            <div class="surface-card p-0 overflow-hidden">
-              <div class="px-4 py-3 border-bottom"><h3 class="surface-title mb-0">Past Interviews</h3></div>
-              <div class="px-4 py-3 vstack gap-2">
-                {% for slot in past_interviews %}
-                <div class="border rounded-4 p-3">
-                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div>
-                      <div class="fw-semibold">{{ slot.applicant.username }} - {{ slot.application.job.title }}</div>
-                      <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
-                    </div>
-                    <div class="form-actions">
-                      <a class="secondary-btn btn-compact" href="{{ slot.google_calendar_url }}">Google Calendar</a>
-                      <a class="secondary-btn btn-compact" href="{% url 'interviews:download_ics' slot.id %}">Download ICS</a>
-                    </div>
-                  </div>
-                  <div class="mt-3 pt-3 border-top">
+            <div class="surface-card p-0 overflow-hidden mb-3">
+              <div class="px-4 py-3 border-bottom d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <h3 class="surface-title mb-0">Upcoming Scheduled Interviews</h3>
+                <button
+                  type="button"
+                  class="pipeline-card-toggle"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#employerInterviewUpcomingBody"
+                  aria-expanded="false"
+                  aria-controls="employerInterviewUpcomingBody"
+                >
+                  <span class="visually-hidden">Toggle upcoming interviews section</span>
+                  <i class="bi bi-chevron-down pipeline-card-toggle-icon"></i>
+                </button>
+              </div>
+              <div class="collapse" id="employerInterviewUpcomingBody">
+                <div class="px-4 py-3 vstack gap-2">
+                  {% for slot in upcoming_interviews %}
+                  <div class="border rounded-4 p-3">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                       <div>
-                        <h4 class="surface-title mb-0">Internal Interview Feedback</h4>
-                        {% if slot.feedback %}
-                          <span class="small text-muted">Last updated {{ slot.feedback.updated_at|date:"M j, Y g:i A" }}</span>
+                        <div class="fw-semibold">{{ slot.applicant.username }} - {{ slot.application.job.title }}</div>
+                        <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
+                      </div>
+                      <div class="form-actions">
+                        <a class="secondary-btn btn-compact" href="{{ slot.google_calendar_url }}">Google Calendar</a>
+                        <a class="secondary-btn btn-compact" href="{% url 'interviews:download_ics' slot.id %}">Download ICS</a>
+                      </div>
+                    </div>
+                  </div>
+                  {% empty %}
+                  <p class="text-muted mb-0">No upcoming scheduled interviews.</p>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+            <div class="surface-card p-0 overflow-hidden mb-3">
+              <div class="px-4 py-3 border-bottom d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <h3 class="surface-title mb-0">Past Interviews</h3>
+                <button
+                  type="button"
+                  class="pipeline-card-toggle"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#employerInterviewPastBody"
+                  aria-expanded="false"
+                  aria-controls="employerInterviewPastBody"
+                >
+                  <span class="visually-hidden">Toggle past interviews section</span>
+                  <i class="bi bi-chevron-down pipeline-card-toggle-icon"></i>
+                </button>
+              </div>
+              <div class="collapse" id="employerInterviewPastBody">
+                <div class="px-4 py-3 vstack gap-2">
+                  {% for slot in past_interviews %}
+                  <div class="border rounded-4 p-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                      <div>
+                        <div class="fw-semibold">{{ slot.applicant.username }} - {{ slot.application.job.title }}</div>
+                        <div class="small text-muted">{{ slot.start_at|date:"M j, Y g:i A" }} - {{ slot.end_at|date:"g:i A" }}</div>
+                      </div>
+                      <div class="form-actions">
+                        <a class="secondary-btn btn-compact" href="{{ slot.google_calendar_url }}">Google Calendar</a>
+                        <a class="secondary-btn btn-compact" href="{% url 'interviews:download_ics' slot.id %}">Download ICS</a>
+                      </div>
+                    </div>
+                    <div class="mt-3 pt-3 border-top">
+                      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div>
+                          <div class="fw-semibold">Internal Interview Feedback</div>
+                          {% if slot.feedback %}
+                            <span class="small text-muted">Last updated {{ slot.feedback.updated_at|date:"M j, Y g:i A" }}</span>
+                          {% else %}
+                            <span class="small text-muted">Not submitted yet</span>
+                          {% endif %}
+                        </div>
+                        {% if slot.feedback_allowed %}
+                          <button
+                            type="button"
+                            class="primary-btn btn-compact border-0"
+                            data-bs-toggle="modal"
+                            data-bs-target="#interviewFeedbackModal{{ slot.id }}"
+                          >
+                            {% if slot.feedback %}Edit Feedback{% else %}Add Feedback{% endif %}
+                          </button>
                         {% else %}
-                          <span class="small text-muted">Not submitted yet</span>
+                          <span class="small text-muted">Feedback unlocks after this interview ends.</span>
                         {% endif %}
                       </div>
-                      {% if slot.feedback_allowed %}
-                        <button
-                          type="button"
-                          class="primary-btn btn-compact border-0"
-                          data-bs-toggle="modal"
-                          data-bs-target="#interviewFeedbackModal{{ slot.id }}"
-                        >
-                          {% if slot.feedback %}Edit Feedback{% else %}Add Feedback{% endif %}
-                        </button>
-                      {% else %}
-                        <span class="small text-muted">Feedback unlocks after this interview ends.</span>
-                      {% endif %}
                     </div>
                   </div>
-                </div>
-                {% if slot.feedback_allowed %}
-                <div class="modal fade" id="interviewFeedbackModal{{ slot.id }}" tabindex="-1" aria-hidden="true">
-                  <div class="modal-dialog modal-lg modal-dialog-centered">
-                    <div class="modal-content border-0 shadow rounded-4">
-                      <form method="post" action="{% url 'interviews:save_feedback' slot.id %}">
-                        {% csrf_token %}
-                        <div class="modal-header border-0 pb-0">
-                          <h5 class="modal-title fw-bold">Internal Interview Feedback</h5>
-                          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body py-4">
-                          <div class="row g-3">
-                            <div class="col-md-4">
-                              <label class="form-label fw-semibold" for="{{ slot.feedback_form.technical_score.id_for_label }}">Technical</label>
-                              {{ slot.feedback_form.technical_score }}
-                            </div>
-                            <div class="col-md-4">
-                              <label class="form-label fw-semibold" for="{{ slot.feedback_form.communication_score.id_for_label }}">Communication</label>
-                              {{ slot.feedback_form.communication_score }}
-                            </div>
-                            <div class="col-md-4">
-                              <label class="form-label fw-semibold" for="{{ slot.feedback_form.problem_solving_score.id_for_label }}">Problem Solving</label>
-                              {{ slot.feedback_form.problem_solving_score }}
-                            </div>
-                            <div class="col-md-6">
-                              <label class="form-label fw-semibold" for="{{ slot.feedback_form.recommendation.id_for_label }}">Recommendation</label>
-                              {{ slot.feedback_form.recommendation }}
-                            </div>
-                            <div class="col-md-6">
-                              <label class="form-label fw-semibold" for="{{ slot.feedback_form.decision_rationale.id_for_label }}">Decision Rationale</label>
-                              {{ slot.feedback_form.decision_rationale }}
-                            </div>
-                            <div class="col-md-6">
-                              <label class="form-label fw-semibold" for="{{ slot.feedback_form.strengths.id_for_label }}">Strengths</label>
-                              {{ slot.feedback_form.strengths }}
-                            </div>
-                            <div class="col-md-6">
-                              <label class="form-label fw-semibold" for="{{ slot.feedback_form.concerns.id_for_label }}">Concerns</label>
-                              {{ slot.feedback_form.concerns }}
-                            </div>
-                            <div class="col-12">
-                              <label class="form-label fw-semibold mb-2">Skill Endorsements</label>
-                              {% if slot.skill_endorsement_options %}
-                              <div class="d-flex flex-wrap gap-2">
-                                {% for option in slot.skill_endorsement_options %}
-                                <input
-                                  class="btn-check"
-                                  type="checkbox"
-                                  name="endorsed_skills"
-                                  id="endorseSkill{{ slot.id }}{{ forloop.counter }}"
-                                  value="{{ option.value }}"
-                                  {% if option.endorsed %}checked{% endif %}
-                                >
-                                <label class="badge rounded-pill endorsement-chip" for="endorseSkill{{ slot.id }}{{ forloop.counter }}">
-                                  {{ option.label }}
-                                </label>
-                                {% endfor %}
+                  {% if slot.feedback_allowed %}
+                  <div class="modal fade" id="interviewFeedbackModal{{ slot.id }}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                      <div class="modal-content border-0 shadow rounded-4">
+                        <form method="post" action="{% url 'interviews:save_feedback' slot.id %}">
+                          {% csrf_token %}
+                          <div class="modal-header border-0 pb-0">
+                            <h5 class="modal-title fw-bold">Internal Interview Feedback</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                          </div>
+                          <div class="modal-body py-4">
+                            <div class="row g-3">
+                              <div class="col-md-4">
+                                <label class="form-label fw-semibold" for="{{ slot.feedback_form.technical_score.id_for_label }}">Technical</label>
+                                {{ slot.feedback_form.technical_score }}
                               </div>
-                              <div class="form-text">One-click endorsements: click any skill to endorse it.</div>
-                              {% else %}
-                              <div class="small text-muted">Applicant has no listed skills to endorse.</div>
-                              {% endif %}
+                              <div class="col-md-4">
+                                <label class="form-label fw-semibold" for="{{ slot.feedback_form.communication_score.id_for_label }}">Communication</label>
+                                {{ slot.feedback_form.communication_score }}
+                              </div>
+                              <div class="col-md-4">
+                                <label class="form-label fw-semibold" for="{{ slot.feedback_form.problem_solving_score.id_for_label }}">Problem Solving</label>
+                                {{ slot.feedback_form.problem_solving_score }}
+                              </div>
+                              <div class="col-md-6">
+                                <label class="form-label fw-semibold" for="{{ slot.feedback_form.recommendation.id_for_label }}">Recommendation</label>
+                                {{ slot.feedback_form.recommendation }}
+                              </div>
+                              <div class="col-md-6">
+                                <label class="form-label fw-semibold" for="{{ slot.feedback_form.decision_rationale.id_for_label }}">Decision Rationale</label>
+                                {{ slot.feedback_form.decision_rationale }}
+                              </div>
+                              <div class="col-md-6">
+                                <label class="form-label fw-semibold" for="{{ slot.feedback_form.strengths.id_for_label }}">Strengths</label>
+                                {{ slot.feedback_form.strengths }}
+                              </div>
+                              <div class="col-md-6">
+                                <label class="form-label fw-semibold" for="{{ slot.feedback_form.concerns.id_for_label }}">Concerns</label>
+                                {{ slot.feedback_form.concerns }}
+                              </div>
+                              <div class="col-12">
+                                <label class="form-label fw-semibold mb-2">Skill Endorsements</label>
+                                {% if slot.skill_endorsement_options %}
+                                <div class="d-flex flex-wrap gap-2">
+                                  {% for option in slot.skill_endorsement_options %}
+                                  <input
+                                    class="btn-check"
+                                    type="checkbox"
+                                    name="endorsed_skills"
+                                    id="endorseSkill{{ slot.id }}{{ forloop.counter }}"
+                                    value="{{ option.value }}"
+                                    {% if option.endorsed %}checked{% endif %}
+                                  >
+                                  <label class="badge rounded-pill endorsement-chip" for="endorseSkill{{ slot.id }}{{ forloop.counter }}">
+                                    {{ option.label }}
+                                  </label>
+                                  {% endfor %}
+                                </div>
+                                <div class="form-text">One-click endorsements: click any skill to endorse it.</div>
+                                {% else %}
+                                <div class="small text-muted">Applicant has no listed skills to endorse.</div>
+                                {% endif %}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div class="modal-footer border-0 pt-0">
-                          <button type="button" class="secondary-btn btn-compact border-0" data-bs-dismiss="modal">Cancel</button>
-                          <button type="submit" class="primary-btn btn-compact border-0">
-                            {% if slot.feedback %}Update Feedback{% else %}Save Feedback{% endif %}
-                          </button>
-                        </div>
-                      </form>
+                          <div class="modal-footer border-0 pt-0">
+                            <button type="button" class="secondary-btn btn-compact border-0" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="primary-btn btn-compact border-0">
+                              {% if slot.feedback %}Update Feedback{% else %}Save Feedback{% endif %}
+                            </button>
+                          </div>
+                        </form>
+                      </div>
                     </div>
                   </div>
+                  {% endif %}
+                  {% empty %}
+                  <p class="text-muted mb-0">No past interviews yet.</p>
+                  {% endfor %}
                 </div>
-                {% endif %}
-                {% empty %}
-                <p class="text-muted mb-0">No past interviews yet.</p>
-                {% endfor %}
               </div>
             </div>
           </div>
@@ -399,42 +473,99 @@
 
           <div class="tab-pane fade" id="emp-matches" role="tabpanel" aria-labelledby="emp-matches-btn" tabindex="0">
             <div class="surface-card">
-              <h3 class="surface-title mb-2">Matched Candidates</h3>
+              <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+                <div>
+                  <h3 class="surface-title mb-1">Matched Candidates</h3>
+                  <p class="text-muted mb-0">Expand a candidate to review every matching role, including jobs they already applied to.</p>
+                </div>
+                {% if matched_candidates %}
+                  <span class="badge bg-dark-subtle text-dark">{{ matched_candidates|length }} candidate{{ matched_candidates|length|pluralize }}</span>
+                {% endif %}
+              </div>
               <div class="vstack gap-3">
                 {% for match in matched_candidates %}
-                  <div class="border rounded-4 p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div>
-                      <div class="fw-semibold">{{ match.candidate.user.get_full_name|default:match.candidate.user.username }}</div>
-                      {% if match.candidate.headline %}
-                        <div class="small text-muted">{{ match.candidate.headline }}</div>
-                      {% endif %}
-                      <div class="small text-success fw-semibold mt-1">
-                        <span class="me-1" aria-hidden="true">&#9679;</span>
-                        Matched {{ match.job.title }}
-                      </div>
-                      {% if match.overlap_skill_badges %}
-                        <div class="small text-muted mt-2">Why matched</div>
-                        <div class="d-flex flex-wrap gap-1 mt-1">
-                          {% for skill in match.overlap_skill_badges %}
-                            <span
-                              class="badge rounded-pill skill-indicator {% if skill.endorsed %}is-endorsed{% else %}is-default{% endif %}"
-                              {% if skill.endorsed_by %}
-                                title="Endorsed by {{ skill.endorsed_by }}"
-                                data-bs-toggle="tooltip"
-                                data-bs-placement="top"
-                                data-bs-custom-class="endorsement-tooltip"
-                                data-bs-title="Endorsed by {{ skill.endorsed_by }}"
-                              {% endif %}
-                            >
-                              {{ skill.name }}
-                            </span>
-                          {% endfor %}
+                  <div class="border rounded-4 p-3 dashboard-match-card">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 dashboard-match-card-header">
+                      <div class="dashboard-match-summary">
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                          <div class="fw-semibold">{{ match.candidate.user.get_full_name|default:match.candidate.user.username }}</div>
+                          <span class="badge bg-dark-subtle text-dark">{{ match.match_count }} match{{ match.match_count|pluralize }}</span>
+                          {% if match.has_applied_match %}
+                            <span class="badge bg-success-subtle text-success">Includes applied role</span>
+                          {% endif %}
                         </div>
-                      {% endif %}
+                        {% if match.candidate.headline %}
+                          <div class="small text-muted mt-1">{{ match.candidate.headline }}</div>
+                        {% endif %}
+                        <div class="small text-success fw-semibold mt-2">
+                          <span class="me-1" aria-hidden="true">&#9679;</span>
+                          Top match: {{ match.top_match.job.title }} ({{ match.top_match.score }}%)
+                        </div>
+                      </div>
+                      <div class="d-flex align-items-center gap-2 flex-wrap dashboard-match-header-actions">
+                        <a href="{% url 'accounts.public_profile' match.candidate.user.username %}?return_to={{ dashboard_return_urls.matches|urlencode }}" class="secondary-btn btn-compact">View Profile</a>
+                        <a href="{% url 'messaging:chat_detail' match.candidate.user_id %}" class="primary-btn btn-compact border-0">Message Candidate</a>
+                        <button
+                          type="button"
+                          class="pipeline-card-toggle"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#dashboardMatchBody{{ match.candidate.user_id }}"
+                          aria-expanded="false"
+                          aria-controls="dashboardMatchBody{{ match.candidate.user_id }}"
+                        >
+                          <span class="visually-hidden">Toggle matched roles</span>
+                          <i class="bi bi-chevron-down pipeline-card-toggle-icon"></i>
+                        </button>
+                      </div>
                     </div>
-                    <div class="form-actions">
-                      <a href="{% url 'accounts.public_profile' match.candidate.user.username %}" class="secondary-btn btn-compact">View Profile</a>
-                      <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn btn-compact">Open Search</a>
+                    <div class="collapse dashboard-match-card-body" id="dashboardMatchBody{{ match.candidate.user_id }}">
+                      <div class="dashboard-match-job-list">
+                        {% for job_match in match.matched_jobs %}
+                          <div class="border rounded-4 p-3 dashboard-match-job">
+                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                              <div>
+                                <div class="fw-semibold">{{ job_match.job.title }}</div>
+                                <div class="small text-muted">{{ job_match.job.company }} &middot; {{ job_match.job.location }}</div>
+                                <div class="small mt-1">
+                                  <span class="fw-semibold text-success">{{ job_match.score }}% match</span>
+                                  {% if job_match.has_application %}
+                                    <span class="text-muted">&middot; Already applied</span>
+                                    <span class="badge bg-info-subtle text-info-emphasis ms-1">{{ job_match.application_status_label }}</span>
+                                  {% else %}
+                                    <span class="text-muted">&middot; Not yet applied</span>
+                                  {% endif %}
+                                </div>
+                              </div>
+                              <div class="form-actions">
+                                {% if job_match.has_application %}
+                                  <a href="{% url 'apply:employer_pipeline' job_match.job.id %}" class="secondary-btn btn-compact">Open Pipeline</a>
+                                {% else %}
+                                  <a href="{% url 'jobposts.detail' job_match.job.id %}" class="secondary-btn btn-compact">View Job</a>
+                                {% endif %}
+                              </div>
+                            </div>
+                            {% if job_match.overlap_skill_badges %}
+                              <div class="small text-muted mt-2">Why matched</div>
+                              <div class="d-flex flex-wrap gap-1 mt-1">
+                                {% for skill in job_match.overlap_skill_badges %}
+                                  <span
+                                    class="badge rounded-pill skill-indicator {% if skill.endorsed %}is-endorsed{% else %}is-default{% endif %}"
+                                    {% if skill.endorsed_by %}
+                                      title="Endorsed by {{ skill.endorsed_by }}"
+                                      data-bs-toggle="tooltip"
+                                      data-bs-placement="top"
+                                      data-bs-custom-class="endorsement-tooltip"
+                                      data-bs-title="Endorsed by {{ skill.endorsed_by }}"
+                                    {% endif %}
+                                  >
+                                    {{ skill.name }}
+                                  </span>
+                                {% endfor %}
+                              </div>
+                            {% endif %}
+                          </div>
+                        {% endfor %}
+                      </div>
                     </div>
                   </div>
                 {% empty %}
@@ -481,11 +612,10 @@
 
               <div class="form-actions">
                 <a href="{% url 'accounts.profile' %}" class="secondary-btn btn-compact">View Full Profile</a>
-                <a href="{% url 'accounts.profile_edit' %}" class="primary-btn btn-compact border-0">Edit Profile</a>
+                <a href="{% url 'accounts.profile_edit' %}?return_to={{ dashboard_return_urls.profile|urlencode }}" class="primary-btn btn-compact border-0">Edit Profile</a>
               </div>
             </div>
           </div>
-
           <div class="tab-pane fade" id="emp-archived" role="tabpanel" aria-labelledby="emp-archived-btn" tabindex="0">
             <div class="surface-card">
               <h3 class="surface-title mb-3">Archived Rejected Applicants</h3>
@@ -510,9 +640,108 @@
 
           <div class="tab-pane fade" id="emp-tools" role="tabpanel" aria-labelledby="emp-tools-btn" tabindex="0">
             <div class="surface-card">
-              <h3 class="surface-title mb-2">More Tools</h3>
-              <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                <p class="text-muted mb-0">This section will include additional employer tools such as interview templates, outreach messages, and hiring analytics.</p>
+              <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+                <div>
+                  <h3 class="surface-title mb-1">More Tools</h3>
+                  <p class="text-muted mb-0">Quick access to recruiter workflows and alert management.</p>
+                </div>
+              </div>
+
+              <div id="saved-alert-management" class="border rounded-4 p-3 mt-3">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+                  <div>
+                    <h3 class="surface-title mb-1">Alerts</h3>
+                    <p class="text-muted mb-0">Open a saved alert to rerun the search and review or remove alerts from one place.</p>
+                  </div>
+                  <button type="button" class="primary-btn btn-compact border-0" data-bs-toggle="modal" data-bs-target="#dashboardCreateAlertModal">Create Alert</button>
+                </div>
+
+                <div class="vstack gap-3">
+                  {% for saved_search in saved_searches %}
+                    <div class="border rounded-4 p-3">
+                      <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                        <div>
+                          <div class="d-flex align-items-center flex-wrap gap-2">
+                            <div class="fw-semibold">{{ saved_search.search_name }}</div>
+                            {% if saved_search.pending_new_match_count %}
+                              <span class="badge bg-success-subtle text-success">
+                                {{ saved_search.pending_new_match_count }} new candidate{{ saved_search.pending_new_match_count|pluralize }}
+                              </span>
+                            {% endif %}
+                          </div>
+                          <div class="small text-muted mt-1">{{ saved_search.filters_summary }}</div>
+                          <div class="small text-muted mt-2">
+                            {{ saved_search.current_match_count }} current matching candidate{{ saved_search.current_match_count|pluralize }}
+                            &middot; Saved {{ saved_search.created_at|date:"M j, Y" }}
+                            {% if saved_search.last_viewed_at %}
+                              &middot; Last reviewed {{ saved_search.last_viewed_at|date:"M j, Y g:i A" }}
+                            {% endif %}
+                          </div>
+                        </div>
+                        <div class="form-actions">
+                          <a href="{% url 'accounts.candidate_search' %}?saved_search={{ saved_search.id }}&return_to={{ dashboard_tools_alerts_return_param }}" class="secondary-btn btn-compact">View Matches</a>
+                          <form action="{% url 'accounts.delete_search' saved_search.id %}" method="post" onsubmit="return confirm('Delete this saved alert?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="return_to" value="{{ dashboard_tools_alerts_return_url }}">
+                            <button type="submit" class="danger-btn btn-compact border-0">Delete</button>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  {% empty %}
+                    <div class="border rounded-4 p-4 text-center">
+                      <h4 class="surface-title mb-2">No saved alerts yet</h4>
+                      <p class="text-muted mb-3">Save a candidate search to reuse filters and spot new matching applicants faster.</p>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal fade" id="dashboardCreateAlertModal" tabindex="-1" aria-labelledby="dashboardCreateAlertModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content border-0 shadow-lg rounded-4">
+                <form action="{% url 'accounts.save_search' %}" method="post" id="dashboardCreateAlertForm">
+                  {% csrf_token %}
+                  <div class="modal-header border-0 pb-0">
+                    <h5 class="fw-bold mb-0" id="dashboardCreateAlertModalLabel">Create Candidate Alert</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body py-4">
+                    <p class="text-muted small mb-4">Add a name and at least one filter to save a recruiter alert from your dashboard.</p>
+
+                    <input type="hidden" name="return_to" value="{{ dashboard_tools_alerts_return_url }}">
+
+                    <div class="mb-3">
+                      <label class="form-label fw-bold small" for="dashboardAlertName">Alert Name</label>
+                      <input type="text" id="dashboardAlertName" name="search_name" class="form-control" placeholder="e.g. Python Engineers in Atlanta" required>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label fw-bold small" for="dashboardAlertSkills">Skills</label>
+                      <input type="text" id="dashboardAlertSkills" name="skills" class="form-control" placeholder="e.g. Python, Django">
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label fw-bold small" for="dashboardAlertLocation">Location</label>
+                      <input type="text" id="dashboardAlertLocation" name="location" class="form-control" placeholder="e.g. Atlanta, GA">
+                    </div>
+
+                    <div class="mb-0">
+                      <label class="form-label fw-bold small" for="dashboardAlertProjects">Projects</label>
+                      <input type="text" id="dashboardAlertProjects" name="projects" class="form-control" placeholder="e.g. robotics, API">
+                    </div>
+
+                    <div id="dashboardCreateAlertError" class="text-danger small mt-3 d-none">
+                      Add at least one filter before saving an alert.
+                    </div>
+                  </div>
+                  <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="secondary-btn btn-compact border-0" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="primary-btn btn-compact border-0">Save Alert</button>
+                  </div>
+                </form>
               </div>
             </div>
           </div>
@@ -582,6 +811,47 @@
       }
     }
 
+    function bindCreateAlertModalValidation() {
+      var form = document.getElementById("dashboardCreateAlertForm");
+      if (!form) return;
+
+      var skillsInput = document.getElementById("dashboardAlertSkills");
+      var locationInput = document.getElementById("dashboardAlertLocation");
+      var projectsInput = document.getElementById("dashboardAlertProjects");
+      var errorMessage = document.getElementById("dashboardCreateAlertError");
+
+      function hideError() {
+        if (errorMessage) {
+          errorMessage.classList.add("d-none");
+        }
+      }
+
+      [skillsInput, locationInput, projectsInput].forEach(function (input) {
+        if (!input) return;
+        input.addEventListener("input", hideError);
+      });
+
+      form.addEventListener("submit", function (event) {
+        var hasFilter =
+          (skillsInput && skillsInput.value.trim() !== "") ||
+          (locationInput && locationInput.value.trim() !== "") ||
+          (projectsInput && projectsInput.value.trim() !== "");
+
+        if (hasFilter) {
+          hideError();
+          return;
+        }
+
+        event.preventDefault();
+        if (errorMessage) {
+          errorMessage.classList.remove("d-none");
+        }
+        if (skillsInput) {
+          skillsInput.focus();
+        }
+      });
+    }
+
     function restoreScrollAfterMonthChange() {
       try {
         var raw = sessionStorage.getItem(SCROLL_KEY);
@@ -597,8 +867,11 @@
       activateTabFromQuery();
       bindInterviewMonthLinks();
       bindInterviewDaySlotPicker();
+      bindCreateAlertModalValidation();
       restoreScrollAfterMonthChange();
     });
   })();
 </script>
 {% endblock %}
+
+

@@ -100,6 +100,8 @@ MIDDLEWARE = [
 ]
 
 OPENROUTER_API_KEY = _env('OPENROUTER_API_KEY', '').strip()
+OPENAI_API_KEY = _env('OPENAI_API_KEY', '').strip()
+OPENAI_RESUME_PARSER_MODEL = _env('OPENAI_RESUME_PARSER_MODEL', 'gpt-4.1-mini').strip()
 
 ROOT_URLCONF = 'project2.urls'
 

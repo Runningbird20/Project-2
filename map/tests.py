@@ -1,4 +1,5 @@
 from unittest.mock import patch
+from urllib.parse import quote
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -36,6 +37,27 @@ class MapViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Open in Google Maps')
+
+    def test_job_location_page_uses_return_to_for_back_navigation(self):
+        user = User.objects.create_user(username='owner_nav', password='pass12345')
+        post = JobPost.objects.create(
+            owner=user,
+            title='Backend Engineer',
+            company='Acme Inc',
+            location='Atlanta, GA',
+            pay_range='$80k-$100k',
+            work_setting='onsite',
+            description='Build APIs.',
+        )
+        return_to = reverse('jobposts.search')
+
+        response = self.client.get(
+            f"{reverse('map.job_location', args=[post.id])}?return_to={quote(return_to, safe='')}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Back to Open Positions')
+        self.assertContains(response, f'href="{return_to}"')
 
     @patch("map.views.geocode_office_address", return_value=("30.2672", "-97.7431"))
     def test_jobs_map_page_lists_only_jobs_within_radius(self, _mock_geocode):

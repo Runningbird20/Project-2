@@ -27,7 +27,7 @@
               {% endif %}
             </div>
             {% if template_data.is_owner %}
-              <a class="secondary-btn" href="{% url 'accounts.company_profile_edit' %}">Edit Company Profile</a>
+              <a class="secondary-btn" href="{% url 'accounts.company_profile_edit' %}?return_to={{ template_data.current_url|urlencode }}">Edit Company Profile</a>
             {% endif %}
           </div>
 
@@ -98,11 +98,7 @@
         </div>
 
         <div class="text-center mt-3">
-          {% if template_data.is_owner %}
-            <a class="secondary-btn" href="{% url 'jobposts.dashboard' %}">Back to Dashboard</a>
-          {% else %}
-            <a class="secondary-btn" href="{% url 'accounts.company_search' %}">Back to Company Search</a>
-          {% endif %}
+          <a class="secondary-btn" href="{{ template_data.back_navigation.url }}">{{ template_data.back_navigation.text }}</a>
         </div>
       </div>
     </div>

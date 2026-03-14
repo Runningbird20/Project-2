@@ -1,4 +1,5 @@
 import math
+from urllib.parse import quote
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render
@@ -8,6 +9,7 @@ from django.conf import settings
 from accounts.models import Profile
 from jobposts.models import JobPost
 from map.services import OfficeLocationGeocodingError, geocode_office_address
+from project2.navigation import build_back_navigation, current_request_url
 
 
 def job_location(request, post_id):
@@ -18,6 +20,12 @@ def job_location(request, post_id):
     template_data = {
         'title': f'{post.title} Location',
         'post': post,
+        'current_url': current_request_url(request),
+        'back_navigation': build_back_navigation(
+            request,
+            reverse('jobposts.search'),
+            default_label='Open Positions',
+        ),
     }
     return render(request, 'map/job_location.html', {'template_data': template_data})
 
@@ -61,6 +69,12 @@ def jobs_map(request):
         "has_applicant_address": has_applicant_address,
         "address_prompt": "",
         "map_notice": "",
+        "current_url": current_request_url(request),
+        "back_navigation": build_back_navigation(
+            request,
+            reverse("jobposts.search"),
+            default_label="Open Positions",
+        ),
     }
 
     if not has_applicant_address:
@@ -123,7 +137,7 @@ def jobs_map(request):
                 'longitude': float(office.longitude),
                 'full_address': office.full_address,
                 'distance_miles': round(distance_miles, 1),
-                'detail_url': reverse('jobposts.detail', args=[post.id]),
+                'detail_url': f"{reverse('jobposts.detail', args=[post.id])}?return_to={quote(template_data['current_url'], safe='')}",
             }
         )
 

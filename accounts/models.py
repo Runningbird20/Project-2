@@ -1,9 +1,40 @@
-from django.conf import settings
-from django.db import models
-from django.contrib.auth.models import User
+import os
 from datetime import timedelta
-from django.utils import timezone
 import re
+
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.db import models
+from django.db.models import Q
+from django.utils import timezone
+
+
+def _normalize_skill_option_name(raw_value):
+    return re.sub(r"\s+", " ", (raw_value or "").strip())
+
+
+class SkillOption(models.Model):
+    name = models.CharField(max_length=120)
+    normalized_name = models.CharField(max_length=120, unique=True, db_index=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_skill_options",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def save(self, *args, **kwargs):
+        self.name = _normalize_skill_option_name(self.name)
+        self.normalized_name = self.name.lower()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
 
 class Profile(models.Model):
 
@@ -26,6 +57,11 @@ class Profile(models.Model):
         upload_to="profile_pics/",
         blank=True,
         null=True
+    )
+    resume_file = models.FileField(
+        upload_to="profile_resumes/",
+        blank=True,
+        null=True,
     )
 
     # Applicant fields
@@ -72,6 +108,12 @@ class Profile(models.Model):
         if self.profile_picture:
             return self.profile_picture.url
         return f"{settings.MEDIA_URL}profile_pics/default-icon.png"
+
+    @property
+    def resume_file_name(self):
+        if not self.resume_file:
+            return ""
+        return os.path.basename(self.resume_file.name)
 
     @property
     def location_city_state(self):
@@ -142,39 +184,81 @@ class ProfileLink(models.Model):
 class SavedCandidateSearch(models.Model):
     employer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='saved_searches')
     search_name = models.CharField(max_length=255)
-    filters = models.JSONField()  
+    filters = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
+    last_viewed_at = models.DateTimeField(null=True, blank=True)
+    last_notified_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.search_name
-    
+
     @property
-    def has_new_matches(self):
-        from .models import Profile
-        from django.db.models import Q
-        
-        skills = self.filters.get('skills', '')
-        loc = self.filters.get('location', '')
-        proj = self.filters.get('projects', '')
+    def normalized_filters(self):
+        raw_filters = self.filters or {}
+        return {
+            "skills": (raw_filters.get("skills", "") or "").strip(),
+            "location": (raw_filters.get("location", "") or "").strip(),
+            "projects": (raw_filters.get("projects", "") or "").strip(),
+        }
+
+    def matching_profiles_queryset(self):
+        filters = self.normalized_filters
+        skills = filters["skills"]
+        location = filters["location"]
+        projects = filters["projects"]
 
         qs = Profile.objects.filter(
-            account_type='APPLICANT',
+            account_type=Profile.AccountType.APPLICANT,
             visible_to_recruiters=True,
-            created_at__gt=timezone.now() - timedelta(days=1)
-        )
+        ).select_related("user").order_by("user__username")
 
         if skills:
-            terms = [t.strip() for t in skills.split(",") if t.strip()]
-            for t in terms:
-                qs = qs.filter(skills__icontains=t)
-        if loc:
+            for term in [token.strip() for token in skills.split(",") if token.strip()]:
+                qs = qs.filter(skills__icontains=term)
+        if location:
             qs = qs.filter(
-                Q(location__icontains=loc)
-                | Q(city__icontains=loc)
-                | Q(state__icontains=loc)
-                | Q(address_line_1__icontains=loc)
+                Q(location__icontains=location)
+                | Q(city__icontains=location)
+                | Q(state__icontains=location)
+                | Q(address_line_1__icontains=location)
             )
-        if proj:
-            qs = qs.filter(Q(projects__icontains=proj) | Q(headline__icontains=proj))
+        if projects:
+            qs = qs.filter(Q(projects__icontains=projects) | Q(headline__icontains=projects))
 
-        return qs.exists()
+        return qs
+
+    def new_matches_queryset(self):
+        reference_time = self.last_viewed_at or self.created_at or (timezone.now() - timedelta(days=1))
+        return self.matching_profiles_queryset().filter(created_at__gt=reference_time)
+
+    def matches_to_notify_queryset(self):
+        reference_time = self.created_at or (timezone.now() - timedelta(days=1))
+        if self.last_viewed_at and self.last_viewed_at > reference_time:
+            reference_time = self.last_viewed_at
+        if self.last_notified_at and self.last_notified_at > reference_time:
+            reference_time = self.last_notified_at
+        return self.matching_profiles_queryset().filter(created_at__gt=reference_time)
+
+    def mark_viewed(self):
+        self.last_viewed_at = timezone.now()
+        self.save(update_fields=["last_viewed_at"])
+
+    def mark_notified(self):
+        self.last_notified_at = timezone.now()
+        self.save(update_fields=["last_notified_at"])
+
+    @property
+    def filters_summary(self):
+        filters = self.normalized_filters
+        summary_parts = []
+        if filters["skills"]:
+            summary_parts.append(f"Skills: {filters['skills']}")
+        if filters["location"]:
+            summary_parts.append(f"Location: {filters['location']}")
+        if filters["projects"]:
+            summary_parts.append(f"Projects: {filters['projects']}")
+        return " | ".join(summary_parts) if summary_parts else "All candidates"
+
+    @property
+    def has_new_matches(self):
+        return self.new_matches_queryset().exists()

@@ -11,7 +11,7 @@
               <h1 class="page-title page-title-sm mb-1">{{ template_data.post.title }}</h1>
               <div class="text-muted">{{ template_data.post.company }} - {{ template_data.post.location }}</div>
             </div>
-            <a href="{% url 'jobposts.search' %}" class="secondary-btn">Back to jobs</a>
+            <a href="{{ template_data.back_navigation.url }}" class="secondary-btn">{{ template_data.back_navigation.text }}</a>
           </div>
 
           {% if template_data.post.office_location %}

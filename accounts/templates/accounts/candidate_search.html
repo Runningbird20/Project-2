@@ -5,10 +5,14 @@
     <div class="row g-4">
       <div class="col-lg-4">
         <div class="surface-card">
-          <div class="text-uppercase text-muted small mb-2">Candidate search</div>
+          <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+            <div class="text-uppercase text-muted small mb-0">Candidate search</div>
+            <a href="{{ template_data.back_navigation.url }}" class="secondary-btn btn-compact">{{ template_data.back_navigation.text }}</a>
+          </div>
           <h2 class="surface-title mb-3">Find talent</h2>
 
           <form method="get" id="searchForm" class="vstack gap-3">
+            <input type="hidden" name="return_to" value="{{ template_data.back_url }}">
             <div>
               <label class="form-label">Skills</label>
               <input type="text" name="skills" class="form-control" placeholder="e.g. Python, Django" value="{{ template_data.filters.skills }}">
@@ -26,9 +30,9 @@
             <div class="vstack gap-2">
               <div class="candidate-search-filter-actions">
                 <button type="submit" class="primary-btn border-0 w-100">Search</button>
-                <a href="{% url 'accounts.candidate_search' %}" class="secondary-btn w-100">Reset</a>
+                <a href="{% url 'accounts.candidate_search' %}?return_to={{ template_data.encoded_back_url }}" class="secondary-btn w-100">Reset</a>
               </div>
-              <button type="button" id="saveAlertTrigger" class="secondary-btn w-100" data-bs-toggle="modal" data-bs-target="#saveSearchModal">
+              <button type="button" id="saveAlertTrigger" class="primary-btn w-100" data-bs-toggle="modal" data-bs-target="#saveSearchModal">
                 Save as Alert
               </button>
             </div>
@@ -41,8 +45,13 @@
           <div>
             <div class="text-uppercase text-muted small">Results</div>
             <h3 class="surface-title mb-0">{{ template_data.candidates|length }} candidates</h3>
+            {% if template_data.active_saved_search %}
+              <div class="small text-muted mt-1">
+                Viewing saved alert: <span class="fw-semibold">{{ template_data.active_saved_search.search_name }}</span>
+              </div>
+            {% endif %}
           </div>
-          <a class="secondary-btn btn-compact" href="{% url 'accounts.applicant_clusters_map' %}">View Map</a>
+          <a class="secondary-btn btn-compact" href="{% url 'accounts.applicant_clusters_map' %}?return_to={{ template_data.current_url|urlencode }}">View Map</a>
         </div>
 
         {% if template_data.candidates %}
@@ -63,7 +72,7 @@
                   </div>
                   <div class="text-end d-flex gap-2 justify-content-end candidate-card-actions">
                     <a class="secondary-btn candidate-action-btn"
-                       href="{% url 'accounts.public_profile' p.user.username %}">
+                       href="{% url 'accounts.public_profile' p.user.username %}?return_to={{ template_data.current_url|urlencode }}">
                       View profile
                     </a>
                     <a href="{% url 'messaging:chat_detail' p.user.id %}" class="primary-btn candidate-action-btn border-0">
@@ -109,27 +118,38 @@
 <div class="modal fade" id="saveSearchModal" tabindex="-1" aria-labelledby="saveSearchModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow-lg rounded-4">
-      <form action="{% url 'accounts.save_search' %}" method="post">
+      <form action="{% url 'accounts.save_search' %}" method="post" id="candidateCreateAlertForm">
         {% csrf_token %}
         <div class="modal-header border-0 pb-0">
           <h5 class="fw-bold mb-0" id="saveSearchModalLabel">Create Candidate Alert</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body py-4">
-          <p class="text-muted small mb-4">We will notify you on your dashboard when new candidates match these criteria.</p>
+          <p class="text-muted small mb-4">Add a name and at least one filter to save a recruiter alert.</p>
 
-          <input type="hidden" name="skills" id="modalHiddenSkills">
-          <input type="hidden" name="location" id="modalHiddenLocation">
-          <input type="hidden" name="projects" id="modalHiddenProjects">
+          <input type="hidden" name="return_to" value="{{ template_data.back_url }}">
 
           <div class="mb-3">
-            <label class="form-label fw-bold small">Alert Name</label>
-            <input type="text" name="search_name" class="form-control" placeholder="e.g. Python Engineers in Atlanta" required>
+            <label class="form-label fw-bold small" for="candidateAlertName">Alert Name</label>
+            <input type="text" id="candidateAlertName" name="search_name" class="form-control" placeholder="e.g. Python Engineers in Atlanta" required>
           </div>
 
-          <div class="p-3 rounded-3 filter-preview-card">
-            <div class="small text-muted mb-1">Current Filters:</div>
-            <div id="modalFilterPreview" class="fw-bold small">All Candidates</div>
+          <div class="mb-3">
+            <label class="form-label fw-bold small" for="candidateAlertSkills">Skills</label>
+            <input type="text" id="candidateAlertSkills" name="skills" class="form-control" placeholder="e.g. Python, Django">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold small" for="candidateAlertLocation">Location</label>
+            <input type="text" id="candidateAlertLocation" name="location" class="form-control" placeholder="e.g. Atlanta, GA">
+          </div>
+
+          <div class="mb-0">
+            <label class="form-label fw-bold small" for="candidateAlertProjects">Projects</label>
+            <input type="text" id="candidateAlertProjects" name="projects" class="form-control" placeholder="e.g. robotics, API">
+          </div>
+          <div id="candidateAlertModalError" class="text-danger small mt-3 d-none">
+            Add at least one filter before saving an alert.
           </div>
         </div>
         <div class="modal-footer border-0 pt-0">
@@ -143,37 +163,54 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const skillsIn = document.querySelector('input[name="skills"]');
-  const locIn = document.querySelector('input[name="location"]');
-  const projIn = document.querySelector('input[name="projects"]');
-  const saveBtn = document.getElementById('saveAlertTrigger');
+  const searchForm = document.getElementById('searchForm');
+  const skillsIn = searchForm.querySelector('input[name="skills"]');
+  const locIn = searchForm.querySelector('input[name="location"]');
+  const projIn = searchForm.querySelector('input[name="projects"]');
+  const modalForm = document.getElementById('candidateCreateAlertForm');
+  const modalEl = document.getElementById('saveSearchModal');
 
-  const modalSkills = document.getElementById('modalHiddenSkills');
-  const modalLoc = document.getElementById('modalHiddenLocation');
-  const modalProj = document.getElementById('modalHiddenProjects');
-  const previewDiv = document.getElementById('modalFilterPreview');
+  const modalSkills = document.getElementById('candidateAlertSkills');
+  const modalLoc = document.getElementById('candidateAlertLocation');
+  const modalProj = document.getElementById('candidateAlertProjects');
+  const errorDiv = document.getElementById('candidateAlertModalError');
 
-  function syncAndToggle() {
-    const s = skillsIn.value.trim();
-    const l = locIn.value.trim();
-    const p = projIn.value.trim();
-
-    modalSkills.value = s;
-    modalLoc.value = l;
-    modalProj.value = p;
-
-    const preview = [];
-    if (s) preview.push(`Skills: ${s}`);
-    if (l) preview.push(`Location: ${l}`);
-    if (p) preview.push(`Projects: ${p}`);
-    previewDiv.innerHTML = preview.length ? preview.join('<br>') : 'All Candidates';
-
-    const hasValue = s !== '' || l !== '' || p !== '';
-    saveBtn.disabled = !hasValue;
+  function syncModalFromSearch() {
+    modalSkills.value = skillsIn.value.trim();
+    modalLoc.value = locIn.value.trim();
+    modalProj.value = projIn.value.trim();
   }
 
-  [skillsIn, locIn, projIn].forEach((el) => el.addEventListener('input', syncAndToggle));
-  syncAndToggle();
+  function hideError() {
+    errorDiv.classList.add('d-none');
+  }
+
+  [skillsIn, locIn, projIn].forEach((el) => el.addEventListener('input', syncModalFromSearch));
+  [modalSkills, modalLoc, modalProj].forEach((el) => el.addEventListener('input', hideError));
+
+  if (modalEl) {
+    modalEl.addEventListener('show.bs.modal', function() {
+      syncModalFromSearch();
+      hideError();
+    });
+  }
+
+  modalForm.addEventListener('submit', function(event) {
+    const hasValue =
+      modalSkills.value.trim() !== '' ||
+      modalLoc.value.trim() !== '' ||
+      modalProj.value.trim() !== '';
+
+    if (hasValue) {
+      hideError();
+      return;
+    }
+
+    event.preventDefault();
+    errorDiv.classList.remove('d-none');
+  });
+
+  syncModalFromSearch();
 });
 </script>
 {% endblock content %}

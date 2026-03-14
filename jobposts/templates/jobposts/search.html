@@ -21,7 +21,7 @@
             <div>
               <label class="form-label">Skills</label>
               <input type="text" name="skills" class="form-control" placeholder="e.g. SQL, Python, React" value="{{ template_data.filters.skills }}">
-              <div class="form-text">Comma-separated skills.</div>
+              <div class="form-text">Comma-separated skills. We'll match roles with any listed skill.</div>
             </div>
             <div>
               <label class="form-label">Location</label>
@@ -88,7 +88,7 @@
               <div class="form-text">
                 Home address: {% if template_data.has_home_address %}{{ template_data.home_address }}{% else %}Not set{% endif %}.
                 {% if not template_data.has_home_address %}
-                  <a href="{% url 'accounts.profile_edit' %}" class="link-secondary">Add it in Profile.</a>
+                  <a href="{% url 'accounts.profile_edit' %}?return_to={{ template_data.current_url|urlencode }}" class="link-secondary">Add it in Profile.</a>
                 {% endif %}
               </div>
             </div>
@@ -107,7 +107,7 @@
             <div class="text-uppercase text-muted small">Results</div>
             <h3 class="surface-title mb-0">{{ template_data.posts_count }} openings</h3>
           </div>
-          <a class="secondary-btn btn-compact" href="{% url 'map.jobs_map' %}">View Map</a>
+          <a class="secondary-btn btn-compact" href="{% url 'map.jobs_map' %}?return_to={{ template_data.current_url|urlencode }}">View Map</a>
         </div>
         {% if template_data.radius_warning %}
           <div class="alert alert-warning">{{ template_data.radius_warning }}</div>
@@ -151,6 +151,13 @@
                           <span class="badge bg-primary-subtle text-primary text-uppercase">{{ post.distance_from_home_miles }} mi</span>
                         {% endif %}
                       </div>
+                      {% if post.response_sla %}
+                        <div class="text-end">
+                          <span class="sla-badge {{ post.response_sla.css_class }}">
+                            {{ post.response_sla.label }}
+                          </span>
+                        </div>
+                      {% endif %}
                     </div>
                   </div>
 
@@ -175,18 +182,18 @@
                       </div>
                       <div class="small text-muted mt-2 job-post-location-scroll">
                         {% if post.office_location.full_address %}{{ post.office_location.full_address }} - {% endif %}
-                        <a href="{% url 'map.job_location' post.id %}" class="link-secondary">Full map</a>
+                        <a href="{% url 'map.job_location' post.id %}?return_to={{ template_data.current_url|urlencode }}" class="link-secondary">Full map</a>
                       </div>
                       {% if request.user.is_authenticated and not template_data.can_post_job %}
                         <div class="job-post-map-cta">
-                          <a class="primary-btn apply-now-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}">Apply Now</a>
+                          <a class="primary-btn apply-now-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}?return_to={{ template_data.current_url|urlencode }}">Apply Now</a>
                           {% if request.user.is_staff %}
-                            <a class="secondary-btn edit-post-btn border-0 btn-compact w-100 mt-2" href="{% url 'jobposts.edit_post' post.id %}">Edit Post</a>
+                            <a class="secondary-btn edit-post-btn border-0 btn-compact w-100 mt-2" href="{% url 'jobposts.edit_post' post.id %}?return_to={{ template_data.current_url|urlencode }}">Edit Post</a>
                           {% endif %}
                         </div>
                       {% elif request.user.is_staff %}
                         <div class="job-post-map-cta">
-                          <a class="secondary-btn edit-post-btn border-0 btn-compact w-100" href="{% url 'jobposts.edit_post' post.id %}">Edit Post</a>
+                          <a class="secondary-btn edit-post-btn border-0 btn-compact w-100" href="{% url 'jobposts.edit_post' post.id %}?return_to={{ template_data.current_url|urlencode }}">Edit Post</a>
                         </div>
                       {% endif %}
                     </aside>
@@ -194,9 +201,9 @@
                     <aside class="job-post-map">
                       <div class="job-post-map-placeholder"></div>
                       <div class="job-post-map-cta">
-                        <a class="primary-btn apply-now-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}">Apply Now</a>
+                        <a class="primary-btn apply-now-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}?return_to={{ template_data.current_url|urlencode }}">Apply Now</a>
                         {% if request.user.is_staff %}
-                          <a class="secondary-btn edit-post-btn border-0 btn-compact w-100 mt-2" href="{% url 'jobposts.edit_post' post.id %}">Edit Post</a>
+                          <a class="secondary-btn edit-post-btn border-0 btn-compact w-100 mt-2" href="{% url 'jobposts.edit_post' post.id %}?return_to={{ template_data.current_url|urlencode }}">Edit Post</a>
                         {% endif %}
                       </div>
                     </aside>
@@ -204,7 +211,7 @@
                     <aside class="job-post-map">
                       <div class="job-post-map-placeholder"></div>
                       <div class="job-post-map-cta">
-                        <a class="secondary-btn edit-post-btn border-0 btn-compact w-100" href="{% url 'jobposts.edit_post' post.id %}">Edit Post</a>
+                        <a class="secondary-btn edit-post-btn border-0 btn-compact w-100" href="{% url 'jobposts.edit_post' post.id %}?return_to={{ template_data.current_url|urlencode }}">Edit Post</a>
                       </div>
                     </aside>
                     {% endif %}
@@ -246,6 +253,13 @@
                         <span class="badge bg-primary-subtle text-primary text-uppercase">{{ post.distance_from_home_miles }} mi</span>
                       {% endif %}
                     </div>
+                    {% if post.response_sla %}
+                      <div class="text-end">
+                        <span class="sla-badge {{ post.response_sla.css_class }}">
+                          {{ post.response_sla.label }}
+                        </span>
+                      </div>
+                    {% endif %}
                   </div>
                 </div>
 
@@ -271,18 +285,18 @@
                     </div>
                     <div class="small text-muted mt-2 job-post-location-scroll">
                       {% if post.office_location.full_address %}{{ post.office_location.full_address }} - {% endif %}
-                      <a href="{% url 'map.job_location' post.id %}" class="link-secondary">Full map</a>
+                      <a href="{% url 'map.job_location' post.id %}?return_to={{ template_data.current_url|urlencode }}" class="link-secondary">Full map</a>
                     </div>
                     {% if request.user.is_authenticated and not template_data.can_post_job %}
                       <div class="job-post-map-cta">
-                        <a class="primary-btn apply-now-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}">Apply Now</a>
+                        <a class="primary-btn apply-now-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}?return_to={{ template_data.current_url|urlencode }}">Apply Now</a>
                         {% if request.user.is_staff %}
-                          <a class="secondary-btn edit-post-btn border-0 btn-compact w-100 mt-2" href="{% url 'jobposts.edit_post' post.id %}">Edit Post</a>
+                          <a class="secondary-btn edit-post-btn border-0 btn-compact w-100 mt-2" href="{% url 'jobposts.edit_post' post.id %}?return_to={{ template_data.current_url|urlencode }}">Edit Post</a>
                         {% endif %}
                       </div>
                     {% elif request.user.is_staff %}
                       <div class="job-post-map-cta">
-                        <a class="secondary-btn edit-post-btn border-0 btn-compact w-100" href="{% url 'jobposts.edit_post' post.id %}">Edit Post</a>
+                        <a class="secondary-btn edit-post-btn border-0 btn-compact w-100" href="{% url 'jobposts.edit_post' post.id %}?return_to={{ template_data.current_url|urlencode }}">Edit Post</a>
                       </div>
                     {% endif %}
                   </aside>
@@ -290,9 +304,9 @@
                   <aside class="job-post-map">
                     <div class="job-post-map-placeholder"></div>
                     <div class="job-post-map-cta">
-                      <a class="primary-btn apply-now-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}">Apply Now</a>
+                      <a class="primary-btn apply-now-btn border-0 btn-compact w-100" href="{% url 'jobposts.detail' post.id %}?return_to={{ template_data.current_url|urlencode }}">Apply Now</a>
                       {% if request.user.is_staff %}
-                        <a class="secondary-btn edit-post-btn border-0 btn-compact w-100 mt-2" href="{% url 'jobposts.edit_post' post.id %}">Edit Post</a>
+                        <a class="secondary-btn edit-post-btn border-0 btn-compact w-100 mt-2" href="{% url 'jobposts.edit_post' post.id %}?return_to={{ template_data.current_url|urlencode }}">Edit Post</a>
                       {% endif %}
                     </div>
                   </aside>
@@ -300,7 +314,7 @@
                   <aside class="job-post-map">
                     <div class="job-post-map-placeholder"></div>
                     <div class="job-post-map-cta">
-                      <a class="secondary-btn edit-post-btn border-0 btn-compact w-100" href="{% url 'jobposts.edit_post' post.id %}">Edit Post</a>
+                      <a class="secondary-btn edit-post-btn border-0 btn-compact w-100" href="{% url 'jobposts.edit_post' post.id %}?return_to={{ template_data.current_url|urlencode }}">Edit Post</a>
                     </div>
                   </aside>
                   {% endif %}
@@ -312,6 +326,7 @@
                   <div class="modal-content border-0 shadow rounded-4">
                     <form action="{% url 'apply:submit_application' post.id %}" method="POST" enctype="multipart/form-data">
                       {% csrf_token %}
+                      <input type="hidden" name="return_to" value="{{ template_data.current_url }}">
                       <div class="modal-header border-0 pb-0">
                         <h5 class="modal-title fw-bold" id="applyModalLabel{{ post.id }}">Apply for {{ post.title }}</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -324,13 +339,18 @@
                         <div class="mb-3">
                           <label class="form-label fw-semibold">Resume Source</label>
                           <select name="resume_type" class="form-select" onchange="toggleResumeUpload(this, '{{ post.id }}')">
-                            <option value="profile">Use my Profile Details</option>
-                            <option value="uploaded">Upload a New Resume</option>
+                            <option value="profile" {% if not template_data.has_profile_resume %}disabled{% endif %} {% if template_data.has_profile_resume %}selected{% endif %}>Use my Profile Resume</option>
+                            <option value="uploaded" {% if not template_data.has_profile_resume %}selected{% endif %}>Upload a New Resume</option>
                           </select>
+                          {% if template_data.has_profile_resume %}
+                            <div class="resume-meta-pill mt-2">Current profile resume: {{ template_data.profile_resume_name }}</div>
+                          {% else %}
+                            <div class="small text-muted mt-2">No profile resume uploaded yet. Add one in <a href="{% url 'accounts.profile_edit' %}?return_to={{ template_data.current_url|urlencode }}" class="resume-helper-link">Edit Profile</a>, or upload a fresh file here.</div>
+                          {% endif %}
                         </div>
-                        <div id="uploadField{{ post.id }}" style="display:none;" class="mb-3 bg-light p-3 rounded-3">
-                          <label class="form-label fw-semibold">Upload PDF/DOCX</label>
-                          <input type="file" name="resume_file" class="form-control">
+                        <div id="uploadField{{ post.id }}" style="display:{% if template_data.has_profile_resume %}none{% else %}block{% endif %};" class="mb-3 bg-light p-3 rounded-3">
+                          <label class="form-label fw-semibold">Upload PDF</label>
+                          <input type="file" name="resume_file" class="form-control" accept=".pdf">
                         </div>
                       </div>
                       <div class="modal-footer border-0 pt-0">

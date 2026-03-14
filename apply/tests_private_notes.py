@@ -98,3 +98,16 @@ class ApplicationPrivateNotesTests(TestCase):
         )
         self.assertContains(employer_response, "EMPLOYER_PRIVATE_NOTE_TOKEN")
         self.assertNotContains(employer_response, "APPLICANT_PRIVATE_NOTE_TOKEN")
+
+    def test_employer_pipeline_cards_are_collapsible(self):
+        self.client.login(username="private_notes_employer", password="pass12345")
+
+        response = self.client.get(
+            reverse("apply:employer_pipeline", kwargs={"job_id": self.job.id})
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-bs-toggle="collapse"')
+        self.assertContains(response, 'aria-expanded="false"')
+        self.assertContains(response, f'id="applicantCardBody{self.application.id}"')
+        self.assertNotContains(response, 'collapse show applicant-card-body')

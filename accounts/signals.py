@@ -37,9 +37,19 @@ def cleanup_replaced_profile_picture(sender, instance, **kwargs):
     _delete_previous_file_on_change(Profile, instance, "profile_picture")
 
 
+@receiver(pre_save, sender=Profile)
+def cleanup_replaced_profile_resume(sender, instance, **kwargs):
+    _delete_previous_file_on_change(Profile, instance, "resume_file")
+
+
 @receiver(post_delete, sender=Profile)
 def cleanup_deleted_profile_picture(sender, instance, **kwargs):
     _delete_field_file(instance.profile_picture)
+
+
+@receiver(post_delete, sender=Profile)
+def cleanup_deleted_profile_resume(sender, instance, **kwargs):
+    _delete_field_file(instance.resume_file)
 
 
 @receiver(pre_save, sender=Application)
