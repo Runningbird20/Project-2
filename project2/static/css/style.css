@@ -28,6 +28,11 @@ html.dark-mode {
   --line: #2e384b;
   --panel: #172234;
   --panel-2: #21324a;
+  --surface-dark-bg: rgba(15, 23, 36, 0.85);
+  --surface-dark-bg-soft: rgba(24, 36, 56, 0.82);
+  --surface-dark-border: #39485f;
+  --bs-border-color: var(--surface-dark-border);
+  --bs-border-color-translucent: rgba(57, 72, 95, 0.72);
 }
 
 html.dark-mode body {
@@ -61,9 +66,19 @@ html.dark-mode .surface-card,
 html.dark-mode .site-footer,
 html.dark-mode .hero-stats > div,
 html.dark-mode .site-alert {
-  background: rgba(18, 26, 40, 0.82);
-  border-color: #34435a;
+  background: var(--surface-dark-bg);
+  border-color: var(--surface-dark-border);
   box-shadow: 0 12px 26px rgba(0, 0, 0, 0.35);
+}
+
+html.dark-mode .border,
+html.dark-mode .border-top,
+html.dark-mode .border-end,
+html.dark-mode .border-bottom,
+html.dark-mode .border-start,
+html.dark-mode .table-responsive,
+html.dark-mode .card {
+  border-color: var(--surface-dark-border) !important;
 }
 
 html.dark-mode .form-control,
@@ -246,24 +261,25 @@ html.dark-mode .table-light > td {
 }
 
 html.dark-mode .table {
+  --bs-table-border-color: var(--surface-dark-border);
   color: #dce5f5;
 }
 
 html.dark-mode #emp-listings .table-responsive {
-  border-top: 1px solid #34435a;
+  border-top: 1px solid var(--surface-dark-border);
 }
 
 html.dark-mode #emp-listings .table {
   --bs-table-bg: #172234;
   --bs-table-striped-bg: #1b2940;
   --bs-table-hover-bg: #243a5b;
-  --bs-table-border-color: #34435a;
+  --bs-table-border-color: var(--surface-dark-border);
   color: #e6edf8;
 }
 
 html.dark-mode #emp-listings .table td,
 html.dark-mode #emp-listings .table th {
-  border-color: #34435a;
+  border-color: var(--surface-dark-border);
 }
 
 html.dark-mode #emp-listings .job-table thead th {
@@ -303,8 +319,8 @@ html.dark-mode .badge.bg-light {
 }
 
 html.dark-mode .map-pin-card {
-  background: rgba(19, 30, 46, 0.88) !important;
-  border-color: #3b4a62 !important;
+  background: var(--surface-dark-bg-soft) !important;
+  border-color: var(--surface-dark-border) !important;
 }
 
 html.dark-mode .map-pin-card .form-text,
@@ -358,22 +374,22 @@ html.dark-mode .candidate-search-page .small.text-muted {
 }
 
 html.dark-mode .candidate-search-page .modal-content {
-  background: #121d2d;
-  border: 1px solid #3b4a62 !important;
+  background: var(--surface-dark-bg);
+  border: 1px solid var(--surface-dark-border) !important;
   color: #e6edf8;
 }
 
 html.dark-mode .candidate-search-page .modal-header {
-  border-bottom-color: #3b4a62;
+  border-bottom-color: var(--surface-dark-border);
 }
 
 html.dark-mode .candidate-search-page .modal-footer {
-  border-top-color: #3b4a62;
+  border-top-color: var(--surface-dark-border);
 }
 
 html.dark-mode .candidate-search-page .filter-preview-card {
-  background: #1a273b;
-  border: 1px solid #3b4a62;
+  background: var(--surface-dark-bg-soft);
+  border: 1px solid var(--surface-dark-border);
 }
 
 html.dark-mode .candidate-search-page .btn-close {
@@ -381,20 +397,20 @@ html.dark-mode .candidate-search-page .btn-close {
 }
 
 html.dark-mode .manage-users-page .surface-card .table-responsive {
-  border-top: 1px solid #34435a;
+  border-top: 1px solid var(--surface-dark-border);
 }
 
 html.dark-mode .manage-users-page .job-table {
   --bs-table-bg: #172234;
   --bs-table-striped-bg: #1b2940;
   --bs-table-hover-bg: #243a5b;
-  --bs-table-border-color: #34435a;
+  --bs-table-border-color: var(--surface-dark-border);
   color: #e6edf8;
 }
 
 html.dark-mode .manage-users-page .job-table th,
 html.dark-mode .manage-users-page .job-table td {
-  border-color: #34435a;
+  border-color: var(--surface-dark-border);
 }
 
 html.dark-mode .manage-users-page .job-table thead th {
@@ -432,8 +448,8 @@ html.dark-mode .jobs-map-page .form-text {
 }
 
 html.dark-mode .jobs-map-page #jobsList .border {
-  border-color: #34435a !important;
-  background: #182538;
+  border-color: var(--surface-dark-border) !important;
+  background: var(--surface-dark-bg-soft);
 }
 
 html.dark-mode .jobs-map-page #clearLocationBtn {
@@ -1704,8 +1720,8 @@ html.dark-mode .dashboard-match-card-body {
 }
 
 html.dark-mode .dashboard-match-job {
-  background: rgba(28, 42, 61, 0.82);
-  border-color: #3d5675 !important;
+  background: var(--surface-dark-bg-soft);
+  border-color: var(--surface-dark-border) !important;
 }
 
 .offer-archive-btn {
@@ -1894,17 +1910,17 @@ html.dark-mode .job-detail-page .link-secondary {
 }
 
 html.dark-mode .job-detail-modal .modal-content {
-  background: #121d2d;
-  border: 1px solid #3b4a62 !important;
+  background: var(--surface-dark-bg);
+  border: 1px solid var(--surface-dark-border) !important;
   color: #e6edf8;
 }
 
 html.dark-mode .job-detail-modal .modal-header {
-  border-bottom-color: #3b4a62;
+  border-bottom-color: var(--surface-dark-border);
 }
 
 html.dark-mode .job-detail-modal .modal-footer {
-  border-top-color: #3b4a62;
+  border-top-color: var(--surface-dark-border);
 }
 
 html.dark-mode .job-detail-modal-header {
@@ -1913,7 +1929,7 @@ html.dark-mode .job-detail-modal-header {
 }
 
 html.dark-mode .job-detail-modal-footer {
-  background: #182538;
+  background: var(--surface-dark-bg-soft);
 }
 
 html.dark-mode .job-detail-page .message-recruiter-btn,
@@ -1942,17 +1958,17 @@ html.dark-mode .job-detail-page .message-recruiter-btn:focus-visible {
 }
 
 html.dark-mode .modal .modal-content {
-  background: #121d2d;
-  border: 1px solid #3b4a62 !important;
+  background: var(--surface-dark-bg);
+  border: 1px solid var(--surface-dark-border) !important;
   color: #e6edf8;
 }
 
 html.dark-mode .modal .modal-header {
-  border-bottom-color: #3b4a62;
+  border-bottom-color: var(--surface-dark-border);
 }
 
 html.dark-mode .modal .modal-footer {
-  border-top-color: #3b4a62;
+  border-top-color: var(--surface-dark-border);
 }
 
 html.dark-mode .modal .form-control,
@@ -2002,8 +2018,8 @@ html.dark-mode #interviewSlotModal .modal-content,
 html.dark-mode #interviewPromptModal .modal-content,
 html.dark-mode #offerPromptModal .modal-content,
 html.dark-mode #rejectionModal .modal-content {
-  background: #121d2d;
-  border: 1px solid #3b4a62 !important;
+  background: var(--surface-dark-bg);
+  border: 1px solid var(--surface-dark-border) !important;
   color: #e6edf8;
 }
 
@@ -2011,14 +2027,14 @@ html.dark-mode #interviewSlotModal .modal-header,
 html.dark-mode #interviewPromptModal .modal-header,
 html.dark-mode #offerPromptModal .modal-header,
 html.dark-mode #rejectionModal .modal-header {
-  border-bottom-color: #3b4a62;
+  border-bottom-color: var(--surface-dark-border);
 }
 
 html.dark-mode #interviewSlotModal .modal-footer,
 html.dark-mode #interviewPromptModal .modal-footer,
 html.dark-mode #offerPromptModal .modal-footer,
 html.dark-mode #rejectionModal .modal-footer {
-  border-top-color: #3b4a62;
+  border-top-color: var(--surface-dark-border);
 }
 
 html.dark-mode #interviewSlotModal .form-control,
@@ -2082,8 +2098,8 @@ html.dark-mode #applyModal {
 }
 
 html.dark-mode #applyModal .modal-card {
-  background: #121d2d;
-  border-color: #3b4a62;
+  background: var(--surface-dark-bg);
+  border-color: var(--surface-dark-border);
   color: #e6edf8;
 }
 

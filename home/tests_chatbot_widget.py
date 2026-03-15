@@ -22,3 +22,14 @@ class ChatbotWidgetTests(TestCase):
         self.assertIn("bottom: 18px;", css)
         self.assertIn("sessionStorage", js)
         self.assertIn("updateBubblePlacement", js)
+
+    def test_dark_mode_theme_uses_shared_muted_surface_tokens_for_cards_and_borders(self):
+        css = (Path(settings.BASE_DIR) / "project2" / "static" / "css" / "style.css").read_text(encoding="utf-8")
+
+        self.assertIn("--surface-dark-bg: rgba(15, 23, 36, 0.85);", css)
+        self.assertIn("--surface-dark-border: #39485f;", css)
+        self.assertIn("--bs-border-color: var(--surface-dark-border);", css)
+        self.assertIn("html.dark-mode .border,", css)
+        self.assertIn("html.dark-mode .table-responsive,", css)
+        self.assertIn("border-color: var(--surface-dark-border) !important;", css)
+        self.assertIn("background: var(--surface-dark-bg);", css)
