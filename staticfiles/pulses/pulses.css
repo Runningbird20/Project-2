@@ -1,0 +1,137 @@
+/* static/pulses/pulses.css */
+
+/* Keep vertical scrolling, hide visible scrollbar in Pulses feed */
+.pulses-shell {
+  --pulses-nav-offset: 84px;
+  --pulses-topbar-height: 72px;
+  -ms-overflow-style: none; /* IE/Edge legacy */
+  scrollbar-width: none; /* Firefox */
+}
+
+.pulses-shell::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none; /* Chrome/Safari/Edge */
+}
+
+.pulses-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: var(--pulses-topbar-height);
+    margin-bottom: 0;
+  }
+  
+  /* Reels-like scroll area */
+  .pulses-feed {
+    display: grid;
+    gap: 1.25rem;
+  }
+  
+  /* Each pulse is its own “section” */
+  .pulse-item {
+    height: calc(100vh - var(--pulses-nav-offset) - var(--pulses-topbar-height));
+    min-height: calc(100vh - var(--pulses-nav-offset) - var(--pulses-topbar-height));
+    scroll-margin-top: 90px; /* helps if you add snapping later */
+  }
+  
+  /* The “phone/reel” frame */
+  .pulse-frame {
+    position: relative;
+    width: 100%;
+    max-width: min(
+      560px,
+      calc((100vh - var(--pulses-nav-offset) - var(--pulses-topbar-height) - 20px) * 9 / 16)
+    );                         /* keep full frame visible in viewport */
+    margin: 0 auto;            /* ✅ centers the whole video frame */
+    aspect-ratio: 9 / 16;      /* ✅ reels feel */
+    border-radius: 18px;
+    overflow: hidden;
+    background: #0f1219;       /* nice black background behind letterboxing */
+    box-shadow: 0 18px 40px rgba(18, 23, 36, 0.16);
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+  
+  /* ✅ Center the video and crop gracefully */
+  .pulse-video {
+    width: 100%;
+    height: 100%;
+    display: block;
+  
+    /* Most reels behavior: fill and crop to frame */
+    object-fit: cover;
+    object-position: center center;
+  
+    background: #0f1219;
+  }
+  
+  /* Meta */
+  .pulse-meta {
+    max-width: 560px;
+    margin: 0.55rem auto 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    padding: 0 0.2rem;
+  }
+  
+.pulse-user {
+    font-weight: 800;
+    letter-spacing: 0.01em;
+  }
+
+.pulse-contact-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(0, 0, 0, 0.38);
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.2;
+  max-width: 130px;
+}
+
+.pulse-contact-btn:hover,
+.pulse-contact-btn:focus {
+  background: rgba(0, 0, 0, 0.54);
+  color: #fff;
+}
+
+html.dark-mode .pulse-frame {
+  border: 1px solid rgba(158, 197, 255, 0.25);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+html.dark-mode .pulse-contact-btn {
+  border-color: rgba(158, 197, 255, 0.55);
+  background: rgba(22, 35, 54, 0.58);
+}
+
+html.dark-mode .pulse-contact-btn:hover,
+html.dark-mode .pulse-contact-btn:focus {
+  background: rgba(36, 58, 90, 0.75);
+}
+  
+  /* Optional: if you want less cropping, swap to contain
+     (will show black bars but never cuts content) */
+  /*
+  .pulse-video {
+    object-fit: contain;
+  }
+  */
+
+@media (max-width: 768px) {
+  .pulses-shell {
+    --pulses-nav-offset: 72px;
+    --pulses-topbar-height: 66px;
+  }
+}
+  
