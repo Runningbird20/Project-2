@@ -10,11 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
-import os
-import shutil
 from pathlib import Path
-from urllib.parse import parse_qs, unquote, urlparse
-
+import os
 from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -51,121 +48,23 @@ def _csv_env_list(key, default=""):
     return [item.strip() for item in raw.split(",") if item.strip()]
 
 
-def _bool_env(key, default=False):
-    raw = _env(key, "true" if default else "false")
-    return raw.strip().lower() in {"1", "true", "yes", "on"}
-
-
-def _merge_unique(values, extras):
-    merged = []
-    seen = set()
-    for value in [*values, *extras]:
-        cleaned = str(value or "").strip()
-        if not cleaned or cleaned in seen:
-            continue
-        seen.add(cleaned)
-        merged.append(cleaned)
-    return merged
-
-
-def _https_origin(host):
-    cleaned = str(host or "").strip().rstrip("/")
-    cleaned = cleaned.removeprefix("https://").removeprefix("http://")
-    return f"https://{cleaned}" if cleaned else ""
-
-
-def _sqlite_database_path():
-    default_db_path = BASE_DIR / "db.sqlite3"
-    if not IS_VERCEL:
-        return default_db_path
-
-    writable_db_path = Path("/tmp") / "db.sqlite3"
-    if default_db_path.exists() and not writable_db_path.exists():
-        shutil.copyfile(default_db_path, writable_db_path)
-    return writable_db_path
-
-
-def _database_config():
-    database_url = (
-        _env("DATABASE_URL", "").strip()
-        or _env("POSTGRES_URL", "").strip()
-        or _env("POSTGRES_URL_NON_POOLING", "").strip()
-    )
-
-    if not database_url:
-        return {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": _sqlite_database_path(),
-        }
-
-    parsed = urlparse(database_url)
-    scheme = parsed.scheme.lower()
-
-    if scheme in {"postgres", "postgresql", "psql"}:
-        query = parse_qs(parsed.query)
-        options = {}
-        sslmode = (query.get("sslmode") or [""])[-1].strip()
-        if sslmode:
-            options["sslmode"] = sslmode
-
-        config = {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": unquote((parsed.path or "").lstrip("/")),
-            "USER": unquote(parsed.username or ""),
-            "PASSWORD": unquote(parsed.password or ""),
-            "HOST": parsed.hostname or "",
-            "PORT": str(parsed.port or ""),
-        }
-        if options:
-            config["OPTIONS"] = options
-        return config
-
-    if scheme == "sqlite":
-        path = unquote(parsed.path or "").strip()
-        if path in {"", "/", ":memory:", "/:memory:"}:
-            name = ":memory:" if ":memory:" in path else _sqlite_database_path()
-        else:
-            name = path.lstrip("/")
-        return {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": name,
-        }
-
-    raise ImproperlyConfigured(
-        f"Unsupported database URL scheme '{scheme}'. Use sqlite or postgres."
-    )
-
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = _env('SECRET_KEY', 'django-insecure-+z*$czjy+qza6+nog8@p^22s4mr&nxca@r1t^hq$g8&hksx*m#').strip()
+SECRET_KEY = 'django-insecure-+z*$czjy+qza6+nog8@p^22s4mr&nxca@r1t^hq$g8&hksx*m#'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = _bool_env('DEBUG', False)
-VERCEL_URL = _env('VERCEL_URL', '').strip()
-IS_VERCEL = _bool_env('VERCEL', False) or bool(VERCEL_URL)
+DEBUG = False
 
-_DEFAULT_ALLOWED_HOSTS = [
+ALLOWED_HOSTS = [
     ".vercel.app",
     "localhost",
     "127.0.0.1",
 ]
-ALLOWED_HOSTS = _merge_unique(
-    _DEFAULT_ALLOWED_HOSTS,
-    _csv_env_list("ALLOWED_HOSTS", "") + ([VERCEL_URL] if VERCEL_URL else []),
-)
 
-_DEFAULT_CSRF_TRUSTED_ORIGINS = [
-    "http://127.0.0.1:8000",
-    "http://localhost:8000",
-    "https://*.vercel.app",
-]
-if VERCEL_URL:
-    _DEFAULT_CSRF_TRUSTED_ORIGINS.append(_https_origin(VERCEL_URL))
-CSRF_TRUSTED_ORIGINS = _merge_unique(
-    _DEFAULT_CSRF_TRUSTED_ORIGINS,
-    _csv_env_list("CSRF_TRUSTED_ORIGINS", ""),
+CSRF_TRUSTED_ORIGINS = _csv_env_list(
+    "CSRF_TRUSTED_ORIGINS",
+    "http://127.0.0.1:8000,http://localhost:8000"
 )
 
 
@@ -192,7 +91,6 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -224,14 +122,17 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'project2.wsgi.app'
+WSGI_APPLICATION = 'project2.wsgi.application'
 
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    'default': _database_config(),
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
 
 
@@ -276,39 +177,28 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STORAGES = {
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-    },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
-}
 
 STATICFILES_DIRS = [
     BASE_DIR / 'project2' / 'static',
 ]
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = (Path('/tmp') / 'media') if IS_VERCEL else BASE_DIR / "media"
-if IS_VERCEL:
-    FILE_UPLOAD_TEMP_DIR = '/tmp'
+MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-USE_X_FORWARDED_HOST = True
 
 # Email configuration.
 smtp_backend = 'django.core.mail.backends.smtp.EmailBackend'
-configured_email_backend = _env('EMAIL_BACKEND', '').strip()
-EMAIL_BACKEND = configured_email_backend or smtp_backend
+EMAIL_BACKEND = _env('EMAIL_BACKEND', '').strip()
+if not EMAIL_BACKEND:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' if DEBUG else smtp_backend
 
 EMAIL_HOST = _env('EMAIL_HOST', 'smtp.gmail.com').strip()
 EMAIL_PORT = int(_env('EMAIL_PORT', '587'))
 EMAIL_HOST_USER = _env('EMAIL_HOST_USER', 'pandapulse.donotreply@gmail.com').strip()
 raw_google_app_password = _env('GOOGLE_APP_PASSWORD', '').strip()
 raw_email_password = _env('EMAIL_HOST_PASSWORD', '').strip()
-EMAIL_HOST_PASSWORD = (raw_google_app_password or raw_email_password).replace(' ', '').replace('-', '')
+EMAIL_HOST_PASSWORD = (raw_google_app_password or raw_email_password).replace(' ', ' ').replace('-', ' ')
 EMAIL_USE_TLS = _env('EMAIL_USE_TLS', 'true').lower() == 'true'
 EMAIL_USE_SSL = _env('EMAIL_USE_SSL', 'false').lower() == 'true'
 EMAIL_TIMEOUT = int(_env('EMAIL_TIMEOUT', '20'))
@@ -317,15 +207,19 @@ GOOGLE_MAPS_API_KEY = _env('GOOGLE_MAPS_API_KEY', '').strip()
 
 _placeholder_users = {'example@gmail.com', 'your-email@gmail.com'}
 _placeholder_passwords = {'abcdabcdabcdabcd', 'yourapppassword', 'changeme'}
-has_real_smtp_credentials = (
-    bool(EMAIL_HOST_USER and EMAIL_HOST_PASSWORD)
-    and EMAIL_HOST_USER.lower() not in _placeholder_users
-    and EMAIL_HOST_PASSWORD.lower() not in _placeholder_passwords
-)
-if not configured_email_backend and not has_real_smtp_credentials:
+if (
+    DEBUG
+    and EMAIL_BACKEND == smtp_backend
+    and (
+        not EMAIL_HOST_USER
+        or not EMAIL_HOST_PASSWORD
+        or EMAIL_HOST_USER.lower() in _placeholder_users
+        or EMAIL_HOST_PASSWORD.lower() in _placeholder_passwords
+    )
+):
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-if configured_email_backend == smtp_backend and not has_real_smtp_credentials:
+if not DEBUG and EMAIL_BACKEND == smtp_backend and (not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD):
     raise ImproperlyConfigured(
         "SMTP email requires EMAIL_HOST_USER and EMAIL_HOST_PASSWORD (or GOOGLE_APP_PASSWORD)."
     )
