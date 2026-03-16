@@ -226,7 +226,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'api.wsgi.app'
+WSGI_APPLICATION = 'project2.wsgi.app'
 
 
 # Database
