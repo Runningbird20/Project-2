@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "python manage.py collectstatic --noinput",
+  "outputDirectory": "public",
   "rewrites": [
     {
       "source": "/(.*)",
