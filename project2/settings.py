@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 import os
 import shutil
-import tempfile
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
@@ -20,7 +19,6 @@ from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-TEMP_DIR = Path(tempfile.gettempdir())
 
 
 def _load_dotenv_file(path):
@@ -81,7 +79,7 @@ def _sqlite_database_path():
     if not IS_VERCEL:
         return default_db_path
 
-    writable_db_path = TEMP_DIR / "db.sqlite3"
+    writable_db_path = Path("/tmp") / "db.sqlite3"
     if default_db_path.exists() and not writable_db_path.exists():
         shutil.copyfile(default_db_path, writable_db_path)
     return writable_db_path
@@ -292,9 +290,9 @@ STATICFILES_DIRS = [
 ]
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = (TEMP_DIR / 'media') if IS_VERCEL else BASE_DIR / "media"
+MEDIA_ROOT = (Path('/tmp') / 'media') if IS_VERCEL else BASE_DIR / "media"
 if IS_VERCEL:
-    FILE_UPLOAD_TEMP_DIR = str(TEMP_DIR)
+    FILE_UPLOAD_TEMP_DIR = '/tmp'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
