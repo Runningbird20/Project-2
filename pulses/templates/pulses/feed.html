@@ -126,7 +126,7 @@
   {% for pulse in template_data.pulses %}
     <section class="pulse-item" id="pulse-wrapper-{{ pulse.id }}">
       <div class="pulse-bg-blur">
-        <video src="{{ pulse.video.url }}" muted loop playsinline></video>
+        <video src="{{ pulse.video.url }}" muted loop playsinline aria-hidden="true"></video>
       </div>
 
       <div class="pulse-content-row">
@@ -181,7 +181,6 @@
 </div>
 
 <script>
-/* JS Logic exactly as before */
 function toggleFullscreen(id) {
   const elem = document.getElementById(id);
   if (!document.fullscreenElement) {
@@ -205,8 +204,18 @@ function animateHeart(frame, id) {
   setTimeout(() => heart.classList.remove('animate'), 700);
 }
 
-function togglePlay(video) {
-  video.paused ? video.play() : video.pause();
+// Logic updated to handle dual playback
+function togglePlay(mainVideo) {
+  const container = mainVideo.closest('.pulse-item');
+  const bgVideo = container.querySelector('.pulse-bg-blur video');
+
+  if (mainVideo.paused) {
+    mainVideo.play();
+    bgVideo.play();
+  } else {
+    mainVideo.pause();
+    bgVideo.pause();
+  }
 }
 
 function copyPulseLink(btn) {
@@ -245,7 +254,14 @@ function copyPulseLink(btn) {
 
       if (entry.isIntersecting) {
         vids.forEach(v => v.play().catch(() => {}));
+        
+        // Sync Background and Foreground
         vids[1].ontimeupdate = () => {
+          // If bg drifts > 0.3s from main, snap it back
+          if (Math.abs(vids[0].currentTime - vids[1].currentTime) > 0.3) {
+            vids[0].currentTime = vids[1].currentTime;
+          }
+
           const pct = (vids[1].currentTime / vids[1].duration) * 100;
           if(bar) bar.style.width = pct + "%";
           if(seeker) seeker.value = pct;
@@ -260,18 +276,26 @@ function copyPulseLink(btn) {
 
   shell.addEventListener('input', (e) => {
     if (e.target.classList.contains('pulse-seeker')) {
-      const video = e.target.closest('.pulse-frame').querySelector('.pulse-video');
-      video.currentTime = (e.target.value / 100) * video.duration;
+      const item = e.target.closest('.pulse-item');
+      const vids = item.querySelectorAll('video');
+      const newTime = (e.target.value / 100) * vids[1].duration;
+      // Seek both videos together
+      vids.forEach(v => v.currentTime = newTime);
     }
   });
 
   shell.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-action='mute']");
     if (!btn) return;
-    const allVids = shell.querySelectorAll("video");
+    const allVids = shell.querySelectorAll(".pulse-video"); // Main videos only
     const state = !allVids[0].muted;
+    
+    // Only toggle the main content audio; background stays muted
     allVids.forEach(v => v.muted = state);
-    shell.querySelectorAll("[data-action='mute'] i").forEach(i => i.className = state ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill');
+    
+    shell.querySelectorAll("[data-action='mute'] i").forEach(i => 
+      i.className = state ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill'
+    );
   });
 
   window.addEventListener('keydown', (e) => {
