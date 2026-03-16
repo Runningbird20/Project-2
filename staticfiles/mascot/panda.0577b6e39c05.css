@@ -17,7 +17,7 @@
 #panda-mascot {
   position: fixed;
   /* Visual defaults to prevent top-left flicker on load */
-  left: 18px;
+  right: 18px;
   bottom: 18px;
   z-index: var(--panda-z);
   pointer-events: none;
@@ -218,7 +218,7 @@ html.dark-mode #panda-mascot .panda-bubble {
   }
 
   #panda-mascot {
-    left: 12px;
+    right: 12px;
     bottom: 14px;
   }
 
