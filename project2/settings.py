@@ -54,7 +54,7 @@ def _csv_env_list(key, default=""):
 SECRET_KEY = 'django-insecure-+z*$czjy+qza6+nog8@p^22s4mr&nxca@r1t^hq$g8&hksx*m#'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = [
     "pandapulse-k5lrex3az-runningbird20s-projects.vercel.app",
@@ -177,6 +177,7 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 STATICFILES_DIRS = [
     BASE_DIR / 'project2' / 'static',
