@@ -56,11 +56,7 @@ SECRET_KEY = 'django-insecure-+z*$czjy+qza6+nog8@p^22s4mr&nxca@r1t^hq$g8&hksx*m#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = _csv_env_list(
-    "ALLOWED_HOSTS",
-    "127.0.0.1,localhost",
-    "pandapulse.vercel.app",
-)
+ALLOWED_HOSTS = ['*']
 
 CSRF_TRUSTED_ORIGINS = _csv_env_list(
     "CSRF_TRUSTED_ORIGINS",
