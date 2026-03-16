@@ -58,7 +58,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = _csv_env_list(
     "ALLOWED_HOSTS",
-    "127.0.0.1,localhost"
+    "127.0.0.1,localhost",
+    "pandapulse.vercel.app",
 )
 
 CSRF_TRUSTED_ORIGINS = _csv_env_list(
