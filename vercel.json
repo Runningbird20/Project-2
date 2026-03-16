@@ -1,26 +1,23 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "python manage.py collectstatic --noinput",
-  "functions": {
-    "api/wsgi.py": {
-      "runtime": "python3.13",
-      "includeFiles": [
-        "staticfiles/**",
-        "db.sqlite3"
-      ],
-      "excludeFiles": [
-        ".git/**",
-        "**/__pycache__/**",
-        "media/**",
-        "resumes/**",
-        "**/tests*.py"
-      ]
+  "builds": [
+    {
+      "src": "project2/wsgi.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "15mb",
+        "runtime": "python3.12"
+      }
     }
-  },
+  ],
+  "buildCommand": "python manage.py collectstatic --noinput",
   "routes": [
     {
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
       "src": "/(.*)",
-      "dest": "api/wsgi.py"
+      "dest": "project2/wsgi.py"
     }
   ]
 }
