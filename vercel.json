@@ -24,7 +24,7 @@
 
     { 
         "src": "/(.*)", 
-        "dest": "/project2/index.py" 
+        "dest": "/api/index.py" 
     }
   ]
 
