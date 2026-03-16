@@ -4,17 +4,8 @@
   "functions": {
     "api/wsgi.py": {
       "runtime": "python3.13",
-      "includeFiles": [
-        "staticfiles/**",
-        "db.sqlite3"
-      ],
-      "excludeFiles": [
-        ".git/**",
-        "**/__pycache__/**",
-        "media/**",
-        "resumes/**",
-        "**/tests*.py"
-      ]
+      "includeFiles": "{staticfiles/**,db.sqlite3}",
+      "excludeFiles": "{.git/**,**/__pycache__/**,media/**,resumes/**,**/tests*.py}"
     }
   },
   "routes": [
