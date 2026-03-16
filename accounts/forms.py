@@ -368,6 +368,7 @@ class ProfileEditForm(ApplicantAddressFieldsMixin, forms.ModelForm):
             self.fields["email"].initial = user.email
         self.fields["country"].initial = "United States"
         if self.instance and self.instance.pk and not self.is_bound:
+            self.initial["skills"] = normalize_skills_csv(self.instance.skills)
             if any(
                 [
                     self.instance.address_line_1,

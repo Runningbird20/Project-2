@@ -8,6 +8,7 @@ from django.core.mail import send_mail
 from django.utils import timezone
 
 from accounts.models import Profile
+from project2.skills import split_skills_csv
 
 from .forms import InterviewFeedbackForm, InterviewSlotProposalForm
 from .models import InterviewSkillEndorsement, InterviewSlot
@@ -29,18 +30,7 @@ def normalize_skill_token(raw_value):
 
 
 def parse_skill_tokens(raw_value):
-    seen = set()
-    ordered = []
-    for token in str(raw_value or "").replace(";", ",").split(","):
-        skill = " ".join(token.split()).strip()
-        if not skill:
-            continue
-        key = skill.lower()
-        if key in seen:
-            continue
-        seen.add(key)
-        ordered.append(skill)
-    return ordered
+    return split_skills_csv(raw_value)
 
 
 def build_skill_badges_for_applicant(applicant):

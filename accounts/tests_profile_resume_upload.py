@@ -48,8 +48,8 @@ class ProfileResumeUploadTests(TestCase):
         profile = Profile.objects.get(user=self.user)
         self.assertTrue(bool(profile.resume_file))
         self.assertEqual(profile.resume_file_name, "candidate_resume.pdf")
-        self.assertEqual(profile.parsed_resume_skills, "python, django")
-        self.assertEqual(profile.skills, "python, django")
+        self.assertEqual(profile.parsed_resume_skills, "Python, Django")
+        self.assertEqual(profile.skills, "Python, Django")
 
     @patch("accounts.views.parse_resume", return_value={"skills": ["python"], "raw_text": "resume"})
     def test_profile_page_shows_open_resume_action_after_upload(self, _mock_parse_resume):
@@ -103,6 +103,17 @@ class ProfileResumeUploadTests(TestCase):
 
         self.assertEqual(response.status_code, 302)
         self.assertTrue(SkillOption.objects.filter(normalized_name="langchain").exists())
+
+    def test_profile_edit_normalizes_existing_lowercase_skills_for_display(self):
+        profile = Profile.objects.get(user=self.user)
+        profile.skills = "python, aws, mysql"
+        profile.save(update_fields=["skills"])
+
+        self.client.login(username="resume_owner", password="pass12345")
+        response = self.client.get(reverse("accounts.profile_edit"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'value="Python, AWS, MySQL"')
 
     def test_profile_resume_upload_rejects_non_pdf_files(self):
         with self.settings(MEDIA_ROOT=self.media_root):
