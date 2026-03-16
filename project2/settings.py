@@ -57,8 +57,7 @@ SECRET_KEY = 'django-insecure-+z*$czjy+qza6+nog8@p^22s4mr&nxca@r1t^hq$g8&hksx*m#
 DEBUG = False
 
 ALLOWED_HOSTS = [
-    "pandapulse-k5lrex3az-runningbird20s-projects.vercel.app",
-    ".vercel.app",
+    "*.vercel.app",
     "localhost",
     "127.0.0.1",
 ]
