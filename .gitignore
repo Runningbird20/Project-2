@@ -11,5 +11,3 @@ env/
 # Local secrets / IDE run config
 .env
 .vscode/
-public/static/
-staticfiles/

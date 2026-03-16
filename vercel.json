@@ -1,10 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "python manage.py collectstatic --noinput",
-  "rewrites": [
+  "routes": [
     {
-      "source": "/(.*)",
-      "destination": "/api/wsgi.py"
+      "src": "/(.*)",
+      "dest": "api/wsgi.py"
     }
   ]
 }
