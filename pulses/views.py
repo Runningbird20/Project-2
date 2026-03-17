@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 
@@ -33,4 +33,23 @@ def upload_pulse(request):
     pulse.save()
 
     messages.success(request, "Pulse uploaded!")
+    return redirect("pulses:feed")
+
+@login_required
+def delete_pulse(request, pulse_id):
+    """
+    Deletes a reel if the user is the owner or a staff member.
+    """
+    if request.method == "POST":
+        pulse = get_object_or_404(Pulse, id=pulse_id)
+
+        if pulse.user == request.user or request.user.is_staff:
+            if pulse.video:
+                pulse.video.delete(save=False)
+
+            pulse.delete()
+            messages.success(request, "Reel deleted.")
+        else:
+            messages.error(request, "You don't have permission to do that.")
+
     return redirect("pulses:feed")
